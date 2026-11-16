@@ -2,22 +2,29 @@
 
 ## 1. Where we are
 
-**M0 Foundations: built, gate partly open.** Updated 2026-11-16.
+**M1 Data and parsers: built, at its gate.** Updated 2026-11-16.
 
-Built and verified:
+Built and verified in M1:
 
-- Workspace, task runner, CI workflow.
-- Web shell: tokens, fonts, theme and language toggles; renders live backend data at 390 px and 1440 px, light and dark, with no console errors (`pnpm shots /`).
-- Convex backend on a local deployment: schema, `health:get`, typed env.
-- Model layer: registry, the single call path, ledger, daily budget guard; 18 unit tests on the registry.
-- `pnpm check` green: lint, formatting, typecheck of five projects, 22 tests. `pnpm build` green.
+- `packages/core`: GAEB DA XML reader and writer (phases 83 and 84), German number parsing, and a PDF table reader that keeps the page and rectangle of every field.
+- `data`: a seeded generator for the catalogue (254 products), the tender (1,170 positions), three supplier offers (two PDF layouts, one GAEB X84), 60 planted traps and the ground truth. See [DATA](DATA.md).
+- `pnpm seed`: writes `data/seed/`, parses it back with the real readers, loads Convex.
+- Convex tables `tenders`, `documents`, `positions`, `offerLines`; queries `tenders:get` and `tenders:position`.
+- `pnpm check` green: lint, formatting, typecheck of six projects, 56 tests.
 
-Open at the M0 gate:
+M1 gate evidence:
 
-- **`pnpm probe:llm` has not run.** There is no provider key on this machine yet. Add `OPENROUTER_API_KEY` to `.env.local`, run it, and commit `bench/results/provider_probe.json`.
-- `llm/client.ts` typechecks and deploys but has made no real call yet. The probe covers the same SDK features; the first real call through it happens in M2.
+- Same seed, same bytes: a test generates twice and compares, and a second test compares against the committed files.
+- Round trips: 1,170 of 1,170 positions from the X83; 994 of 994 wholesaler lines and 80 of 80 specialist lines from the PDFs, field for field, with no reader warnings; 847 of 847 priced positions from the X84.
+- Every price, quantity and total read from a PDF has a rectangle on the page that contains that value (3,222 checks).
+- The seed loads: 1,170 positions and 1,921 offer lines, passing schema validation.
 
-Next: M1, data and parsers. See [BUILD_PLAN](BUILD_PLAN.md).
+Still open from the M0 gate:
+
+- **`pnpm probe:llm` has not run.** There is no provider key on this machine yet. Add `OPENROUTER_API_KEY` to `.env.local`, run it, and commit `bench/results/provider_probe.json`. M2 cannot start its matcher without it.
+- `llm/client.ts` typechecks and deploys but has made no real call yet.
+
+Next: M2, pipeline, runtime and benchmarks. See [BUILD_PLAN](BUILD_PLAN.md).
 
 ## 2. Setup
 
@@ -28,10 +35,13 @@ corepack enable
 pnpm install
 cp .env.example .env.local      # add OPENROUTER_API_KEY
 pnpm dev                        # Convex local deployment + web on :3000
+pnpm seed load                  # in a second terminal: loads the demo tender
 pnpm check
 ```
 
 - The first `pnpm dev` on a machine without a Convex login asks whether to sign in. To skip that and use a local deployment with no account, run it once as `CONVEX_AGENT_MODE=anonymous pnpm dev`. The choice is saved in `services/backend/.env.local`.
+- A local Convex deployment only runs while `pnpm dev` does. `pnpm seed load` and `convex run` need it up.
+- After changing the Convex schema or `convex.config.ts`, `pnpm dev` regenerates `convex/_generated/`, which is committed.
 - `pnpm env:push` copies `.env.local` into the Convex deployment's environment. Run it after changing a model role or a key.
 - `pnpm shots` drives the Chrome installed on the machine.
 
@@ -44,6 +54,7 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 - **OpenRouter by default**, Anthropic direct as a switch (ADR-5).
 - **Own agent runtime on Convex**, not an agent framework (ADR-6).
 - **Synthetic data, fictional names** (ADR-1). No real company's name, branding or copy anywhere.
+- **The ground truth stays out of the database** (ADR-17). Only the benchmarks read `data/seed/truth.json`.
 
 ## 4. Working agreements
 
@@ -58,7 +69,8 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 - Provider key and the probe (see §1).
 - `pnpm-workspace.yaml` carries a release-age exception for `@anthropic-ai/sdk@1.9.0`, added by pnpm because that version was published on the day it was installed (ADR-13). Pinning `^1.8.0` and removing the exception is the stricter choice.
 - Convex cloud deployment and Vercel project: needed at M4, both need the owner's accounts.
-- Fictional names for the contractor, the suppliers and the building are chosen in M1 and checked against real company names before they are committed.
+- The web app does not show the loaded tender yet. That is M3.
+- The source viewer (M3) needs the PDFs served to the browser. They are committed under `data/seed/` and not yet copied to the web app.
 
 ## 6. Update protocol
 

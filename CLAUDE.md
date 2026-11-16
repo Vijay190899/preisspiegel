@@ -39,7 +39,8 @@ Rules:
 - `services/backend`: Convex (functions in `convex/`).
 - `packages/core`: pure logic shared by backend, bench and generator. No runtime-specific imports.
 - `data`: seeded tender generator. `bench`: benchmarks and the provider probe.
-- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm shots` · `pnpm probe:llm` · `pnpm env:push`. `pnpm seed` and `pnpm bench` arrive with M1 and M2.
+- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm seed` · `pnpm shots` · `pnpm probe:llm` · `pnpm env:push`. `pnpm bench` arrives with M2.
+- `pnpm seed generate` rewrites `data/seed/` and must be re-run whenever the generator changes; a test fails if the committed files are stale. `pnpm seed load` needs `pnpm dev` running.
 - Convex runs as a local deployment with no account in development. In a shell without a Convex login, set `CONVEX_AGENT_MODE=anonymous` for the first `convex dev`.
 
 ## Non-negotiables
@@ -51,6 +52,7 @@ Rules:
 - **LLMs never originate numbers.** Prices, quantities and totals are parsed from the source by code.
 - Every LLM call goes through the ledger and the daily budget guard.
 - Secrets live in `.env.local` and the Convex deployment env. Never in prompts, logs or commits.
+- **The pipeline never reads `data/seed/truth.json`.** Only the benchmarks do.
 - **Fictional names only.** No real company's name, branding or copy in the UI, the README or the docs. All data is synthetic and labelled as such.
 - In Convex code, read configuration from the typed `env` export, never `process.env`.
 

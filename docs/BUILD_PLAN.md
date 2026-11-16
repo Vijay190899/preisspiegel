@@ -18,10 +18,10 @@ Every milestone has a **gate**: the next one does not start until its checks pas
 
 ## M1 — Data and parsers
 
-- Catalogue: about 300 products across about 12 electrical classes, with typed attributes and labor minutes.
+- Catalogue: 254 products in 29 groups, with typed attributes, three wordings each and a labor time table.
 - LV: 1,170 positions in realistic German, written to GAEB DA XML X83.
 - Three supplier offers (two PDF layouts, one GAEB X84) with manufacturer shorthand, packaging units and partial coverage.
-- About 60 planted traps of eight kinds, with a ground-truth file.
+- Sixty planted traps of eight kinds, with a ground-truth file.
 - Parsers: GAEB X83 and X84; PDF lines with bounding boxes.
 - `pnpm seed`.
 - **Gate:**

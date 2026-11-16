@@ -8,7 +8,7 @@
 
 > An independent portfolio project. The contractor, the suppliers and the tender are fictional, and all data is synthetic ([docs/DATA.md](docs/DATA.md)).
 
-**Status: in progress.** The foundations are built (milestone M0). The data generator, the matching pipeline, the review UI and the public demo follow in M1 to M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
+**Status: in progress.** The foundations (M0) and the data and parsers (M1) are built: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps, read back by a GAEB reader and a PDF table reader that keep the source of every number. The matching pipeline, the review UI and the public demo follow in M2 to M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
 
 ## What it will demonstrate
 
@@ -67,12 +67,13 @@ corepack enable
 pnpm install
 cp .env.example .env.local      # add OPENROUTER_API_KEY
 pnpm dev                        # Convex local deployment + web on :3000
+pnpm seed load                  # in a second terminal: loads the demo tender into Convex
 pnpm check                      # eslint, prettier, tsc, vitest
 pnpm probe:llm                  # confirms which LLM features the provider supports
 pnpm shots /                    # screenshots at 390 and 1440 px, light and dark
 ```
 
-The first `pnpm dev` on a machine without a Convex login asks whether to sign in; `CONVEX_AGENT_MODE=anonymous pnpm dev` uses a local deployment with no account. `pnpm seed` arrives with milestone M1 and `pnpm bench` with M2.
+The first `pnpm dev` on a machine without a Convex login asks whether to sign in; `CONVEX_AGENT_MODE=anonymous pnpm dev` uses a local deployment with no account. `pnpm seed generate` rewrites the demo files under [`data/seed/`](data/seed) from the seed; [docs/DATA.md](docs/DATA.md) describes them. `pnpm bench` arrives with M2.
 
 ## License
 

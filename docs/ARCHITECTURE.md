@@ -32,30 +32,35 @@ scripts/               Gate tooling: screenshot.ts
 
 Root `package.json` scripts are the only entry points.
 
-| Command                 | Does                                                                                   |
-| ----------------------- | -------------------------------------------------------------------------------------- |
-| `pnpm check`            | ESLint, Prettier, typecheck of every project, Vitest                                   |
-| `pnpm dev`              | Convex (local deployment) and the web dev server on :3000                              |
-| `pnpm build`            | Production build of the web app                                                        |
-| `pnpm shots [path ...]` | Screenshots at 390 px and 1440 px, light and dark; fails on console errors or overflow |
-| `pnpm probe:llm`        | One cheap call per provider capability; writes `bench/results/provider_probe.json`     |
-| `pnpm env:push`         | Copies `.env.local` to the Convex deployment's environment                             |
-| `pnpm seed`             | M1                                                                                     |
-| `pnpm bench`            | M2                                                                                     |
+| Command                 | Does                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| `pnpm check`            | ESLint, Prettier, typecheck of every project, Vitest                                                   |
+| `pnpm dev`              | Convex (local deployment) and the web dev server on :3000                                              |
+| `pnpm build`            | Production build of the web app                                                                        |
+| `pnpm shots [path ...]` | Screenshots at 390 px and 1440 px, light and dark; fails on console errors or overflow                 |
+| `pnpm probe:llm`        | One cheap call per provider capability; writes `bench/results/provider_probe.json`                     |
+| `pnpm env:push`         | Copies `.env.local` to the Convex deployment's environment                                             |
+| `pnpm seed`             | Writes `data/seed/` from the seed, parses it back and loads Convex. `generate` and `load` run one half |
+| `pnpm bench`            | M2                                                                                                     |
 
 ## 3. Backend (services/backend)
 
-**Built:** schema with `llmLedger` and `llmSpend`; `health:get`; the model layer (§5); typed deployment env in `convex/convex.config.ts`.
+**Built:** the model layer (§5) with `llmLedger` and `llmSpend`; typed deployment env in `convex/convex.config.ts`; `health:get`; the tender tables below, loaded by `pnpm seed`, with `tenders:get` and `tenders:position`.
 
-**Planned (M1–M2):**
+| Table                  | Holds                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `tenders`, `documents` | A tender and its source files, with line counts                               |
+| `positions`            | LV positions: ordinal number, title path, short and long text, quantity, unit |
+| `offerLines`           | Supplier lines as read from the document, with the source of every field      |
 
-| Table                  | Holds                                                                                         |
-| ---------------------- | --------------------------------------------------------------------------------------------- |
-| `tenders`, `documents` | A tender and its source files                                                                 |
-| `positions`            | LV positions: ordinal, short and long text, quantity, unit, source location                   |
-| `offerLines`           | Supplier lines with a source location per field                                               |
-| `matches`              | Status, reason codes, candidates with check results, pricing breakdown, evidence, who decided |
-| `runs`, `runEvents`    | The append-only event log                                                                     |
+Rows refer to their tender by slug (ADR-15).
+
+**Planned (M2):**
+
+| Table               | Holds                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| `matches`           | Status, reason codes, candidates with check results, pricing breakdown, evidence, who decided |
+| `runs`, `runEvents` | The append-only event log                                                                     |
 
 **Agent runtime (planned, M2).** A run processes positions in batches. One action handles a batch concurrently, writes its events, and schedules the next batch. Steps are idempotent per run and position, so a run resumes after a failure. The event log is what the UI shows live and what replay mode plays back.
 
@@ -72,7 +77,12 @@ position ─► candidates (BM25 over offer lines)
 
 **Reason codes:** `SPEC_MISMATCH`, `UNIT_BASIS`, `PRICE_OUTLIER`, `QTY_MISMATCH`, `ALTERNATIVE_PRODUCT`, `NO_OFFER`, `AMBIGUOUS`, `ARITHMETIC`.
 
-**Built so far:** `packages/core/src/units.ts`. Three-phase apparent power to line current, I = S / (√3 · U). A cabinet offered as 138 kVA carries about 199 A at 400 V, which is how an offer in kVA is compared with a requirement in amps.
+**Built so far**, all in `packages/core`:
+
+- `gaeb.ts` reads and writes GAEB DA XML 3.2, phases 83 and 84, and turns a file into positions or offer lines. Each offer line points at the XML element every field came from.
+- `pdfTable.ts` reads an offer table out of PDF text. It finds the header row by what German offers call their columns, assigns text to columns by alignment, joins continuation lines, and keeps the page and rectangle of every field. It splits runs of numbers that a PDF reader merged across columns.
+- `numbers.ts` parses and formats German numbers. A value that does not look like a number is `null`, never a guess.
+- `units.ts`. Three-phase apparent power to line current, I = S / (√3 · U). A cabinet offered as 138 kVA carries about 199 A at 400 V, which is how an offer in kVA is compared with a requirement in amps.
 
 ## 5. Model layer (built)
 
@@ -143,7 +153,7 @@ LLM_MATCH_MODEL=claude-sonnet-5-5
 
 **Planned (M3):** overview, review queue, position detail with source viewer, virtualised table (TanStack Table and Virtual), Kalkulation, `/bench`.
 
-**Source viewer (planned).** `pdfjs-dist` extracts text items with coordinates; rows are rebuilt from them so every field keeps `{ document, page, box }`. The same library renders the page with the box drawn over it. Extraction runs in the seed script and in the browser, not in a Convex action.
+**Source viewer (planned).** Every offer line already carries the page and rectangle of each field (§4). The viewer renders that page with `pdfjs-dist` and draws the rectangle over it. Text extraction runs in the seed script today and would run in the browser for an upload; it never runs in a Convex action (ADR-16).
 
 ## 7. Hosting (planned, M4)
 
