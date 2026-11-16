@@ -43,6 +43,15 @@ describe('role defaults', () => {
     ).toMatchObject({ model: 'claude-sonnet-5-5', effort: 'high' })
   })
 
+  it('refuses a model the cost meter has no price for, before any call', () => {
+    expect(() =>
+      roleConfig('match', { LLM_MATCH_MODEL: 'vendor/some-model' }),
+    ).toThrow(/no entry in PRICES/)
+    expect(() =>
+      roleConfig('escalation', { LLM_ESCALATION_MODEL: 'claude-unknown-9' }),
+    ).toThrow(LlmConfigError)
+  })
+
   it('rejects an effort level that does not exist', () => {
     expect(() => roleConfig('match', { LLM_MATCH_EFFORT: 'extreme' })).toThrow(
       LlmConfigError,

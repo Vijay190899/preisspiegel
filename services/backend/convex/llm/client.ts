@@ -10,17 +10,19 @@ import {
   roleConfig,
   tokenUsage,
 } from './registry'
+import { readStructured } from './structured'
 import type { z } from 'zod'
 import type { ActionCtx } from '../_generated/server'
 import type { Role } from './registry'
+import type { StructuredFailure } from './structured'
 
 /**
  * The single call path to a model. It checks the daily budget, makes the call,
- * and writes the ledger row. Nothing else in the backend talks to the SDK.
+ * writes the ledger row, and only then reads the answer. Nothing else in the
+ * backend talks to the SDK.
  */
 
-export type LlmFailure =
-  'role_off' | 'daily_budget' | 'refusal' | 'max_tokens' | 'unparsed'
+export type LlmFailure = 'role_off' | 'daily_budget' | StructuredFailure
 
 export type LlmResult<T> =
   | { ok: true; value: T; model: string; usd: number }
@@ -34,6 +36,8 @@ export interface ParseRequest<TSchema extends z.ZodType> {
   user: string
   schema: TSchema
   maxTokens?: number
+  /** The run this call belongs to, so its spend can be capped and shown. */
+  runId?: string
 }
 
 /** One structured-output call for a role, validated against `schema`. */
@@ -41,6 +45,8 @@ export async function llmParse<TSchema extends z.ZodType>(
   ctx: ActionCtx,
   request: ParseRequest<TSchema>,
 ): Promise<LlmResult<z.infer<TSchema>>> {
+  // Configuration errors surface here, before anything is spent: an unknown
+  // provider, a model with no price, a capability the provider lacks.
   const config = roleConfig(request.role, env)
   if (config === null) {
     return { ok: false, reason: 'role_off', model: null, usd: 0 }
@@ -60,7 +66,10 @@ export async function llmParse<TSchema extends z.ZodType>(
     return { ok: false, reason: 'daily_budget', model: config.model, usd: 0 }
   }
 
-  const message = await createClient(env).messages.parse({
+  // `create`, not the SDK's `parse`: that one raises on text that does not fit
+  // the schema, and a raised error here would skip the ledger for a billed call.
+  const format = zodOutputFormat(request.schema)
+  const message = await createClient(env).messages.create({
     model: config.wireModel,
     max_tokens: request.maxTokens ?? 8000,
     system: [
@@ -75,10 +84,11 @@ export async function llmParse<TSchema extends z.ZodType>(
     messages: [{ role: 'user', content: request.user }],
     output_config: {
       ...(caps.effort ? { effort: config.effort } : {}),
-      format: zodOutputFormat(request.schema),
+      format: { type: format.type, schema: format.schema },
     },
   })
 
+  // Record what the call cost before looking at what it said.
   const usage = tokenUsage(message.usage)
   const usd = costUsd(config.model, usage)
   await ctx.runMutation(internal.llm.ledger.record, {
@@ -90,19 +100,15 @@ export async function llmParse<TSchema extends z.ZodType>(
     ...usage,
     usd,
     stopReason: message.stop_reason,
+    ...(request.runId === undefined ? {} : { runId: request.runId }),
   })
 
-  const failed = (reason: LlmFailure): LlmResult<z.infer<TSchema>> => ({
-    ok: false,
-    reason,
-    model: config.model,
-    usd,
-  })
-  if (message.stop_reason === 'refusal') return failed('refusal')
-  if (message.stop_reason === 'max_tokens') return failed('max_tokens')
-  if (message.parsed_output === null) return failed('unparsed')
-
-  return { ok: true, value: message.parsed_output, model: config.model, usd }
+  const answer = readStructured<z.infer<TSchema>>(message, (value) =>
+    request.schema.safeParse(value),
+  )
+  return answer.ok
+    ? { ok: true, value: answer.value, model: config.model, usd }
+    : { ok: false, reason: answer.reason, model: config.model, usd }
 }
 
 /** `YYYY-MM-DD` in UTC. Budgets and the ledger are keyed by this. */

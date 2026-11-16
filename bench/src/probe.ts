@@ -313,13 +313,17 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+/** The commit the probe ran on, marked `-dirty` if the tree had other changes. */
 function gitSha(): string {
-  try {
-    return execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
+  const git = (...args: Array<string>) =>
+    execFileSync('git', args, {
       cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim()
+  try {
+    const sha = git('rev-parse', '--short', 'HEAD')
+    return git('status', '--porcelain') === '' ? sha : `${sha}-dirty`
   } catch {
     return 'uncommitted'
   }

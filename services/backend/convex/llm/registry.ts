@@ -104,6 +104,12 @@ export function roleConfig(role: Role, env: Env): RoleConfig | null {
     )
   }
 
+  if (PRICES[model] === undefined) {
+    throw new LlmConfigError(
+      `${spec.modelVar} names "${model}", which has no entry in PRICES. A call to it could not be metered, so it is refused before it is made.`,
+    )
+  }
+
   const provider = resolveProvider(env)
   return {
     role,
@@ -135,7 +141,8 @@ const OPENROUTER_IDS: Partial<Record<string, string>> = {
 
 /**
  * Env vars always hold canonical IDs. On OpenRouter an ID that already
- * contains a slash passes through untouched, for model-comparison runs.
+ * contains a slash passes through untouched, for model-comparison runs; a
+ * role can only use one once it has a price in PRICES.
  */
 export function wireModel(provider: Provider, model: string): string {
   if (provider === 'anthropic' || model.includes('/')) return model

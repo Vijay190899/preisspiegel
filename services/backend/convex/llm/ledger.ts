@@ -27,6 +27,7 @@ export const record = internalMutation({
     cacheWriteTokens: v.number(),
     usd: v.number(),
     stopReason: v.union(v.string(), v.null()),
+    runId: v.optional(v.string()),
   },
   handler: async (ctx, entry) => {
     await ctx.db.insert('llmLedger', entry)
