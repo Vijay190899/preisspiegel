@@ -61,7 +61,7 @@ const HEADER_NAMES: Partial<Record<string, Column>> = {
 
 /** Rows that total or continue the table rather than offer something. */
 const SUMMARY_ROW =
-  /^(übertrag|zwischensumme|summe|gesamtsumme|gesamtbetrag|nettosumme|gesamt netto|netto|zzgl\.|mwst|umsatzsteuer|seite\b)/i
+  /^(übertrag|zwischensumme|summe|gesamtsumme|gesamtbetrag|nettosumme|gesamt netto|netto|zzgl\.|mwst|umsatzsteuer|seite)(?![a-zäöüß])/i
 
 const ARTICLE_IN_TEXT = /\bArt\.?-?\s?Nr\.?:?\s*([A-Z0-9][A-Z0-9\-._/]*)/i
 const ALTERNATIVE = /\balternativ/i
@@ -106,6 +106,8 @@ export function parseOfferPdf(
   const rows = groupRows(items)
 
   let columns: Array<ColumnSpec> | null = null
+  let sawHeader = false
+  const unheaded = new Set<number>()
   let columnsPage = -1
   let headerBaseline = 0
   let open: OpenLine | null = null
@@ -121,15 +123,19 @@ export function parseOfferPdf(
     if (header !== null) {
       // A header starts a table, or repeats it at the top of a new page.
       columns = header
+      sawHeader = true
+      unheaded.delete(row.page)
       columnsPage = row.page
       headerBaseline = row.baseline
       continue
     }
     if (columns === null) continue
     if (row.page !== columnsPage) {
-      // A page without its own header: the table has ended.
+      // A page without its own header: the table has ended. If that page
+      // still has rows that look priced, say so instead of dropping them.
       close()
       columns = null
+      unheaded.add(row.page)
       continue
     }
     if (row.baseline <= headerBaseline) continue
@@ -143,6 +149,11 @@ export function parseOfferPdf(
 
     const priced =
       isNumber(cells.unitPrice) || isNumber(cells.total) || isNumber(cells.qty)
+    if (priced && text === '') {
+      warnings.push(
+        `Page ${row.page}: a row with a price or quantity has no description and was not read.`,
+      )
+    }
     if (priced && text !== '') {
       close()
       open = {
@@ -180,6 +191,17 @@ export function parseOfferPdf(
     close()
   }
   close()
+
+  if (!sawHeader) {
+    warnings.push(
+      'No table header found: no row names a description column and a price or total column.',
+    )
+  }
+  for (const page of unheaded) {
+    warnings.push(
+      `Page ${page} has text after a table but no header row of its own; nothing on it was read.`,
+    )
+  }
 
   return { lines, warnings }
 }
@@ -265,9 +287,9 @@ function readHeader(row: Row): Array<ColumnSpec> | null {
 }
 
 /**
- * Puts each piece of text in a column. Text columns are left-aligned under
- * their header and number columns right-aligned, so a piece belongs to the
- * column whose left or right edge it lines up with most closely.
+ * Puts each piece of text in a column. A cell lines up with its header on the
+ * left edge, the right edge or the centre, so a piece belongs to the column
+ * it lines up with most closely on any of the three.
  */
 function assignCells(
   row: Row,
@@ -281,6 +303,7 @@ function assignCells(
       const distance = Math.min(
         Math.abs(item.x - spec.left),
         Math.abs(item.x + item.w - spec.right),
+        Math.abs(item.x + item.w / 2 - (spec.left + spec.right) / 2),
       )
       if (distance < bestDistance) {
         best = spec
