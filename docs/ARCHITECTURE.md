@@ -141,19 +141,22 @@ LLM_MATCH_MODEL=claude-sonnet-5-5
 - `stop_reason` is checked before content is used. `refusal`, `max_tokens` and an unparsed result are returned as typed failures, not thrown.
 - The system prompt is a frozen prefix with a cache breakpoint. Per-call content goes in the user turn.
 
-**One call path.** `llm/client.ts` exposes `llmParse(ctx, { role, system, user, schema })`. It checks the daily budget, calls the provider, and records the call. Nothing else talks to the SDK.
+**One call path.** `llm/client.ts` exposes `llmParse(ctx, { role, system, user, schema, runId })`. It checks the daily budget, calls the provider with `messages.create`, writes the ledger row, and only then reads the answer with `readStructured`, which never throws: a refusal, a cut-off and text that does not fit the schema all come back as typed failures (ADR-24). Nothing else talks to the SDK. A role that names a model without a price is refused before any call.
 
-**Cost meter.** Every call appends `{ day, at, provider, role, model, tokens by kind, usd, stopReason }` to `llmLedger` and adds to that day's row in `llmSpend`, in one mutation. The guard reads the day's total before each call and refuses once `LLM_DAILY_BUDGET_USD` is reached. A per-run cap (`RUN_MAX_USD`) is enforced by the runtime (M2).
+**Cost meter.** Every call appends `{ day, at, provider, role, model, tokens by kind, usd, stopReason }` to `llmLedger` and adds to that day's row in `llmSpend`, in one mutation. The guard reads the day's total before each call and refuses once `LLM_DAILY_BUDGET_USD` is reached. Rows carry the run id, so the runtime can enforce the per-run cap (`RUN_MAX_USD`, M2). A call that fails before a response arrives has no usage to record. `llmParse` has not made a real call yet; the first is in M2.
 
 **Estimated budget** (not yet measured; B1 will replace this): a matcher call of about 1,500 prompt tokens, half of them cached, and 600 output tokens costs about $0.0004 on Haiku 5.5, so a 1,170-position tender is about $0.45.
 
 ## 6. Frontend (apps/web)
 
-**Built:** TanStack Start with server rendering; TanStack Query bound to Convex through `@convex-dev/react-query`, so a query is rendered on the server and stays live in the browser. Tailwind v4 with tokens in `src/styles/tokens.css` exposed as utilities. IBM Plex Sans and Mono, self-hosted. Theme and locale toggles without a flash of the wrong theme (ADR-11).
+**Built:** TanStack Start with server rendering; TanStack Query bound to Convex through `@convex-dev/react-query`, so a query is rendered on the server and stays live in the browser. Tailwind v4 with tokens in `src/styles/tokens.css` exposed as utilities. Barlow, Barlow Condensed and IBM Plex Mono, self-hosted. Theme and locale toggles without a flash of the wrong theme (ADR-11). The design direction is "Planblatt" (ADR-20, [PRD §7](PRD.md#7-ux-principles-and-design-direction)).
 
-**Planned (M3):** overview, review queue, position detail with source viewer, virtualised table (TanStack Table and Virtual), Kalkulation, `/bench`.
+- **Overview** (`/`): the tender's title block, its one headline figure with a segmented bar, the document register and the structure of the Leistungsverzeichnis.
+- **Positions** (`/positionen`, `/positionen/$oz`): a virtualised, searchable list of all positions; the open position with what each supplier offers for it side by side; and the source viewer.
+- **Source viewer:** every underlined value is a link (`?quelle=a.0.unitPrice`). For a PDF it renders the page with `pdfjs-dist` and marks the rectangle the value was read from; for a GAEB file it shows the item's own lines, numbered as in the file, with the element marked.
+- **Jump:** ⌘K finds a position by ordinal number or text. J and K step through the list.
 
-**Source viewer (planned).** Every offer line already carries the page and rectangle of each field (§4). The viewer renders that page with `pdfjs-dist` and draws the rectangle over it. Text extraction runs in the seed script today and would run in the browser for an upload; it never runs in a Convex action (ADR-16).
+**Planned:** the split and euros at risk on the overview, the review queue, the checker's marks on flagged offers, Kalkulation with the copper control, run replay, `/bench`. All of these need the pipeline's results (M2).
 
 ## 7. Hosting (planned, M4)
 

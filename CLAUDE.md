@@ -56,11 +56,18 @@ Rules:
 - **Fictional names only.** No real company's name, branding or copy in the UI, the README or the docs. All data is synthetic and labelled as such.
 - In Convex code, read configuration from the typed `env` export, never `process.env`.
 
+## Audit at every gate
+
+An independent audit closes each milestone (ADR-23). A fresh agent with no part in the work re-runs the gate in a clean checkout, recounts every number in the docs, searches for breaches of the non-negotiables, and ranks what to tighten. Fix high-severity findings before reporting the gate. List the rest in `docs/HANDOVER.md` and log deviations in `docs/DECISIONS.md`. Give the user the auditor's verdict with the gate evidence, not a softened version of it.
+
 ## Frontend quality bar
+
+- The direction is "Planblatt" (ADR-20, PRD §7): a drawing sheet on a drafting table. Use the building blocks in `apps/web/src/styles/app.css`: `sheet` and `sheet-marked` for surfaces, `label` for field labels, `num` for figures in columns, `traceable` for a value that leads to its source. No rounded cards, no drop-in component library.
 
 - Tokens live in `apps/web/src/styles/tokens.css` and are the single source of colour. Use the Tailwind utilities mapped from them (`bg-surface`, `text-ink-2`), never raw hex in components.
 - Figures use the `num` class so columns line up.
-- Status colours carry meaning (auto, review, risk, info) and are never decoration.
+- Status colours carry meaning (approved, settled, open, caution) and are never decoration. They ship with a label or an icon, never colour alone. Any new chart colour goes through the `dataviz` skill's validator against both sheet colours.
+- Every value shown has a source. If it cannot be traced, it is not shown.
 - UI copy is German first with an English mirror in `src/lib/i18n.ts`. Domain terms stay German in both.
 - Honour `prefers-reduced-motion`. Keyboard access and visible focus on everything interactive.
 

@@ -2,26 +2,33 @@
 
 ## 1. Where we are
 
-**M1 Data and parsers: built, at its gate.** Updated 2026-11-16.
+**M0 and M1 are closed and audited. A first slice of the interface is built. M2 has not started.** Updated 2026-11-17.
 
-Built and verified in M1:
+Built and verified:
 
-- `packages/core`: GAEB DA XML reader and writer (phases 83 and 84), German number parsing, and a PDF table reader that keeps the page and rectangle of every field.
-- `data`: a seeded generator for the catalogue (254 products), the tender (1,170 positions), three supplier offers (two PDF layouts, one GAEB X84), 60 planted traps and the ground truth. See [DATA](DATA.md).
-- `pnpm seed`: writes `data/seed/`, parses it back with the real readers, loads Convex.
-- Convex tables `tenders`, `documents`, `positions`, `offerLines`; queries `tenders:get` and `tenders:position`.
-- `pnpm check` green: lint, formatting, typecheck of six projects, 56 tests.
+- **M0:** workspace, task runner, CI, model layer with cost meter. The provider probe passed on OpenRouter with `claude-haiku-5-5`: every check returned the expected shape, and prompt caching showed a cache read on the repeat call (`bench/results/provider_probe.json`).
+- **M1:** GAEB and PDF readers in `packages/core`; a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; `pnpm seed`; the tender tables in Convex. See [DATA](DATA.md).
+- **Interface:** the "Planblatt" design system; the overview; the positions workspace with a virtualised list, the open position with each supplier's offer side by side, and the source viewer that opens a PDF at the page a value was read from and marks it, or shows the GAEB item's lines; ⌘K jump. `pnpm shots` passes on the overview and on positions at 390 px and 1440 px in both themes.
+- `pnpm check` green: lint, formatting, typecheck of six projects, 93 tests. `pnpm build` green.
 
-M1 gate evidence:
+**Audit of M0 and M1: on plan, with gaps.** Every count in the docs was recounted and holds, every gate check that could be re-run passed, and no non-negotiable was breached. Fixed since:
 
-- Same seed, same bytes: a test generates twice and compares, and a second test compares against the committed files.
-- Round trips: 1,170 of 1,170 positions from the X83; 994 of 994 wholesaler lines and 80 of 80 specialist lines from the PDFs, field for field, with no reader warnings; 847 of 847 priced positions from the X84.
-- Every price, quantity and total read from a PDF has a rectangle on the page that contains that value (3,222 checks).
-- The seed loads: 1,170 positions and 1,921 offer lines, passing schema validation.
+- The model call path could bill a call without recording it when an answer was cut off or malformed. It now records first and returns a typed failure (ADR-24). A role can no longer name a model without a price. Ledger rows carry a run id.
+- The PDF reader dropped text silently in four cases. It now warns: no header found, a page without its own header, a priced row with no description. It also accepts centred headers and no longer mistakes an article named "Summen..." for a total. Twelve hand-written tables test it apart from the generator.
+- Claims in the docs that overstated were corrected (trap density, which attributes the mismatches use, what the rectangle check proves, what the probe proves).
+- Unlogged deviations are logged (ADR-25).
 
-The M0 gate is closed: `pnpm probe:llm` passed on OpenRouter with `claude-haiku-5-5` on 2026-11-17. Structured outputs, strict tools, effort and prompt caching all work; results are in `bench/results/provider_probe.json`. `llm/client.ts` has still made no real call; the first one happens in M2.
+Open from the audit, scheduled as the first tasks of M2 (see [BUILD_PLAN](BUILD_PLAN.md) and "What this data does not prove yet" in [DATA](DATA.md)):
 
-Next: M2, pipeline, runtime and benchmarks. See [BUILD_PLAN](BUILD_PLAN.md).
+- **The benchmark is too easy to mean much.** Six plain rules with no model reproduce the expected decision on 94.7% of positions, because most trap kinds leave a mark no clean line has. The generator needs clean lines with the same oddities, one price per article per offer, and a published no-model baseline.
+- Disputed expectations in the ground truth.
+- The GAEB reader mishandles mixed text and markup, some entities, prefixed namespaces and a missing quantity.
+- No PDF from other software is tested yet. A wrapped header ("Artikel-" over "Nr.") is still not recognised; the reader now says so instead of returning nothing quietly.
+- The ledger patches one row per call and will contend under a concurrent batch: record per batch in M2.
+
+`llm/client.ts` has still made no real call. The first is in M2.
+
+Next: M2, starting with the audit items above. The interface continues alongside.
 
 ## 2. Setup
 
@@ -53,6 +60,8 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 - **Own agent runtime on Convex**, not an agent framework (ADR-6).
 - **Synthetic data, fictional names** (ADR-1). No real company's name, branding or copy anywhere.
 - **The ground truth stays out of the database** (ADR-17). Only the benchmarks read `data/seed/truth.json`.
+- **The interface is a drawing sheet, built by hand on the tokens** (ADR-20, 21). No component library, no rounded cards.
+- **An independent audit closes every milestone** (ADR-23).
 
 ## 4. Working agreements
 
@@ -65,8 +74,9 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 ## 5. Open items
 
 - Convex cloud deployment and Vercel project: needed at M4, both need the owner's accounts.
-- The web app does not show the loaded tender yet. That is M3.
-- The source viewer (M3) needs the PDFs served to the browser. They are committed under `data/seed/` and not yet copied to the web app.
+- The interface shows offer lines that name a position by ordinal number. The specialist's lines, which carry none, appear once the pipeline has matched them.
+- Units arrive as each supplier prints them (ST, M, Stck, Mtr, RG, VE), and a PDF reader returns the micro sign as the Greek letter mu. Normalise before comparing or quoting.
+- Reloading the tender replaces four tables; once runs and matches exist, a reload needs a reset that clears them too.
 
 ## 6. Update protocol
 

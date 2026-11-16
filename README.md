@@ -8,7 +8,7 @@
 
 > An independent portfolio project. The contractor, the suppliers and the tender are fictional, and all data is synthetic ([docs/DATA.md](docs/DATA.md)).
 
-**Status: in progress.** The foundations (M0) and the data and parsers (M1) are built: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps, read back by a GAEB reader and a PDF table reader that keep the source of every number. The matching pipeline, the review UI and the public demo follow in M2 to M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
+**Status: in progress.** The foundations (M0) and the data and parsers (M1) are built: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps, read back by a GAEB reader and a PDF table reader that keep the source of every number. A first slice of the interface is in place: the tender overview, a searchable list of all positions, and a source viewer that opens the supplier's PDF at the page a price was read from and marks it. The matching pipeline, the review queue and the public demo follow in M2 to M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
 
 ## What it will demonstrate
 

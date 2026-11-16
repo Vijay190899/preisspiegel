@@ -20,18 +20,18 @@ Everything below is generated from one seed by `data/src/` and committed under `
 - **Three offers** that cover the tender only partly. 46 positions have no offer at all, 228 have one, 611 have two and 285 have three.
 - **Sixty traps**, each a line altered the way real offers go wrong:
 
-| Trap                  | Count | What was done                                                                                                                                                   | Supplier                           |
-| --------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `SPEC_MISMATCH`       | 12    | An article that differs in one attribute that matters: rated current, characteristic, poles, protection class, colour temperature                               | Wholesaler 10, specialist 2        |
-| `UNIT_BASIS`          | 8     | Four priced per 1000 where the supplier normally prices per 100 (still exact). Four quoted in rings or packs where the tender counts metres or pieces (unclear) | Wholesaler                         |
-| `PRICE_OUTLIER`       | 8     | The decimal point one place off                                                                                                                                 | Wholesaler 4, specialist 1, GAEB 3 |
-| `QTY_MISMATCH`        | 8     | Priced for a different quantity than asked                                                                                                                      | Wholesaler 4, GAEB 4               |
-| `ALTERNATIVE_PRODUCT` | 8     | Another make, marked "Alternativ", a little cheaper                                                                                                             | Wholesaler 6, specialist 2         |
-| `NO_OFFER`            | 8     | Removed from every supplier                                                                                                                                     | —                                  |
-| `AMBIGUOUS`           | 4     | Two lines for one position at different prices, neither marked as an alternative                                                                                | Wholesaler                         |
-| `ARITHMETIC`          | 4     | Quantity times price is not the printed total                                                                                                                   | One or two per supplier            |
+| Trap                  | Count | What was done                                                                                                                                                                                           | Supplier                           |
+| --------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `SPEC_MISMATCH`       | 12    | An article that differs in one attribute that matters: rated current (4), protection class (2), and one each of fitting type, conduit diameter, box width, wall type, number of gangs and luminous flux | Wholesaler 10, specialist 2        |
+| `UNIT_BASIS`          | 8     | Four priced per 1000 where the supplier normally prices per 100 (still exact). Four quoted in rings or packs where the tender counts metres or pieces (unclear)                                         | Wholesaler                         |
+| `PRICE_OUTLIER`       | 8     | The decimal point one place off                                                                                                                                                                         | Wholesaler 4, specialist 1, GAEB 3 |
+| `QTY_MISMATCH`        | 8     | Priced for a different quantity than asked                                                                                                                                                              | Wholesaler 4, GAEB 4               |
+| `ALTERNATIVE_PRODUCT` | 8     | Another make, marked "Alternativ", a little cheaper                                                                                                                                                     | Wholesaler 6, specialist 2         |
+| `NO_OFFER`            | 8     | Removed from every supplier                                                                                                                                                                             | —                                  |
+| `AMBIGUOUS`           | 4     | Two lines for one position at different prices, neither marked as an alternative                                                                                                                        | Wholesaler                         |
+| `ARITHMETIC`          | 4     | Quantity times price is not the printed total                                                                                                                                                           | One or two per supplier            |
 
-About three in a hundred lines of each offer are altered. The specialist's lines each answer several positions, so it carries fewer traps; one altered line there still affects every position it answers.
+Altered lines per offer: 38 of the wholesaler's 994 (3.8%), 6 of the specialist's 80 (7.5%) and 8 of the 847 priced GAEB positions (0.9%). A specialist line answers several positions, so one altered line there affects all of them.
 
 **The featured position** is `01.01.0020`: the tender asks for a site distribution cabinet rated 250 A, and the wholesaler's first line offers one stated as 138 kVA. Site cabinets are sold by apparent power, and 138 kVA is the 200 A size.
 
@@ -45,13 +45,24 @@ For every position: the product it asks for, the labor minutes per unit, every o
 
 ## Honesty notes
 
-- **The tender is not real.** Texts are written to read like an electrical LV, but the building, the contractor, the suppliers and the brands do not exist. Each invented name was searched for before it was committed, and three were replaced because they came too close to a real business. Any remaining resemblance is coincidental.
+- **The tender is not real.** Texts are written to read like an electrical LV, but the building, the contractor, the suppliers and the brands do not exist. Each invented name was put through a web search on 2026-11-16, and three were replaced because they came too close to a real business. No business was found under the exact names used; a common surname such as Osterholt will have namesakes. Any resemblance is coincidental.
 - **Labor minutes and prices are invented.** They are plausible, not taken from any published time-value table or price list.
 - **The benchmarks score the pipeline against the generator that wrote the data.** The generator and the pipeline share no code beyond the file readers. Offer texts are reworded with abbreviations, trade codes (`840` for 4000 K), article numbers and price units, one supplier gives no position references, and another gives no description of its own at all. That is still easier than real documents, and the README says so next to the numbers.
 - **The split was chosen, not discovered.** How many positions need review follows from how many traps were planted and how patchy the suppliers' coverage is. The 90.8% is what this tender expects, not a claim about tenders in general.
 - **No scanned documents.** Every PDF has a text layer.
 - **The GAEB files follow the DA XML 3.2 structure for the elements they use** (project info, ordinal-number breakdown, categories, items, quantities, texts, and unit price and total in phase 84). The element names were checked against a publicly available export. The files have not been run through the official GAEB checker.
 - **The PDF table reader knows what German offers call their columns.** It finds the header row by name and reads the table under it. A layout with unlabelled columns, or one where a PDF reader merges text across columns in ways other than runs of numbers, would need more.
+
+## What this data does not prove yet
+
+An independent audit of M0 and M1 found the following. They are open, and the first tasks of M2 address them before any benchmark is written.
+
+- **Most traps can be caught by a plain rule.** Seven of the eight trap kinds leave a mark that no clean line carries: a pack unit, the word "Alternativ", a second line for the same ordinal number, a total that does not multiply out, a quantity that differs from the tender's, a price roughly ten times its neighbours. Six such rules, with no model and no reading of the text, reproduce the expected decision on 1,108 of 1,170 positions (94.7%). Until clean lines carry the same oddities harmlessly, a benchmark here mostly measures those rules.
+- **Most lines are already linked.** 1,787 of 1,921 offer lines name their position by ordinal number. Only the 80 specialist lines and 54 wholesaler lines without one have to be matched from the text, and only the 12 `SPEC_MISMATCH` traps need the content of a line understood.
+- **Prices are noisier than a real offer.** The same article has a different unit price on every line of one offer. A real supplier quotes one price per article.
+- **Some expectations are disputable.** Where a flagged offer sits beside a cheaper clean one, the truth still expects review. Where the specialist quotes one article in place of another on a merged line, only the quantity sum gives it away. Positions with no offer are counted with the planted traps although nothing has to be detected there.
+- **The field-for-field reader tests compare against the generator's own drafts.** They prove the readers invert the generator's writers, through real PDF text extraction. Twelve hand-written tables now test the PDF reader on layouts it was not written alongside, and one hand-written file does the same for the GAEB reader. A PDF produced by other software is still missing.
+- **The rectangle check is containment.** It confirms a rectangle's text contains the value, which a quantity of 1 passes easily. It checks price, quantity and total, not price unit, list price or discount.
 
 ## Pipeline
 

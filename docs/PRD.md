@@ -60,13 +60,37 @@ _Accepted when:_ a recorded run replays with no model calls, and a live run stay
 
 **Cut first, in this order:** upload your own X83, X84 export, the investigator agent, B4, the showcase animation, the English toggle, the `/bench` page, the copper control, the third supplier format.
 
-## 7. UX principles
+## 7. UX principles and design direction
+
+**Principles**
 
 - **Attention is the scarce resource.** The default view is what needs a decision, sorted by what it costs to get wrong.
 - **Show the arithmetic.** A flag without its numbers is an opinion.
 - **One click to the source.** If a figure cannot be traced, it is not shown.
 - **Dense and calm.** An estimator's working surface: tabular figures, restrained colour, status colours only where they mean something.
 - **German first.** Domain terms stay as the trade uses them.
+
+**Direction: "Planblatt"**
+
+The people this is for read plans all day, so the interface is built like one: a drawing sheet on a drafting table.
+
+| Element           | What it borrows                                                        | Where                                                |
+| ----------------- | ---------------------------------------------------------------------- | ---------------------------------------------------- |
+| Title block       | The ruled field grid in the corner of every drawing (Schriftfeld)      | Introduces the tender and each position              |
+| Sheets            | Square corners, a hairline frame, crop marks outside two corners       | Every surface                                        |
+| Drafting grid     | Fine squares with a heavier line every fifth                           | The table the sheets lie on                          |
+| Lettering         | Condensed capitals for field labels, as lettered on drawings           | `label`                                              |
+| Checker's marks   | A ruled box, a leader and a note, the way a plan checker marks a sheet | Where a value was read; later, what needs a decision |
+| Document register | The numbered list of sheets that comes with a drawing set              | The tender's source documents                        |
+
+- **Themes:** "Papier" (plan paper, ink) and "Blaupause" (a blueprint: deep blue, pale lines). Both are designed, neither is an inversion of the other.
+- **Colour:** ink does the work. Copper is the one accent, the colour of what an electrician pulls through the building. Green means a person signed it off, blue means the system settled it, red means it needs a decision. In one bar they sit in that order, which passes the colour-blindness check; green beside red does not (ADR-22).
+- **Type:** Barlow for text, Barlow Condensed for labels, IBM Plex Mono for figures in columns. The one headline figure of a view stays in the text face.
+- **Shape and motion:** no rounded cards. Motion is short (140 to 240 ms) and means something: content settles onto the sheet, a marker draws itself around the value it points at. `prefers-reduced-motion` is honoured.
+- **Keyboard:** ⌘K jumps to a position by ordinal number or text; J and K step through the list. The review queue will be fully keyboard-driven.
+- **Accessibility:** WCAG AA contrast in both themes, visible focus, no meaning by colour alone, no horizontal overflow at 390 px.
+
+Tokens live in `apps/web/src/styles/tokens.css`. `pnpm shots` checks every route at 390 px and 1440 px in both themes.
 
 ## 8. Functional requirements
 
