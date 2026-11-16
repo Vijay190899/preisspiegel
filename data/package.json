@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@preisspiegel/core": "workspace:*"
+    "@preisspiegel/core": "workspace:*",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.5.438"
   }
 }

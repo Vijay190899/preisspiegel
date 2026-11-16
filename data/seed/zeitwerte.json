@@ -1,0 +1,270 @@
+{
+  "note": "Labor time table of Ampenhof Elektrotechnik GmbH. Invented for the demo.",
+  "unit": "minutes per unit",
+  "entries": [
+    {
+      "key": "mcb.1p",
+      "label": "Leitungsschutzschalter 1-polig einbauen",
+      "unit": "St",
+      "minutes": 6
+    },
+    {
+      "key": "mcb.3p",
+      "label": "Leitungsschutzschalter 3-polig einbauen",
+      "unit": "St",
+      "minutes": 12
+    },
+    {
+      "key": "rcd.2p",
+      "label": "Fehlerstrom-Schutzschalter 2-polig einbauen",
+      "unit": "St",
+      "minutes": 15
+    },
+    {
+      "key": "rcd.4p",
+      "label": "Fehlerstrom-Schutzschalter 4-polig einbauen",
+      "unit": "St",
+      "minutes": 20
+    },
+    {
+      "key": "rcbo",
+      "label": "FI/LS-Schalter einbauen",
+      "unit": "St",
+      "minutes": 12
+    },
+    {
+      "key": "mccb.small",
+      "label": "Leistungsschalter bis 250 A einbauen",
+      "unit": "St",
+      "minutes": 60
+    },
+    {
+      "key": "mccb.large",
+      "label": "Leistungsschalter über 250 A einbauen",
+      "unit": "St",
+      "minutes": 120
+    },
+    {
+      "key": "isolator",
+      "label": "Lasttrennschalter einbauen",
+      "unit": "St",
+      "minutes": 30
+    },
+    {
+      "key": "site_cabinet",
+      "label": "Anschlussverteilerschrank aufstellen",
+      "unit": "St",
+      "minutes": 240
+    },
+    {
+      "key": "board.wall",
+      "label": "Wandverteiler montieren",
+      "unit": "St",
+      "minutes": 75
+    },
+    {
+      "key": "board.floor",
+      "label": "Standverteiler aufstellen",
+      "unit": "St",
+      "minutes": 240
+    },
+    {
+      "key": "main_board",
+      "label": "NSHV-Feld aufstellen und verbinden",
+      "unit": "St",
+      "minutes": 480
+    },
+    {
+      "key": "cable.s",
+      "label": "Leitung bis 2,5 mm² verlegen",
+      "unit": "m",
+      "minutes": 2.5
+    },
+    {
+      "key": "cable.m",
+      "label": "Leitung 4 bis 6 mm² verlegen",
+      "unit": "m",
+      "minutes": 3.5
+    },
+    {
+      "key": "cable.l",
+      "label": "Kabel 10 bis 16 mm² verlegen",
+      "unit": "m",
+      "minutes": 5
+    },
+    {
+      "key": "cable.xl",
+      "label": "Kabel 25 bis 50 mm² verlegen",
+      "unit": "m",
+      "minutes": 8
+    },
+    {
+      "key": "cable.xxl",
+      "label": "Kabel 70 bis 95 mm² verlegen",
+      "unit": "m",
+      "minutes": 12
+    },
+    {
+      "key": "cable.xxxl",
+      "label": "Kabel ab 120 mm² verlegen",
+      "unit": "m",
+      "minutes": 16
+    },
+    {
+      "key": "tray.s",
+      "label": "Kabelrinne bis 200 mm montieren",
+      "unit": "m",
+      "minutes": 12
+    },
+    {
+      "key": "tray.l",
+      "label": "Kabelrinne über 200 mm montieren",
+      "unit": "m",
+      "minutes": 18
+    },
+    {
+      "key": "tray.fitting",
+      "label": "Formteil Kabelrinne montieren",
+      "unit": "St",
+      "minutes": 15
+    },
+    {
+      "key": "conduit",
+      "label": "Installationsrohr verlegen",
+      "unit": "m",
+      "minutes": 4.5
+    },
+    {
+      "key": "trunking",
+      "label": "Installationskanal montieren",
+      "unit": "m",
+      "minutes": 10
+    },
+    {
+      "key": "device",
+      "label": "Installationsgerät einbauen",
+      "unit": "St",
+      "minutes": 12
+    },
+    {
+      "key": "device.box",
+      "label": "Dose setzen",
+      "unit": "St",
+      "minutes": 6
+    },
+    {
+      "key": "device.frame",
+      "label": "Abdeckrahmen aufsetzen",
+      "unit": "St",
+      "minutes": 2
+    },
+    {
+      "key": "device.cee",
+      "label": "CEE-Steckdose montieren",
+      "unit": "St",
+      "minutes": 25
+    },
+    {
+      "key": "device.sensor",
+      "label": "Melder montieren und einstellen",
+      "unit": "St",
+      "minutes": 25
+    },
+    {
+      "key": "device.floorbox",
+      "label": "Bodentank einbauen",
+      "unit": "St",
+      "minutes": 60
+    },
+    {
+      "key": "luminaire",
+      "label": "Leuchte montieren und anschließen",
+      "unit": "St",
+      "minutes": 25
+    },
+    {
+      "key": "luminaire.pendant",
+      "label": "Pendelleuchte montieren",
+      "unit": "St",
+      "minutes": 40
+    },
+    {
+      "key": "luminaire.rail",
+      "label": "Lichtband-Tragschiene montieren",
+      "unit": "St",
+      "minutes": 20
+    },
+    {
+      "key": "emergency",
+      "label": "Sicherheitsleuchte montieren",
+      "unit": "St",
+      "minutes": 25
+    },
+    {
+      "key": "data.cable",
+      "label": "Datenkabel verlegen",
+      "unit": "m",
+      "minutes": 2.5
+    },
+    {
+      "key": "data.outlet",
+      "label": "Datendose montieren und auflegen",
+      "unit": "St",
+      "minutes": 30
+    },
+    {
+      "key": "data.panel",
+      "label": "Patchpanel montieren und auflegen",
+      "unit": "St",
+      "minutes": 120
+    },
+    {
+      "key": "data.rack",
+      "label": "Netzwerkschrank aufstellen",
+      "unit": "St",
+      "minutes": 210
+    },
+    {
+      "key": "data.patch",
+      "label": "Patchkabel stecken",
+      "unit": "St",
+      "minutes": 1
+    },
+    {
+      "key": "data.accessory",
+      "label": "Schrankzubehör einbauen",
+      "unit": "St",
+      "minutes": 10
+    },
+    {
+      "key": "earth.bar",
+      "label": "Potentialausgleichsschiene montieren",
+      "unit": "St",
+      "minutes": 45
+    },
+    {
+      "key": "earth.strip",
+      "label": "Erder oder Ableitung verlegen",
+      "unit": "m",
+      "minutes": 7
+    },
+    {
+      "key": "earth.part",
+      "label": "Verbinder oder Halter montieren",
+      "unit": "St",
+      "minutes": 6
+    },
+    {
+      "key": "earth.rod",
+      "label": "Fangstange oder Anschlussfahne setzen",
+      "unit": "St",
+      "minutes": 25
+    },
+    {
+      "key": "surge",
+      "label": "Überspannungsschutz einbauen",
+      "unit": "St",
+      "minutes": 30
+    }
+  ]
+}
