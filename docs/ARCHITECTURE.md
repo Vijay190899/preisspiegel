@@ -1,0 +1,167 @@
+# Preisspiegel — Technical Architecture
+
+Each section says whether it is **built** or **planned**. [HANDOVER](HANDOVER.md) has the current state.
+
+## 1. System overview
+
+```mermaid
+flowchart LR
+  WEB["TanStack Start (React)"] -->|"live queries"| CVX["Convex: functions · database · scheduler"]
+  CVX --> RT["Agent runtime: event log + batches"]
+  RT --> CORE["packages/core: units · checks · pricing"]
+  RT --> LLM[["llm/client.ts → Claude Haiku 5.5"]]
+  SEED["data: seeded generator"] -->|"X83 · PDF · X84 · truth"| CVX
+  BENCH["bench"] -->|"scores against truth"| CVX
+```
+
+The web app subscribes to Convex queries, so every row updates as the run writes it. The agent runtime is Convex functions: actions call the model, mutations write the event log, and the scheduler chains the batches. All judgment that decides accept or flag is pure code in `packages/core`.
+
+## 2. Repository layout (built)
+
+```
+apps/web/              TanStack Start app: routes, components, styles/tokens.css
+services/backend/      Convex project: convex/schema.ts, convex/llm/, later agent/ pipeline/ ingest/
+packages/core/         Pure TypeScript shared by backend, bench and generator
+data/                  Seeded generator and data/seed/ (committed demo files)
+bench/                 Benchmarks, the provider probe, bench/results/*.json
+docs/                  PRD, ARCHITECTURE, BUILD_PLAN, DECISIONS, DATA, DEMO_SCRIPT, HANDOVER
+scripts/               Gate tooling: screenshot.ts
+```
+
+### Task runner
+
+Root `package.json` scripts are the only entry points.
+
+| Command                 | Does                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| `pnpm check`            | ESLint, Prettier, typecheck of every project, Vitest                                   |
+| `pnpm dev`              | Convex (local deployment) and the web dev server on :3000                              |
+| `pnpm build`            | Production build of the web app                                                        |
+| `pnpm shots [path ...]` | Screenshots at 390 px and 1440 px, light and dark; fails on console errors or overflow |
+| `pnpm probe:llm`        | One cheap call per provider capability; writes `bench/results/provider_probe.json`     |
+| `pnpm env:push`         | Copies `.env.local` to the Convex deployment's environment                             |
+| `pnpm seed`             | M1                                                                                     |
+| `pnpm bench`            | M2                                                                                     |
+
+## 3. Backend (services/backend)
+
+**Built:** schema with `llmLedger` and `llmSpend`; `health:get`; the model layer (§5); typed deployment env in `convex/convex.config.ts`.
+
+**Planned (M1–M2):**
+
+| Table                  | Holds                                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| `tenders`, `documents` | A tender and its source files                                                                 |
+| `positions`            | LV positions: ordinal, short and long text, quantity, unit, source location                   |
+| `offerLines`           | Supplier lines with a source location per field                                               |
+| `matches`              | Status, reason codes, candidates with check results, pricing breakdown, evidence, who decided |
+| `runs`, `runEvents`    | The append-only event log                                                                     |
+
+**Agent runtime (planned, M2).** A run processes positions in batches. One action handles a batch concurrently, writes its events, and schedules the next batch. Steps are idempotent per run and position, so a run resumes after a failure. The event log is what the UI shows live and what replay mode plays back.
+
+## 4. Pipeline (planned, M2)
+
+```
+position ─► candidates (BM25 over offer lines)
+         ─► matcher: typed attributes for both sides, each with a verbatim quote, and a proposal
+         ─► quote verification: every quote must be a substring of its source
+         ─► deterministic checks ─► reason codes
+         ─► auto-accept (all checks pass) | review queue
+         ─► pricing: material + labor + surcharge
+```
+
+**Reason codes:** `SPEC_MISMATCH`, `UNIT_BASIS`, `PRICE_OUTLIER`, `QTY_MISMATCH`, `ALTERNATIVE_PRODUCT`, `NO_OFFER`, `AMBIGUOUS`, `ARITHMETIC`.
+
+**Built so far:** `packages/core/src/units.ts`. Three-phase apparent power to line current, I = S / (√3 · U). A cabinet offered as 138 kVA carries about 199 A at 400 V, which is how an offer in kVA is compared with a requirement in amps.
+
+## 5. Model layer (built)
+
+**Every provider and model choice is an environment variable. No model ID or SDK client is created outside `services/backend/convex/llm/registry.ts`.** The defaults favour cost, and swapping is a one-line change.
+
+### 5.1 Provider
+
+One code path: the official `@anthropic-ai/sdk`, pointed at the chosen provider.
+
+| `LLM_PROVIDER`         | Client                                                                                                 | Model IDs                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `openrouter` (default) | `new Anthropic({ baseURL: 'https://openrouter.ai/api', authToken: OPENROUTER_API_KEY, apiKey: null })` | `claude-haiku-5-5` → `anthropic/claude-haiku-5.5`, and likewise for Sonnet 5.5 and Opus 5.5 |
+| `anthropic`            | `new Anthropic({ apiKey: ANTHROPIC_API_KEY })`                                                         | canonical IDs as they are                                                                   |
+
+- Env vars always hold **canonical IDs**. The registry maps them per provider. An ID that contains `/` passes through untouched on OpenRouter.
+- **Capability flags:** `effort`, `structured_outputs`, `strict_tools`, `prompt_cache`. Call sites check a flag and never branch on the provider name. A flag is switched off with `LLM_CAPS_OFF=effort,prompt_cache`; a misspelt name is an error.
+- **The probe** (`pnpm probe:llm`) makes one cheap call per capability on the matcher model and records the results. A failed check names the flag to switch off.
+- Attribution headers to OpenRouter (`X-Title`, `HTTP-Referer`) are sent only when `OPENROUTER_APP_NAME` or `OPENROUTER_SITE_URL` is set.
+
+### 5.2 Roles
+
+| Role         | Env var                  | Default            | Effort   | Used for                                                            |
+| ------------ | ------------------------ | ------------------ | -------- | ------------------------------------------------------------------- |
+| Matcher      | `LLM_MATCH_MODEL`        | `claude-haiku-5-5` | `low`    | One call per position: typed attributes with quotes, and a proposal |
+| Escalation   | `LLM_ESCALATION_MODEL`   | off                | `medium` | Second read of positions the matcher could not settle               |
+| Investigator | `LLM_INVESTIGATOR_MODEL` | `claude-haiku-5-5` | `low`    | Drafts a resolution for a flagged position                          |
+
+`LLM_<ROLE>_EFFORT` overrides the effort. A unit test asserts that no role defaults to a larger model.
+
+**Ladder:** deterministic checks → matcher → escalation model, if one is set → the review queue. With escalation off, unsettled positions go straight to the estimator.
+
+**Price table** (USD per million tokens, Anthropic first-party rates, checked 2026-11-16; kept in `registry.ts` for the cost meter):
+
+| Model                                          | Input | Output | Cache read | Cache write (5 min) |
+| ---------------------------------------------- | ----- | ------ | ---------- | ------------------- |
+| `claude-haiku-5-5`                             | 0.10  | 0.50   | 0.01       | 0.125               |
+| `claude-haiku-5-5`, prompt over 100,000 tokens | 0.50  | 2.50   | 0.05       | 0.625               |
+| `claude-sonnet-5-5`                            | 2.00  | 10.00  | 0.10       | 2.50                |
+| `claude-opus-5-5`                              | 4.00  | 20.00  | 0.20       | 5.00                |
+
+**Swap examples**
+
+```bash
+# Go direct to Anthropic instead of OpenRouter (same model IDs)
+LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=sk-ant-...
+# Turn escalation on for the positions the matcher could not settle
+LLM_ESCALATION_MODEL=claude-sonnet-5-5
+# A stronger matcher, for a comparison run
+LLM_MATCH_MODEL=claude-sonnet-5-5
+```
+
+**API rules for the current models**
+
+- Thinking is adaptive. No `budget_tokens`, `temperature`, `top_p` or `top_k`. Depth is set with `output_config.effort`.
+- No forced `tool_choice`. Structured output uses `client.messages.parse()` with `zodOutputFormat`; tools use `auto` plus `strict: true`.
+- `stop_reason` is checked before content is used. `refusal`, `max_tokens` and an unparsed result are returned as typed failures, not thrown.
+- The system prompt is a frozen prefix with a cache breakpoint. Per-call content goes in the user turn.
+
+**One call path.** `llm/client.ts` exposes `llmParse(ctx, { role, system, user, schema })`. It checks the daily budget, calls the provider, and records the call. Nothing else talks to the SDK.
+
+**Cost meter.** Every call appends `{ day, at, provider, role, model, tokens by kind, usd, stopReason }` to `llmLedger` and adds to that day's row in `llmSpend`, in one mutation. The guard reads the day's total before each call and refuses once `LLM_DAILY_BUDGET_USD` is reached. A per-run cap (`RUN_MAX_USD`) is enforced by the runtime (M2).
+
+**Estimated budget** (not yet measured; B1 will replace this): a matcher call of about 1,500 prompt tokens, half of them cached, and 600 output tokens costs about $0.0004 on Haiku 5.5, so a 1,170-position tender is about $0.45.
+
+## 6. Frontend (apps/web)
+
+**Built:** TanStack Start with server rendering; TanStack Query bound to Convex through `@convex-dev/react-query`, so a query is rendered on the server and stays live in the browser. Tailwind v4 with tokens in `src/styles/tokens.css` exposed as utilities. IBM Plex Sans and Mono, self-hosted. Theme and locale toggles without a flash of the wrong theme (ADR-11).
+
+**Planned (M3):** overview, review queue, position detail with source viewer, virtualised table (TanStack Table and Virtual), Kalkulation, `/bench`.
+
+**Source viewer (planned).** `pdfjs-dist` extracts text items with coordinates; rows are rebuilt from them so every field keeps `{ document, page, box }`. The same library renders the page with the box drawn over it. Extraction runs in the seed script and in the browser, not in a Convex action.
+
+## 7. Hosting (planned, M4)
+
+Web app on Vercel, backend on a Convex cloud deployment. The public site runs in replay mode; live runs need the access code.
+
+## 8. Security notes
+
+- Secrets live in `.env.local` and in the Convex deployment environment. Neither is committed, and neither reaches a prompt or a log.
+- Only `VITE_*` and `CONVEX_URL` reach the browser bundle.
+- Every model call is metered and capped per day; the public demo makes none.
+- All data is synthetic. There is no personal data.
+
+## 9. How this maps to a production system
+
+| Demo                          | Production                                                      |
+| ----------------------------- | --------------------------------------------------------------- |
+| One synthetic tender          | Tenants, projects, permissions, audit log                       |
+| Generated catalogue           | Datanorm, ETIM and BMEcat imports; wholesaler price feeds       |
+| Two PDF layouts               | Layout-agnostic extraction, OCR for scans                       |
+| Ground truth from a generator | Estimator decisions as labels, fed back into evaluation         |
+| Replay mode                   | Durable runs with retries, alerting and cost budgets per tenant |

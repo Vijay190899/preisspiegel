@@ -1,0 +1,69 @@
+# Preisspiegel — agent guide
+
+Tender pricing for electrical contractors: a Leistungsverzeichnis and supplier offers go in, every position comes out matched and priced, and the estimator sees only what needs a decision. Every number traces to its source. A public portfolio demo.
+
+## Verify every change
+
+**Find the cheapest check that actually proves the change works, run it, and only then move on, including between steps of one task.**
+
+| Change                                          | Sufficient check                                                                                                   |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Pure logic (`packages/core`, `llm/registry.ts`) | targeted `pnpm exec vitest run <file>` + `pnpm lint` + `pnpm typecheck`                                            |
+| Convex function                                 | push to the local deployment, `pnpm -C services/backend exec convex run <module>:<fn>`, assert the result shape    |
+| Parser or generator                             | round-trip test; same seed gives byte-identical output                                                             |
+| Pipeline or agent step                          | run the 120-position subset; check reason codes, ledger total and spend against `RUN_MAX_USD`                      |
+| LLM code                                        | one real call: check `stop_reason`, tokens and $ in the ledger, `cache_read_input_tokens > 0` on the repeat call   |
+| UI                                              | `pnpm shots <path>`: 390 px and 1440 px, light and dark, zero console errors, no overflow. Then look at the images |
+| Docs or config                                  | links resolve, JSON and YAML parse                                                                                 |
+
+Rules:
+
+- A failed check is fixed before anything else.
+- When reporting done, state the evidence (command and result).
+- Never call something done on an unverified change.
+- Run `pnpm check` before every commit and at each milestone gate.
+- Stop at every milestone gate, show the evidence, and wait for "go".
+
+## Read order (stop when you have enough)
+
+1. `docs/HANDOVER.md`: current state, setup, open items. **Update it at every milestone gate.**
+2. `docs/BUILD_PLAN.md`: the current milestone and its gate.
+3. Only the PRD and ARCHITECTURE sections the task touches.
+4. Before any Convex code: `services/backend/convex/_generated/ai/guidelines.md`. It overrides what you remember about Convex.
+5. Before any Anthropic SDK code: load the `claude-api` skill.
+
+## Stack and commands
+
+- pnpm workspace, TypeScript throughout, Node 24.
+- `apps/web`: TanStack Start, React 19, TanStack Query, Tailwind v4.
+- `services/backend`: Convex (functions in `convex/`).
+- `packages/core`: pure logic shared by backend, bench and generator. No runtime-specific imports.
+- `data`: seeded tender generator. `bench`: benchmarks and the provider probe.
+- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm shots` · `pnpm probe:llm` · `pnpm env:push`. `pnpm seed` and `pnpm bench` arrive with M1 and M2.
+- Convex runs as a local deployment with no account in development. In a shell without a Convex login, set `CONVEX_AGENT_MODE=anonymous` for the first `convex dev`.
+
+## Non-negotiables
+
+- **All LLM access goes through `services/backend/convex/llm/`.** `registry.ts` builds the client, maps model IDs and owns the price table. `client.ts` is the only call path. Never construct a client or write a model ID anywhere else.
+- **Model roles come from env.** Defaults: matcher and investigator `claude-haiku-5-5`, escalation off. Do not default any role to a larger model. A larger model is switched on only after a benchmark shows it earns its cost.
+- Current API rules: adaptive thinking (no `budget_tokens`); no `temperature`, `top_p` or `top_k`; no forced `tool_choice` (use `auto` plus `strict: true`); always check `stop_reason`; cache stable prefixes.
+- **The model proposes, code decides.** Every extracted attribute carries a verbatim quote that code verifies against the source. Auto-accept requires every deterministic check to pass.
+- **LLMs never originate numbers.** Prices, quantities and totals are parsed from the source by code.
+- Every LLM call goes through the ledger and the daily budget guard.
+- Secrets live in `.env.local` and the Convex deployment env. Never in prompts, logs or commits.
+- **Fictional names only.** No real company's name, branding or copy in the UI, the README or the docs. All data is synthetic and labelled as such.
+- In Convex code, read configuration from the typed `env` export, never `process.env`.
+
+## Frontend quality bar
+
+- Tokens live in `apps/web/src/styles/tokens.css` and are the single source of colour. Use the Tailwind utilities mapped from them (`bg-surface`, `text-ink-2`), never raw hex in components.
+- Figures use the `num` class so columns line up.
+- Status colours carry meaning (auto, review, risk, info) and are never decoration.
+- UI copy is German first with an English mirror in `src/lib/i18n.ts`. Domain terms stay German in both.
+- Honour `prefers-reduced-motion`. Keyboard access and visible focus on everything interactive.
+
+## Git
+
+- Small commits at each gate: `feat(m2): matcher step + quote verification`.
+- **Do not add `Co-Authored-By` trailers or any AI attribution to commits or PRs.**
+- Log deviations from the plan in `docs/DECISIONS.md` (one numbered line plus why).
