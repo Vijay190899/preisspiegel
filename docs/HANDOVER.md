@@ -19,10 +19,7 @@ M1 gate evidence:
 - Every price, quantity and total read from a PDF has a rectangle on the page that contains that value (3,222 checks).
 - The seed loads: 1,170 positions and 1,921 offer lines, passing schema validation.
 
-Still open from the M0 gate:
-
-- **`pnpm probe:llm` has not run.** There is no provider key on this machine yet. Add `OPENROUTER_API_KEY` to `.env.local`, run it, and commit `bench/results/provider_probe.json`. M2 cannot start its matcher without it.
-- `llm/client.ts` typechecks and deploys but has made no real call yet.
+The M0 gate is closed: `pnpm probe:llm` passed on OpenRouter with `claude-haiku-5-5` on 2026-11-17. Structured outputs, strict tools, effort and prompt caching all work; results are in `bench/results/provider_probe.json`. `llm/client.ts` has still made no real call; the first one happens in M2.
 
 Next: M2, pipeline, runtime and benchmarks. See [BUILD_PLAN](BUILD_PLAN.md).
 
@@ -34,6 +31,7 @@ Needs Node 24 and Corepack (ships with Node).
 corepack enable
 pnpm install
 cp .env.example .env.local      # add OPENROUTER_API_KEY
+pnpm env:push                   # with pnpm dev running: copies the key and model roles to Convex
 pnpm dev                        # Convex local deployment + web on :3000
 pnpm seed load                  # in a second terminal: loads the demo tender
 pnpm check
@@ -66,8 +64,6 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 
 ## 5. Open items
 
-- Provider key and the probe (see §1).
-- `pnpm-workspace.yaml` carries a release-age exception for `@anthropic-ai/sdk@1.9.0`, added by pnpm because that version was published on the day it was installed (ADR-13). Pinning `^1.8.0` and removing the exception is the stricter choice.
 - Convex cloud deployment and Vercel project: needed at M4, both need the owner's accounts.
 - The web app does not show the loaded tender yet. That is M3.
 - The source viewer (M3) needs the PDFs served to the browser. They are committed under `data/seed/` and not yet copied to the web app.

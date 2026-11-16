@@ -19,6 +19,7 @@ import {
   tokenUsage,
 } from '@preisspiegel/backend/llm/registry'
 import { z } from 'zod'
+import { loadLocalEnv } from '../../scripts/localEnv'
 import type { Capability, RoleConfig } from '@preisspiegel/backend/llm/registry'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -39,7 +40,7 @@ interface Outcome {
 }
 
 async function main(): Promise<void> {
-  loadEnvFile(resolve(repoRoot, '.env.local'))
+  loadLocalEnv()
 
   const config = roleConfig('match', process.env)
   if (config === null) {
@@ -310,14 +311,6 @@ function describeError(error: unknown): string {
     return `API error ${error.status}: ${error.message}`
   }
   return error instanceof Error ? error.message : String(error)
-}
-
-function loadEnvFile(path: string): void {
-  try {
-    process.loadEnvFile(path)
-  } catch {
-    // No .env.local: fall back to whatever the shell already exports.
-  }
 }
 
 function gitSha(): string {
