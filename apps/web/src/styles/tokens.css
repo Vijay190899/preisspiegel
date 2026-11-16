@@ -1,86 +1,139 @@
 /*
- * Design tokens. The single source of colour, type and spacing decisions.
+ * Design tokens: "Planblatt". The single source of colour, type and shape.
  * Prefixed `--t-` so they never collide with a component library's variables.
  *
- * Direction: an estimator's working surface. Warm paper, ink, and copper as the
- * one accent. Status colours carry meaning and are never used for decoration.
+ * The app is a drawing sheet on a drafting table. Light is plan paper, dark
+ * is a blueprint. Ink does the work; copper is the one accent, the colour of
+ * what an electrician actually pulls through the building. Checks are marked
+ * the way a plan checker marks a sheet: red for what needs a decision, green
+ * for what a person has signed off, blue for what was read and settled.
+ *
+ * Components never use raw hex. They use these tokens through the Tailwind
+ * names mapped in app.css.
  */
 
 :root {
   color-scheme: light;
 
-  /* Surfaces */
-  --t-bg: #f7f6f3;
-  --t-surface: #ffffff;
-  --t-surface-sunken: #f0eee9;
-  --t-border: #e0dcd3;
-  --t-border-strong: #c9c4b8;
+  /* The table and the sheets on it */
+  --t-bg: #efece4;
+  --t-surface: #fbfaf6;
+  --t-surface-raised: #ffffff;
+  --t-surface-sunken: #f1eee6;
+
+  /* Drafting grid */
+  --t-grid-minor: rgb(38 66 112 / 0.045);
+  --t-grid-major: rgb(38 66 112 / 0.085);
+
+  /* Lines: hairlines for structure, a frame line for sheets */
+  --t-line: #dcd7ca;
+  --t-line-strong: #b8b2a3;
+  --t-frame: #1a1d21;
 
   /* Ink */
-  --t-ink: #1b1d1f;
-  --t-ink-2: #55595e;
-  --t-ink-3: #7a7f85;
+  --t-ink: #15181c;
+  --t-ink-2: #464c54;
+  --t-ink-3: #666c74;
 
-  /* Accent: copper */
-  --t-accent: #b4581c;
-  --t-accent-hover: #9c4a15;
-  --t-accent-ink: #ffffff;
-  --t-accent-soft: #f6e7dc;
+  /* Accent: copper. `-ink` is the step that passes as body text. */
+  --t-accent: #b85c1e;
+  --t-accent-ink: #984812;
+  --t-accent-soft: #f6e6d8;
+  --t-on-accent: #ffffff;
 
-  /* Status */
-  --t-auto: #2e7d5b;
-  --t-auto-soft: #e3f1ea;
-  --t-review: #a66a12;
-  --t-review-soft: #f8ecd3;
-  --t-risk: #b3392f;
-  --t-risk-soft: #f8e1de;
-  --t-info: #2f6fb3;
-  --t-info-soft: #e1ecf8;
+  /*
+   * Check marks. Fills pass the dataviz validator against the sheet in this
+   * order: approved, settled, open. `-ink` steps are for text, `-soft` for
+   * washes behind it.
+   */
+  --t-approved: #178a5c;
+  --t-approved-ink: #0f6b47;
+  --t-approved-soft: #e2f2ea;
+  --t-settled: #2a5db0;
+  --t-settled-ink: #1f4e9e;
+  --t-settled-soft: #e3ebf8;
+  --t-open: #cf3f2d;
+  --t-open-ink: #ae2f1f;
+  --t-open-soft: #fbe6e2;
+  --t-caution: #9a6206;
+  --t-caution-soft: #f8ecd2;
+
+  /* What is not counted yet */
+  --t-idle: #c9c4b7;
+
+  /* The marker that shows where a number was read */
+  --t-marker: #cf3f2d;
+  --t-marker-wash: rgb(207 63 45 / 0.12);
+
+  --t-focus: #2a5db0;
 
   /* Type */
   --t-font-sans:
-    'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
-    sans-serif;
+    'Barlow', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --t-font-label:
+    'Barlow Condensed', 'Barlow', ui-sans-serif, system-ui, sans-serif;
   --t-font-mono:
     'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* Shape */
-  --t-radius-sm: 4px;
-  --t-radius: 6px;
-  --t-radius-lg: 10px;
-  --t-shadow: 0 1px 2px rgb(27 29 31 / 6%), 0 4px 12px rgb(27 29 31 / 5%);
+  /* Shape: sheets have square corners. Controls get a hint of radius. */
+  --t-radius: 3px;
+  --t-shadow-sheet:
+    0 1px 0 rgb(255 255 255 / 0.9) inset, 0 1px 2px rgb(40 36 26 / 0.06),
+    0 10px 24px -12px rgb(40 36 26 / 0.18);
+  --t-shadow-lifted:
+    0 2px 4px rgb(40 36 26 / 0.08), 0 24px 48px -16px rgb(40 36 26 / 0.3);
 
-  --t-focus: #2f6fb3;
+  --t-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-dur-fast: 140ms;
+  --t-dur: 240ms;
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --t-bg: #121416;
-  --t-surface: #1a1d20;
-  --t-surface-sunken: #15181a;
-  --t-border: #2c3136;
-  --t-border-strong: #3d444b;
+  --t-bg: #091526;
+  --t-surface: #0e1f38;
+  --t-surface-raised: #132845;
+  --t-surface-sunken: #0b1a30;
 
-  --t-ink: #ecedee;
-  --t-ink-2: #a9afb6;
-  --t-ink-3: #868d95;
+  --t-grid-minor: rgb(150 195 255 / 0.045);
+  --t-grid-major: rgb(150 195 255 / 0.09);
 
-  --t-accent: #e08a4a;
-  --t-accent-hover: #eb9a5e;
-  --t-accent-ink: #1a1206;
-  --t-accent-soft: #33231a;
+  --t-line: #1e3557;
+  --t-line-strong: #33507c;
+  --t-frame: #a9c4ea;
 
-  --t-auto: #5fbf95;
-  --t-auto-soft: #1a2c25;
-  --t-review: #e0a84a;
-  --t-review-soft: #332917;
-  --t-risk: #ee7a70;
-  --t-risk-soft: #36201e;
-  --t-info: #74a9e6;
-  --t-info-soft: #1b2836;
+  --t-ink: #e9f0fa;
+  --t-ink-2: #adbdd3;
+  --t-ink-3: #8497b1;
 
-  --t-shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 25%);
+  --t-accent: #e8935a;
+  --t-accent-ink: #f0a877;
+  --t-accent-soft: #33261f;
+  --t-on-accent: #1a0f06;
 
-  --t-focus: #74a9e6;
+  --t-approved: #2fae7a;
+  --t-approved-ink: #62d3a2;
+  --t-approved-soft: #12322f;
+  --t-settled: #4c8df0;
+  --t-settled-ink: #8bb6fb;
+  --t-settled-soft: #14305a;
+  --t-open: #e55c48;
+  --t-open-ink: #ff9281;
+  --t-open-soft: #3a2029;
+  --t-caution: #e6ae52;
+  --t-caution-soft: #33291d;
+
+  --t-idle: #2a4267;
+
+  --t-marker: #ff8a78;
+  --t-marker-wash: rgb(255 138 120 / 0.16);
+
+  --t-focus: #8bb6fb;
+
+  --t-shadow-sheet:
+    0 1px 0 rgb(170 205 255 / 0.06) inset, 0 1px 2px rgb(0 0 0 / 0.3),
+    0 14px 28px -14px rgb(0 0 0 / 0.6);
+  --t-shadow-lifted:
+    0 2px 4px rgb(0 0 0 / 0.3), 0 28px 56px -16px rgb(0 0 0 / 0.75);
 }

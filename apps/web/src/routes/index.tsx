@@ -1,81 +1,49 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { convexQuery } from '@convex-dev/react-query'
-import { api } from '@preisspiegel/backend/api'
+import { createFileRoute } from '@tanstack/react-router'
+import { DocumentRegister } from '~/components/overview/DocumentRegister'
+import { PositionsFigure, TitleMeters } from '~/components/overview/Figures'
+import { TitleBlock } from '~/components/overview/TitleBlock'
 import { useT } from '~/lib/i18n'
-import type { Translate } from '~/lib/i18n'
-
-const healthQuery = convexQuery(api.health.get, {})
+import { tenderQuery } from '~/lib/queries'
 
 export const Route = createFileRoute('/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(healthQuery),
-  component: Home,
+  loader: ({ context }) => context.queryClient.ensureQueryData(tenderQuery),
+  component: Overview,
 })
 
-function Home() {
+function Overview() {
   const t = useT()
+  const { data: tender } = useSuspenseQuery(tenderQuery)
+
+  if (tender === null) {
+    return (
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6">
+        <section className="sheet sheet-marked px-5 py-8 sm:px-8">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t('overview.empty.title')}
+          </h1>
+          <p className="mt-3 max-w-[60ch] text-ink-2">
+            {t('overview.empty.body')}
+          </p>
+        </section>
+      </div>
+    )
+  }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="rounded-lg border border-border bg-surface p-6 shadow-card sm:p-8">
-        <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-ink-3">
-          {t('home.eyebrow')}
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {t('home.empty.title')}
-        </h1>
-        <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-ink-2">
-          {t('home.empty.body')}
-        </p>
-      </section>
+    <div className="mx-auto grid w-full max-w-[1280px] gap-5 px-4 py-6 sm:px-6 sm:py-8">
+      <TitleBlock tender={tender} />
 
-      <SystemStatus t={t} />
-    </div>
-  )
-}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)]">
+        <PositionsFigure tender={tender} />
+        <DocumentRegister tender={tender} />
+      </div>
 
-const ROLES = ['match', 'escalation', 'investigator'] as const
+      <TitleMeters tender={tender} />
 
-function SystemStatus({ t }: { t: Translate }) {
-  const { data: health } = useSuspenseQuery(healthQuery)
-
-  return (
-    <aside className="rounded-lg border border-border bg-surface p-5 shadow-card">
-      <h2 className="text-[13px] font-semibold">{t('status.title')}</h2>
-
-      <dl className="mt-4 space-y-3 text-[13px]">
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-ink-2">{t('status.backend')}</dt>
-          <dd className="flex items-center gap-2 font-medium text-auto">
-            <span className="size-2 rounded-full bg-auto" aria-hidden="true" />
-            {t('status.connected')}
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-ink-2">{t('status.provider')}</dt>
-          <dd className="num">{health.provider}</dd>
-        </div>
-      </dl>
-
-      <h3 className="mt-5 border-t border-border pt-4 text-[13px] font-semibold">
-        {t('status.models')}
-      </h3>
-      <dl className="mt-3 space-y-2 text-[13px]">
-        {ROLES.map((role) => {
-          const model = health.models[role]
-          return (
-            <div key={role} className="flex items-center justify-between gap-4">
-              <dt className="text-ink-2">{t(`status.role.${role}`)}</dt>
-              <dd className={model === null ? 'num text-ink-3' : 'num'}>
-                {model ?? t('status.off')}
-              </dd>
-            </div>
-          )
-        })}
-      </dl>
-      <p className="mt-4 text-[12px] leading-relaxed text-ink-3">
-        {t('status.modelsHint')}
+      <p className="label !normal-case !tracking-normal">
+        {t('app.synthetic')}
       </p>
-    </aside>
+    </div>
   )
 }

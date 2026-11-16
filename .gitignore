@@ -24,3 +24,6 @@ coverage
 /data/out/
 /test-results/
 /playwright-report/
+
+# Source documents copied from data/seed for the viewer
+/apps/web/public/demo/

@@ -26,6 +26,8 @@ export const get = query({
       contractor: tender.contractor,
       currency: tender.currency,
       positionCount: tender.positionCount,
+      referencedPositionCount: tender.referencedPositionCount,
+      titles: tender.titles,
       documents: documents.map((document) => ({
         key: document.key,
         kind: document.kind,
@@ -35,30 +37,8 @@ export const get = query({
         date: document.date,
         pageCount: document.pageCount,
         lineCount: document.lineCount,
+        referenceCount: document.referenceCount,
       })),
     }
-  },
-})
-
-/** One position by its ordinal number, with the offer lines that refer to it. */
-export const position = query({
-  args: { slug: v.string(), oz: v.string() },
-  handler: async (ctx, { slug, oz }) => {
-    const found = await ctx.db
-      .query('positions')
-      .withIndex('by_tenderSlug_and_oz', (q) =>
-        q.eq('tenderSlug', slug).eq('oz', oz),
-      )
-      .unique()
-    if (found === null) return null
-
-    const referring = await ctx.db
-      .query('offerLines')
-      .withIndex('by_tenderSlug_and_posRef', (q) =>
-        q.eq('tenderSlug', slug).eq('posRef', oz),
-      )
-      .take(20)
-
-    return { position: found, referring }
   },
 })

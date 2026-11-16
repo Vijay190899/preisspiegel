@@ -4,6 +4,7 @@ import convexPlugin from '@convex-dev/eslint-plugin'
 
 export default defineConfig([
   globalIgnores([
+    '.claude/**',
     '**/_generated/**',
     '**/routeTree.gen.ts',
     '**/.output/**',

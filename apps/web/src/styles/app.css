@@ -1,6 +1,8 @@
-@import '@fontsource/ibm-plex-sans/latin-400.css';
-@import '@fontsource/ibm-plex-sans/latin-500.css';
-@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/barlow/latin-400.css';
+@import '@fontsource/barlow/latin-500.css';
+@import '@fontsource/barlow/latin-600.css';
+@import '@fontsource/barlow-condensed/latin-500.css';
+@import '@fontsource/barlow-condensed/latin-600.css';
 @import '@fontsource/ibm-plex-mono/latin-400.css';
 @import '@fontsource/ibm-plex-mono/latin-500.css';
 
@@ -14,51 +16,81 @@
 @theme inline {
   --color-bg: var(--t-bg);
   --color-surface: var(--t-surface);
+  --color-surface-raised: var(--t-surface-raised);
   --color-surface-sunken: var(--t-surface-sunken);
-  --color-border: var(--t-border);
-  --color-border-strong: var(--t-border-strong);
+
+  --color-line: var(--t-line);
+  --color-line-strong: var(--t-line-strong);
+  --color-frame: var(--t-frame);
 
   --color-ink: var(--t-ink);
   --color-ink-2: var(--t-ink-2);
   --color-ink-3: var(--t-ink-3);
 
   --color-accent: var(--t-accent);
-  --color-accent-hover: var(--t-accent-hover);
   --color-accent-ink: var(--t-accent-ink);
   --color-accent-soft: var(--t-accent-soft);
+  --color-on-accent: var(--t-on-accent);
 
-  --color-auto: var(--t-auto);
-  --color-auto-soft: var(--t-auto-soft);
-  --color-review: var(--t-review);
-  --color-review-soft: var(--t-review-soft);
-  --color-risk: var(--t-risk);
-  --color-risk-soft: var(--t-risk-soft);
-  --color-info: var(--t-info);
-  --color-info-soft: var(--t-info-soft);
+  --color-approved: var(--t-approved);
+  --color-approved-ink: var(--t-approved-ink);
+  --color-approved-soft: var(--t-approved-soft);
+  --color-settled: var(--t-settled);
+  --color-settled-ink: var(--t-settled-ink);
+  --color-settled-soft: var(--t-settled-soft);
+  --color-open: var(--t-open);
+  --color-open-ink: var(--t-open-ink);
+  --color-open-soft: var(--t-open-soft);
+  --color-caution: var(--t-caution);
+  --color-caution-soft: var(--t-caution-soft);
+  --color-idle: var(--t-idle);
 
+  --color-marker: var(--t-marker);
+  --color-marker-wash: var(--t-marker-wash);
   --color-focus: var(--t-focus);
 
   --font-sans: var(--t-font-sans);
+  --font-label: var(--t-font-label);
   --font-mono: var(--t-font-mono);
 
-  --radius-sm: var(--t-radius-sm);
+  --radius-sm: var(--t-radius);
   --radius-md: var(--t-radius);
-  --radius-lg: var(--t-radius-lg);
 
-  --shadow-card: var(--t-shadow);
+  --shadow-sheet: var(--t-shadow-sheet);
+  --shadow-lifted: var(--t-shadow-lifted);
+
+  --ease-sheet: var(--t-ease);
 }
 
 @layer base {
   html {
     font-family: var(--t-font-sans);
-    background: var(--t-bg);
+    font-size: 15px;
     color: var(--t-ink);
+    background-color: var(--t-bg);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
+  /*
+   * The drafting table: a fine grid with a heavier line every fifth square,
+   * fixed so sheets move over it.
+   */
   body {
     min-height: 100dvh;
+    background-color: var(--t-bg);
+    background-image:
+      linear-gradient(var(--t-grid-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--t-grid-major) 1px, transparent 1px),
+      linear-gradient(var(--t-grid-minor) 1px, transparent 1px),
+      linear-gradient(90deg, var(--t-grid-minor) 1px, transparent 1px);
+    background-size:
+      80px 80px,
+      80px 80px,
+      16px 16px,
+      16px 16px;
+    background-position: -1px -1px;
+    background-attachment: fixed;
   }
 
   :focus-visible {
@@ -66,11 +98,9 @@
     outline-offset: 2px;
   }
 
-  /* Every figure an estimator compares lines up in columns. */
-  .num {
-    font-family: var(--t-font-mono);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
+  ::selection {
+    background: var(--t-accent-soft);
+    color: var(--t-ink);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -81,5 +111,106 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+@layer components {
+  /* A field label, as lettered on a drawing: small, condensed, capitals. */
+  .label {
+    font-family: var(--t-font-label);
+    font-size: 0.733rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--t-ink-3);
+  }
+
+  /* Figures in columns line up. Big standalone figures stay proportional. */
+  .num {
+    font-family: var(--t-font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.015em;
+  }
+
+  /*
+   * A sheet: square corners, a hairline frame, and crop marks just outside
+   * two corners, as on a plotted drawing.
+   */
+  .sheet {
+    position: relative;
+    min-width: 0;
+    background: var(--t-surface);
+    border: 1px solid var(--t-line-strong);
+    box-shadow: var(--t-shadow-sheet);
+  }
+
+  .sheet-marked::before,
+  .sheet-marked::after {
+    content: '';
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    pointer-events: none;
+    border-color: var(--t-ink-3);
+    border-style: solid;
+  }
+
+  .sheet-marked::before {
+    top: -5px;
+    left: -5px;
+    border-width: 1px 0 0 1px;
+  }
+
+  .sheet-marked::after {
+    right: -5px;
+    bottom: -5px;
+    border-width: 0 1px 1px 0;
+  }
+
+  /* A number that can be traced: a dotted rule that turns into the marker. */
+  .traceable {
+    cursor: pointer;
+    border-radius: 2px;
+    text-decoration: underline dotted var(--t-line-strong);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    transition:
+      background-color var(--t-dur-fast) var(--t-ease),
+      text-decoration-color var(--t-dur-fast) var(--t-ease);
+  }
+
+  .traceable:hover,
+  .traceable[aria-pressed='true'] {
+    background: var(--t-marker-wash);
+    text-decoration: underline solid var(--t-marker);
+    text-decoration-thickness: 1.5px;
+  }
+
+  /* One-off entrance: content settles onto the sheet. */
+  .enter {
+    animation: enter var(--t-dur) var(--t-ease) both;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+
+  /* A stroke that draws itself, for markers and dimension lines. */
+  .draw {
+    /* Shapes using this set pathLength="1", so one dash is the whole outline. */
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw 520ms var(--t-ease) 80ms forwards;
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
   }
 }

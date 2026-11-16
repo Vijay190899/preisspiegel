@@ -100,6 +100,24 @@ async function load(prod: boolean): Promise<void> {
 
   const slug = TENDER.slug
   const suppliers = ['a', 'b', 'c'] as const
+
+  // Figures the overview shows, worked out once here instead of on every read.
+  const referenced = new Set(
+    suppliers.flatMap((key) =>
+      offerLines[key].flatMap((line) =>
+        line.posRef === null ? [] : [line.posRef],
+      ),
+    ),
+  )
+  const titles: Array<{ rno: string; label: string; positionCount: number }> =
+    []
+  for (const position of positions) {
+    const [title] = position.path
+    if (title === undefined) continue
+    const last = titles.at(-1)
+    if (last?.rno === title.rno) last.positionCount++
+    else titles.push({ ...title, positionCount: 1 })
+  }
   const tables: Record<string, Array<object>> = {
     tenders: [
       {
@@ -111,6 +129,8 @@ async function load(prod: boolean): Promise<void> {
         contractor: TENDER.contractor,
         currency: 'EUR',
         positionCount: positions.length,
+        referencedPositionCount: referenced.size,
+        titles,
       },
     ],
     documents: [
@@ -124,6 +144,7 @@ async function load(prod: boolean): Promise<void> {
         date: TENDER.issued,
         pageCount: null,
         lineCount: positions.length,
+        referenceCount: 0,
       },
       ...suppliers.map((key) => ({
         tenderSlug: slug,
@@ -135,6 +156,8 @@ async function load(prod: boolean): Promise<void> {
         date: SUPPLIERS[key].offerDate,
         pageCount: pageCounts[key],
         lineCount: offerLines[key].length,
+        referenceCount: offerLines[key].filter((line) => line.posRef !== null)
+          .length,
       })),
     ],
     positions: positions.map((position) => ({ tenderSlug: slug, ...position })),

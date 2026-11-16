@@ -4,7 +4,7 @@ import {
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
-import { AppShell } from '~/components/AppShell'
+import { AppShell } from '~/components/shell/AppShell'
 import { themeBootScript } from '~/lib/theme'
 import appCss from '~/styles/app.css?url'
 import type { ReactNode } from 'react'
@@ -63,9 +63,9 @@ function RootDocument({ children }: { children: ReactNode }) {
 
 function NotFound() {
   return (
-    <div className="py-16 text-center">
-      <p className="num text-sm text-ink-3">404</p>
-      <h1 className="mt-2 text-xl font-semibold">Seite nicht gefunden</h1>
+    <div className="mx-auto w-full max-w-[1280px] px-4 py-16 sm:px-6">
+      <p className="num text-ink-3">404</p>
+      <h1 className="mt-2 text-2xl font-semibold">Seite nicht gefunden</h1>
     </div>
   )
 }
@@ -73,12 +73,13 @@ function NotFound() {
 function RouteError({ error }: { error: unknown }) {
   const message = error instanceof Error ? error.message : String(error)
   return (
-    <div
-      role="alert"
-      className="rounded-lg border border-risk/40 bg-risk-soft p-4 text-sm"
-    >
-      <h1 className="font-semibold text-risk">Etwas ist schiefgelaufen</h1>
-      <p className="mt-1 break-words text-ink-2">{message}</p>
+    <div className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6">
+      <div role="alert" className="sheet border-open px-5 py-4">
+        <h1 className="font-semibold text-open-ink">
+          Etwas ist schiefgelaufen
+        </h1>
+        <p className="mt-1 break-words text-[0.93rem] text-ink-2">{message}</p>
+      </div>
     </div>
   )
 }

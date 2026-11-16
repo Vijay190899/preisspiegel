@@ -62,6 +62,9 @@ async function main(): Promise<void> {
             )
           }
 
+          // Let entrances finish and late content, such as a PDF page, draw.
+          await page.waitForTimeout(Number(process.env.SHOTS_WAIT_MS ?? 900))
+
           // A page wider than its viewport means something overflows.
           const overflow = await page.evaluate(
             () =>

@@ -10,33 +10,60 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PositionenRouteImport } from './routes/positionen'
+import { Route as PositionenIndexRouteImport } from './routes/positionen.index'
+import { Route as PositionenOzRouteImport } from './routes/positionen.$oz'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PositionenRoute = PositionenRouteImport.update({
+  id: '/positionen',
+  path: '/positionen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PositionenIndexRoute = PositionenIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PositionenRoute,
+} as any)
+const PositionenOzRoute = PositionenOzRouteImport.update({
+  id: '/$oz',
+  path: '/$oz',
+  getParentRoute: () => PositionenRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/positionen': typeof PositionenRouteWithChildren
+  '/positionen/$oz': typeof PositionenOzRoute
+  '/positionen/': typeof PositionenIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/positionen/$oz': typeof PositionenOzRoute
+  '/positionen': typeof PositionenIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/positionen': typeof PositionenRouteWithChildren
+  '/positionen/$oz': typeof PositionenOzRoute
+  '/positionen/': typeof PositionenIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/positionen' | '/positionen/$oz' | '/positionen/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/positionen/$oz' | '/positionen'
+  id: '__root__' | '/' | '/positionen' | '/positionen/$oz' | '/positionen/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PositionenRoute: typeof PositionenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +75,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/positionen': {
+      id: '/positionen'
+      path: '/positionen'
+      fullPath: '/positionen'
+      preLoaderRoute: typeof PositionenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/positionen/': {
+      id: '/positionen/'
+      path: '/'
+      fullPath: '/positionen/'
+      preLoaderRoute: typeof PositionenIndexRouteImport
+      parentRoute: typeof PositionenRoute
+    }
+    '/positionen/$oz': {
+      id: '/positionen/$oz'
+      path: '/$oz'
+      fullPath: '/positionen/$oz'
+      preLoaderRoute: typeof PositionenOzRouteImport
+      parentRoute: typeof PositionenRoute
+    }
   }
 }
 
+interface PositionenRouteChildren {
+  PositionenOzRoute: typeof PositionenOzRoute
+  PositionenIndexRoute: typeof PositionenIndexRoute
+}
+
+const PositionenRouteChildren: PositionenRouteChildren = {
+  PositionenOzRoute: PositionenOzRoute,
+  PositionenIndexRoute: PositionenIndexRoute,
+}
+
+const PositionenRouteWithChildren = PositionenRoute._addFileChildren(
+  PositionenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PositionenRoute: PositionenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

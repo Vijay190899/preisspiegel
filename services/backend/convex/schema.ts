@@ -33,6 +33,16 @@ export default defineSchema({
     contractor: v.string(),
     currency: v.string(),
     positionCount: v.number(),
+    /** Positions that at least one offer line names by ordinal number. */
+    referencedPositionCount: v.number(),
+    /** The top level of the Leistungsverzeichnis, in document order. */
+    titles: v.array(
+      v.object({
+        rno: v.string(),
+        label: v.string(),
+        positionCount: v.number(),
+      }),
+    ),
   }).index('by_slug', ['slug']),
 
   documents: defineTable({
@@ -47,6 +57,8 @@ export default defineSchema({
     pageCount: v.union(v.number(), v.null()),
     /** Positions in a tender, offer lines in an offer. */
     lineCount: v.number(),
+    /** Offer lines that name a tender position by its ordinal number. */
+    referenceCount: v.number(),
   }).index('by_tenderSlug_and_key', ['tenderSlug', 'key']),
 
   // One position of the Leistungsverzeichnis.
@@ -108,7 +120,11 @@ export default defineSchema({
     cacheWriteTokens: v.number(),
     usd: v.number(),
     stopReason: v.union(v.string(), v.null()),
-  }).index('by_day', ['day']),
+    /** The run the call belonged to, when it was made inside one. */
+    runId: v.optional(v.string()),
+  })
+    .index('by_day', ['day'])
+    .index('by_runId', ['runId']),
 
   // Running total per day, so the budget guard reads one document instead of
   // summing the ledger. Written in the same mutation as each ledger row.
