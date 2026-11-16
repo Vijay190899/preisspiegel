@@ -12,6 +12,7 @@ import type * as health from "../health.js";
 import type * as llm_client from "../llm/client.js";
 import type * as llm_ledger from "../llm/ledger.js";
 import type * as llm_registry from "../llm/registry.js";
+import type * as tenders from "../tenders.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   "llm/client": typeof llm_client;
   "llm/ledger": typeof llm_ledger;
   "llm/registry": typeof llm_registry;
+  tenders: typeof tenders;
 }>;
 
 /**
