@@ -3,40 +3,40 @@
   "model": "claude-haiku-5-5",
   "wire_model": "anthropic/claude-haiku-5.5",
   "sdk_version": "1.8.0",
-  "ran_at": "2026-11-16T23:16:39.679Z",
-  "git_sha": "f7a9ba0",
+  "ran_at": "2026-11-16T23:45:50.197Z",
+  "git_sha": "a8fe721",
   "checks": {
     "basic": {
       "ok": true,
       "detail": "stop_reason=end_turn text=\"ready\"",
       "usd": 0.000004,
-      "ms": 1006
+      "ms": 1094
     },
     "effort": {
       "ok": true,
       "detail": "output_config.effort=low accepted; stop_reason=end_turn",
       "usd": 0.000004,
-      "ms": 895
+      "ms": 811
     },
     "structured_outputs": {
       "ok": true,
       "detail": "parsed={\"article\":\"LS-Schalter B16 3-polig, 10 kA\",\"rated_current_a\":16,\"poles\":3}",
       "usd": 0.000056,
-      "ms": 1841
+      "ms": 1743
     },
     "strict_tools": {
       "ok": true,
       "detail": "stop_reason=tool_use input={\"query\":\"NYM-J 5x16\",\"max_results\":5}",
       "usd": 0.000083,
-      "ms": 924
+      "ms": 921
     },
     "prompt_cache": {
       "ok": true,
-      "detail": "first call cache_write=37827, second call cache_read=37827",
-      "usd": 0.005115,
-      "ms": 2176
+      "detail": "first call cache_write=37826, second call cache_read=37826",
+      "usd": 0.005114,
+      "ms": 3172
     }
   },
-  "total_usd": 0.005262,
+  "total_usd": 0.005261,
   "recommended_llm_caps_off": ""
 }
