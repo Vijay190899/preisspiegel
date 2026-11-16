@@ -1,0 +1,85 @@
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+
+@import 'tailwindcss';
+@import './tokens.css';
+
+/* Dark mode follows the `data-theme` attribute, not the OS query directly. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Expose the tokens as Tailwind utilities: bg-surface, text-ink-2, ... */
+@theme inline {
+  --color-bg: var(--t-bg);
+  --color-surface: var(--t-surface);
+  --color-surface-sunken: var(--t-surface-sunken);
+  --color-border: var(--t-border);
+  --color-border-strong: var(--t-border-strong);
+
+  --color-ink: var(--t-ink);
+  --color-ink-2: var(--t-ink-2);
+  --color-ink-3: var(--t-ink-3);
+
+  --color-accent: var(--t-accent);
+  --color-accent-hover: var(--t-accent-hover);
+  --color-accent-ink: var(--t-accent-ink);
+  --color-accent-soft: var(--t-accent-soft);
+
+  --color-auto: var(--t-auto);
+  --color-auto-soft: var(--t-auto-soft);
+  --color-review: var(--t-review);
+  --color-review-soft: var(--t-review-soft);
+  --color-risk: var(--t-risk);
+  --color-risk-soft: var(--t-risk-soft);
+  --color-info: var(--t-info);
+  --color-info-soft: var(--t-info-soft);
+
+  --color-focus: var(--t-focus);
+
+  --font-sans: var(--t-font-sans);
+  --font-mono: var(--t-font-mono);
+
+  --radius-sm: var(--t-radius-sm);
+  --radius-md: var(--t-radius);
+  --radius-lg: var(--t-radius-lg);
+
+  --shadow-card: var(--t-shadow);
+}
+
+@layer base {
+  html {
+    font-family: var(--t-font-sans);
+    background: var(--t-bg);
+    color: var(--t-ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--t-focus);
+    outline-offset: 2px;
+  }
+
+  /* Every figure an estimator compares lines up in columns. */
+  .num {
+    font-family: var(--t-font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

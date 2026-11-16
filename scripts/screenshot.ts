@@ -1,0 +1,102 @@
+/**
+ * `pnpm shots [path ...]`: screenshots of the running app at phone and desktop
+ * width, light and dark, and a report of anything the browser logged.
+ *
+ * Used at every milestone gate. It drives the Chrome already installed on the
+ * machine, so there is no browser to download. Exits non-zero on a console
+ * error, a failed request or a failed page load.
+ */
+import { mkdirSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { chromium } from 'playwright'
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const outDir = resolve(repoRoot, 'var/shots')
+const baseUrl = process.env.SHOTS_BASE_URL ?? 'http://localhost:3000'
+
+const viewports = [
+  { name: '390', width: 390, height: 844 },
+  { name: '1440', width: 1440, height: 900 },
+] as const
+const themes = ['light', 'dark'] as const
+
+async function main(): Promise<void> {
+  const paths = process.argv.slice(2)
+  if (paths.length === 0) paths.push('/')
+  mkdirSync(outDir, { recursive: true })
+
+  const browser = await chromium.launch({ channel: 'chrome' })
+  const problems: Array<string> = []
+
+  try {
+    for (const path of paths) {
+      for (const viewport of viewports) {
+        for (const theme of themes) {
+          const context = await browser.newContext({
+            viewport: { width: viewport.width, height: viewport.height },
+            colorScheme: theme,
+            deviceScaleFactor: 2,
+          })
+          const page = await context.newPage()
+          const label = `${path} @ ${viewport.name}px ${theme}`
+
+          page.on('console', (message) => {
+            if (message.type() === 'error') {
+              problems.push(`${label}: console error: ${message.text()}`)
+            }
+          })
+          page.on('pageerror', (error) => {
+            problems.push(`${label}: page error: ${error.message}`)
+          })
+          page.on('requestfailed', (request) => {
+            problems.push(`${label}: request failed: ${request.url()}`)
+          })
+
+          const response = await page.goto(new URL(path, baseUrl).href, {
+            waitUntil: 'networkidle',
+          })
+          if (response === null || !response.ok()) {
+            problems.push(
+              `${label}: HTTP ${response?.status() ?? 'no response'}`,
+            )
+          }
+
+          // A page wider than its viewport means something overflows.
+          const overflow = await page.evaluate(
+            () =>
+              document.documentElement.scrollWidth -
+              document.documentElement.clientWidth,
+          )
+          if (overflow > 0) {
+            problems.push(`${label}: horizontal overflow of ${overflow}px`)
+          }
+
+          const slug = path === '/' ? 'home' : path.replace(/[^a-z0-9]+/gi, '-')
+          const file = resolve(
+            outDir,
+            `${slug}-${viewport.name}-${theme}.png`.replace(/^-/, ''),
+          )
+          await page.screenshot({ path: file, fullPage: true })
+          console.log(`  ${label} -> ${file}`)
+          await context.close()
+        }
+      }
+    }
+  } finally {
+    await browser.close()
+  }
+
+  if (problems.length > 0) {
+    console.error(`\n${problems.length} problem(s):`)
+    for (const problem of problems) console.error(`  ${problem}`)
+    process.exitCode = 1
+  } else {
+    console.log('\nNo console errors, failed requests or overflow.')
+  }
+}
+
+main().catch((error: unknown) => {
+  console.error(error)
+  process.exitCode = 1
+})

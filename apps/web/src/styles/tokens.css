@@ -1,0 +1,86 @@
+/*
+ * Design tokens. The single source of colour, type and spacing decisions.
+ * Prefixed `--t-` so they never collide with a component library's variables.
+ *
+ * Direction: an estimator's working surface. Warm paper, ink, and copper as the
+ * one accent. Status colours carry meaning and are never used for decoration.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --t-bg: #f7f6f3;
+  --t-surface: #ffffff;
+  --t-surface-sunken: #f0eee9;
+  --t-border: #e0dcd3;
+  --t-border-strong: #c9c4b8;
+
+  /* Ink */
+  --t-ink: #1b1d1f;
+  --t-ink-2: #55595e;
+  --t-ink-3: #7a7f85;
+
+  /* Accent: copper */
+  --t-accent: #b4581c;
+  --t-accent-hover: #9c4a15;
+  --t-accent-ink: #ffffff;
+  --t-accent-soft: #f6e7dc;
+
+  /* Status */
+  --t-auto: #2e7d5b;
+  --t-auto-soft: #e3f1ea;
+  --t-review: #a66a12;
+  --t-review-soft: #f8ecd3;
+  --t-risk: #b3392f;
+  --t-risk-soft: #f8e1de;
+  --t-info: #2f6fb3;
+  --t-info-soft: #e1ecf8;
+
+  /* Type */
+  --t-font-sans:
+    'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --t-font-mono:
+    'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Shape */
+  --t-radius-sm: 4px;
+  --t-radius: 6px;
+  --t-radius-lg: 10px;
+  --t-shadow: 0 1px 2px rgb(27 29 31 / 6%), 0 4px 12px rgb(27 29 31 / 5%);
+
+  --t-focus: #2f6fb3;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --t-bg: #121416;
+  --t-surface: #1a1d20;
+  --t-surface-sunken: #15181a;
+  --t-border: #2c3136;
+  --t-border-strong: #3d444b;
+
+  --t-ink: #ecedee;
+  --t-ink-2: #a9afb6;
+  --t-ink-3: #868d95;
+
+  --t-accent: #e08a4a;
+  --t-accent-hover: #eb9a5e;
+  --t-accent-ink: #1a1206;
+  --t-accent-soft: #33231a;
+
+  --t-auto: #5fbf95;
+  --t-auto-soft: #1a2c25;
+  --t-review: #e0a84a;
+  --t-review-soft: #332917;
+  --t-risk: #ee7a70;
+  --t-risk-soft: #36201e;
+  --t-info: #74a9e6;
+  --t-info-soft: #1b2836;
+
+  --t-shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 25%);
+
+  --t-focus: #74a9e6;
+}
