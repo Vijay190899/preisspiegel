@@ -1,0 +1,11 @@
+{
+  "name": "@preisspiegel/bench",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.9.0",
+    "@preisspiegel/backend": "workspace:*",
+    "@preisspiegel/core": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}
