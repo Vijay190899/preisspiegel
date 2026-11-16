@@ -1,0 +1,10 @@
+{
+  /* Root-level config files and scripts. Each package has its own tsconfig. */
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    /* Scripts drive a browser, so callbacks passed to it use DOM types. */
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["*.ts", "scripts/**/*.ts"]
+}

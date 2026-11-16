@@ -1,0 +1,18 @@
+# Generated
+**/_generated/
+**/routeTree.gen.ts
+pnpm-lock.yaml
+
+# Build output and caches
+.nitro/
+.output/
+.tanstack/
+.convex/
+dist/
+coverage/
+
+# Assets and committed data
+apps/web/public/
+data/seed/
+bench/results/
+docs/assets/

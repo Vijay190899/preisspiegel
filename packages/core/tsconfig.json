@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    /* Runtime-agnostic: this code runs in Convex, the browser and Node. */
+    "types": []
+  },
+  "include": ["src/**/*.ts"]
+}

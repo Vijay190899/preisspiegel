@@ -1,0 +1,8 @@
+{
+  "name": "@preisspiegel/data",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@preisspiegel/core": "workspace:*"
+  }
+}

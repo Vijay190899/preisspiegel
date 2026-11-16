@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - services/*
+  - packages/*
+  - data
+  - bench
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@anthropic-ai/sdk@1.9.0'

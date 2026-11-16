@@ -1,0 +1,26 @@
+node_modules
+
+# Secrets and local environment
+.env
+.env.local
+.env.*.local
+
+# Build output and caches
+.DS_Store
+.cache
+.vercel
+.output
+.nitro
+.tanstack
+dist
+coverage
+*.tsbuildinfo
+
+# Convex local deployment state
+.convex
+
+# Generated at runtime
+/var/
+/data/out/
+/test-results/
+/playwright-report/
