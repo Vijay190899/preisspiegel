@@ -67,30 +67,30 @@ _Accepted when:_ a recorded run replays with no model calls, and a live run stay
 - **Attention is the scarce resource.** The default view is what needs a decision, sorted by what it costs to get wrong.
 - **Show the arithmetic.** A flag without its numbers is an opinion.
 - **One click to the source.** If a figure cannot be traced, it is not shown.
-- **Dense and calm.** An estimator's working surface: tabular figures, restrained colour, status colours only where they mean something.
+- **Calm first.** One headline, one sentence and one action per view. Detail opens when it is asked for: an offer row unfolds, a long description reads on, the source appears beside the number that was clicked.
 - **German first.** Domain terms stay as the trade uses them.
 
-**Direction: "Planblatt"**
+**Direction: "Schaltplan"**
 
-The people this is for read plans all day, so the interface is built like one: a drawing sheet on a drafting table.
+The people this is for read single-line diagrams and stand in front of switch cabinets, so the interface borrows from both. It replaces an earlier drawing-sheet direction that read as plain and crowded (ADR-26).
 
-| Element           | What it borrows                                                        | Where                                                |
-| ----------------- | ---------------------------------------------------------------------- | ---------------------------------------------------- |
-| Title block       | The ruled field grid in the corner of every drawing (Schriftfeld)      | Introduces the tender and each position              |
-| Sheets            | Square corners, a hairline frame, crop marks outside two corners       | Every surface                                        |
-| Drafting grid     | Fine squares with a heavier line every fifth                           | The table the sheets lie on                          |
-| Lettering         | Condensed capitals for field labels, as lettered on drawings           | `label`                                              |
-| Checker's marks   | A ruled box, a leader and a note, the way a plan checker marks a sheet | Where a value was read; later, what needs a decision |
-| Document register | The numbered list of sheets that comes with a drawing set              | The tender's source documents                        |
+| Element             | What it borrows                                                  | Where                                                                                                                       |
+| ------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Single-line diagram | Incomers feed a busbar; feeders go out below it through switches | The overview: the offers feed the Leistungsverzeichnis, and each title is a feeder whose bar is as long as it has positions |
+| Mounting plate      | The perforated plate a cabinet's modules are fixed to            | The background, lit from above                                                                                              |
+| Modules             | The units mounted on the plate                                   | The offers of a position, a document excerpt                                                                                |
+| Pilot lamps         | The small lamps that show a panel's state                        | An offer that was read in, a caution; later the status of every position                                                    |
+| Conductor           | Copper carries the current                                       | The open position in the list, the one primary action, an energised feeder                                                  |
+| Checker's mark      | A box drawn round a value on a document                          | Where a number was read: on the page, on the number that was clicked, and beside the panel's label                          |
 
-- **Themes:** "Papier" (plan paper, ink) and "Blaupause" (a blueprint: deep blue, pale lines). Both are designed, neither is an inversion of the other.
-- **Colour:** ink does the work. Copper is the one accent, the colour of what an electrician pulls through the building. Green means a person signed it off, blue means the system settled it, red means it needs a decision. In one bar they sit in that order, which passes the colour-blindness check; green beside red does not (ADR-22).
-- **Type:** Barlow for text, Barlow Condensed for labels, IBM Plex Mono for figures in columns. The one headline figure of a view stays in the text face.
-- **Shape and motion:** no rounded cards. Motion is short (140 to 240 ms) and means something: content settles onto the sheet, a marker draws itself around the value it points at. `prefers-reduced-motion` is honoured.
-- **Keyboard:** ⌘K jumps to a position by ordinal number or text; J and K step through the list. The review queue will be fully keyboard-driven.
-- **Accessibility:** WCAG AA contrast in both themes, visible focus, no meaning by colour alone, no horizontal overflow at 390 px.
+- **Themes:** light is the grey switch cabinets are painted in, with graphite text; dark is graphite with brighter copper. Both are designed, neither is an inversion of the other. A PDF page is shown as dark paper in the dark theme.
+- **Colour:** graphite does the work. Copper appears only where something is energised or is the next thing to do. Green means a person signed it off, blue means the system settled it, red means it needs a decision, amber is a caution. Side by side they sit in the order green, blue, red, which passes the colour-blindness check; green beside red does not (ADR-22).
+- **Type:** Archivo, one variable family whose width is the expressive axis: wide for a headline, narrow for a caption. IBM Plex Mono for codes only: ordinal numbers, article numbers, file contents. Labels are never set in capitals.
+- **Motion:** one sequence, on the overview: the diagram switches on (incomers, busbar, feeders, about two seconds) and then stays still. Everywhere else motion answers an action. The list's marker glides to the position that was opened. When a number is traced, the list gives its room to the document, a light passes down the page, and the mark draws itself where the light reaches the value. Transitions take 140 to 460 ms; the switching-on sequence and the page scan are longer on purpose. With `prefers-reduced-motion` every view is in its final state at once.
+- **Keyboard:** ⌘K jumps to a position by ordinal number or text. J and K step through the list. The list is one Tab stop with the arrow keys inside it. Esc closes the source. The review queue will be fully keyboard-driven.
+- **Accessibility:** a test checks the contrast of every colour pair in use, in both themes (`apps/web/src/styles/tokens.test.ts`). Visible focus, no meaning by colour alone, no horizontal overflow at 390 px.
 
-Tokens live in `apps/web/src/styles/tokens.css`. `pnpm shots` checks every route at 390 px and 1440 px in both themes.
+Tokens live in `apps/web/src/styles/tokens.css`. `pnpm shots` checks every route at 390, 1024, 1280 and 1440 px in both themes. `pnpm probe:ui` checks what a screenshot cannot: keyboard access, focus, hand-typed addresses, units and reduced motion.
 
 ## 8. Functional requirements
 

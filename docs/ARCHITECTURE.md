@@ -45,7 +45,7 @@ Root `package.json` scripts are the only entry points.
 
 ## 3. Backend (services/backend)
 
-**Built:** the model layer (§5) with `llmLedger` and `llmSpend`; typed deployment env in `convex/convex.config.ts`; `health:get`; the tender tables below, loaded by `pnpm seed`, with `tenders:get` and `tenders:position`.
+**Built:** the model layer (§5) with `llmLedger` and `llmSpend`; typed deployment env in `convex/convex.config.ts`; `health:get`; the tender tables below, loaded by `pnpm seed`, with `tenders:get`, `positions:list` and `positions:get`.
 
 | Table                  | Holds                                                                         |
 | ---------------------- | ----------------------------------------------------------------------------- |
@@ -137,7 +137,7 @@ LLM_MATCH_MODEL=claude-sonnet-5-5
 **API rules for the current models**
 
 - Thinking is adaptive. No `budget_tokens`, `temperature`, `top_p` or `top_k`. Depth is set with `output_config.effort`.
-- No forced `tool_choice`. Structured output uses `client.messages.parse()` with `zodOutputFormat`; tools use `auto` plus `strict: true`.
+- No forced `tool_choice`. Structured output uses `client.messages.create()` with `zodOutputFormat`, and the answer is read by `readStructured` (ADR-24); tools use `auto` plus `strict: true`.
 - `stop_reason` is checked before content is used. `refusal`, `max_tokens` and an unparsed result are returned as typed failures, not thrown.
 - The system prompt is a frozen prefix with a cache breakpoint. Per-call content goes in the user turn.
 
@@ -149,14 +149,18 @@ LLM_MATCH_MODEL=claude-sonnet-5-5
 
 ## 6. Frontend (apps/web)
 
-**Built:** TanStack Start with server rendering; TanStack Query bound to Convex through `@convex-dev/react-query`, so a query is rendered on the server and stays live in the browser. Tailwind v4 with tokens in `src/styles/tokens.css` exposed as utilities. Barlow, Barlow Condensed and IBM Plex Mono, self-hosted. Theme and locale toggles without a flash of the wrong theme (ADR-11). The design direction is "Planblatt" (ADR-20, [PRD §7](PRD.md#7-ux-principles-and-design-direction)).
+**Built:** TanStack Start with server rendering; TanStack Query bound to Convex through `@convex-dev/react-query`, so a query is rendered on the server and stays live in the browser. Tailwind v4 with tokens in `src/styles/tokens.css` exposed as utilities. Archivo (variable) and IBM Plex Mono, self-hosted. Motion comes from `motion`; counting figures from `@number-flow/react`. Theme and locale toggles without a flash of the wrong theme (ADR-11). The design direction is "Schaltplan" (ADR-26, [PRD §7](PRD.md#7-ux-principles-and-design-direction)); components are built by hand on the tokens (ADR-21).
 
-- **Overview** (`/`): the tender's title block, its one headline figure with a segmented bar, the document register and the structure of the Leistungsverzeichnis.
-- **Positions** (`/positionen`, `/positionen/$oz`): a virtualised, searchable list of all positions; the open position with what each supplier offers for it side by side; and the source viewer.
-- **Source viewer:** every underlined value is a link (`?quelle=a.0.unitPrice`). For a PDF it renders the page with `pdfjs-dist` and marks the rectangle the value was read from; for a GAEB file it shows the item's own lines, numbered as in the file, with the element marked.
+- **Overview** (`/`): the tender as a single-line diagram. `lib/schematic.ts` lays it out in drawing units and is tested; `components/overview/Schematic.tsx` only draws and animates. Each feeder links to its title's positions. Below 1024 px the same distribution is a list.
+- **Positions** (`/positionen`, `/positionen/$oz`): a virtualised, searchable list (TanStack Virtual, ADR-28) that is one Tab stop; the open position; and one row per offer with its price, which opens to quantity, list price, discount, total and article number. A wide screen opens the first position by itself.
+- **Source:** every underlined value is a link (`?quelle=a.0.unitPrice`), so a link to a position can carry its marked source. For a PDF, `pdfjs-dist` renders the page, never narrower than 640 px, scrolled to the rectangle the value was read from; for a GAEB file the item's own lines are shown, numbered as in the file, with the element marked. Below 1800 px the list gives its room to the document while a source is open (ADR-31); on a phone the document is a sheet from below.
 - **Jump:** ⌘K finds a position by ordinal number or text. J and K step through the list.
+- **Reduced motion:** `lib/pace.ts` keeps the starting state of every animation in the markup and removes the way there, so server and browser render the same thing and nothing waits for an animation.
+- **Checks:** `pnpm shots` (four widths, both themes, console errors, overflow) and `pnpm probe:ui` (keyboard, focus, hand-typed addresses, units, language, reduced motion). Contrast is a unit test over the tokens.
 
-**Planned:** the split and euros at risk on the overview, the review queue, the checker's marks on flagged offers, Kalkulation with the copper control, run replay, `/bench`. All of these need the pipeline's results (M2).
+**Planned:** the split and euros at risk on the overview, the review queue, tripped switches and the arithmetic on flagged offers, live status in the list during a run, Kalkulation with the copper control, run replay, `/bench`. All of these need the pipeline's results (M2).
+
+**Known costs:** the list query sends all positions (about 280 kB for 1,170); status for a live run must be a separate query. The GAEB source downloads the whole file to show one item; the excerpt should come from Convex.
 
 ## 7. Hosting (planned, M4)
 

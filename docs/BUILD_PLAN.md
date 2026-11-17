@@ -39,6 +39,7 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 - Ground truth: settle the disputed expectations and write the rule down in DATA.md (a flagged offer beside a cheaper clean one; the specialist's merged lines; positions with no offer counted apart from planted traps).
 - Readers: a PDF printed by other software as a committed fixture with hand-typed expectations; GAEB texts with mixed content, entities and prefixed namespaces; a missing quantity as a warning on one item, not a rejected file.
 - A no-model baseline (the plain rules alone), published beside B1 and B2.
+- From the second audit: the PDF reader assigns cells by column interval and warns when a header was seen and a page yields no line; `llmParse` returns provider errors as a typed failure, still returns the answer when the ledger write fails, and gets a test with an injected client.
 
 **Pipeline:**
 
@@ -50,14 +51,14 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 
 **Interface, alongside:**
 
-- Built: design system, overview, positions workspace, source viewer, ⌘K jump.
-- With the pipeline's results: the split and euros at risk on the overview; the review queue, keyboard-driven; the checker's marks on flagged offers, with the arithmetic shown; live status in the list while a run is going.
+- Built: the "Schaltplan" design system, the overview as a single-line diagram, the positions workspace, the source of every number, ⌘K jump, `pnpm probe:ui`.
+- With the pipeline's results: the split and euros at risk on the overview; the review queue, keyboard-driven; tripped switches on flagged offers, with the arithmetic shown; live status in the list while a run is going, from its own query so a batch does not re-send the list.
 
 - **Gate:**
   - A full run completes on the default model inside the budget.
   - B1–B3 results are written, with the no-model baseline beside them.
   - The undersized cabinet is flagged with the right reason code, and the interface shows why.
-  - `pnpm shots` passes on every route.
+  - `pnpm shots` and `pnpm probe:ui` pass on every route.
   - The audit's high-severity findings are fixed.
 
 ## M3 — Product surface, completed
@@ -65,7 +66,7 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 - Kalkulation breakdown and the copper control.
 - Run replay and the access code for live runs; `pnpm demo:reset`.
 - `/bench` page.
-- The source viewer on a phone; zoom in the PDF view.
+- The GAEB excerpt served from Convex instead of downloading the file.
 - **Gate:**
   - The [DEMO_SCRIPT](DEMO_SCRIPT.md) works end to end locally.
   - `pnpm shots` passes on every route.

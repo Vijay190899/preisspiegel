@@ -6,15 +6,15 @@ Tender pricing for electrical contractors: a Leistungsverzeichnis and supplier o
 
 **Find the cheapest check that actually proves the change works, run it, and only then move on, including between steps of one task.**
 
-| Change                                          | Sufficient check                                                                                                   |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Pure logic (`packages/core`, `llm/registry.ts`) | targeted `pnpm exec vitest run <file>` + `pnpm lint` + `pnpm typecheck`                                            |
-| Convex function                                 | push to the local deployment, `pnpm -C services/backend exec convex run <module>:<fn>`, assert the result shape    |
-| Parser or generator                             | round-trip test; same seed gives byte-identical output                                                             |
-| Pipeline or agent step                          | run the 120-position subset; check reason codes, ledger total and spend against `RUN_MAX_USD`                      |
-| LLM code                                        | one real call: check `stop_reason`, tokens and $ in the ledger, `cache_read_input_tokens > 0` on the repeat call   |
-| UI                                              | `pnpm shots <path>`: 390 px and 1440 px, light and dark, zero console errors, no overflow. Then look at the images |
-| Docs or config                                  | links resolve, JSON and YAML parse                                                                                 |
+| Change                                          | Sufficient check                                                                                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pure logic (`packages/core`, `llm/registry.ts`) | targeted `pnpm exec vitest run <file>` + `pnpm lint` + `pnpm typecheck`                                                                     |
+| Convex function                                 | push to the local deployment, `pnpm -C services/backend exec convex run <module>:<fn>`, assert the result shape                             |
+| Parser or generator                             | round-trip test; same seed gives byte-identical output                                                                                      |
+| Pipeline or agent step                          | run the 120-position subset; check reason codes, ledger total and spend against `RUN_MAX_USD`                                               |
+| LLM code                                        | one real call: check `stop_reason`, tokens and $ in the ledger, `cache_read_input_tokens > 0` on the repeat call                            |
+| UI                                              | `pnpm shots <path>` (four widths, light and dark, zero console errors, no overflow), then look at the images. `pnpm probe:ui` for behaviour |
+| Docs or config                                  | links resolve, JSON and YAML parse                                                                                                          |
 
 Rules:
 
@@ -39,7 +39,7 @@ Rules:
 - `services/backend`: Convex (functions in `convex/`).
 - `packages/core`: pure logic shared by backend, bench and generator. No runtime-specific imports.
 - `data`: seeded tender generator. `bench`: benchmarks and the provider probe.
-- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm seed` · `pnpm shots` · `pnpm probe:llm` · `pnpm env:push`. `pnpm bench` arrives with M2.
+- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm seed` · `pnpm shots` · `pnpm probe:ui` · `pnpm probe:llm` · `pnpm env:push`. `pnpm bench` arrives with M2.
 - `pnpm seed generate` rewrites `data/seed/` and must be re-run whenever the generator changes; a test fails if the committed files are stale. `pnpm seed load` needs `pnpm dev` running.
 - Convex runs as a local deployment with no account in development. In a shell without a Convex login, set `CONVEX_AGENT_MODE=anonymous` for the first `convex dev`.
 
@@ -62,14 +62,17 @@ An independent audit closes each milestone (ADR-23). A fresh agent with no part 
 
 ## Frontend quality bar
 
-- The direction is "Planblatt" (ADR-20, PRD §7): a drawing sheet on a drafting table. Use the building blocks in `apps/web/src/styles/app.css`: `sheet` and `sheet-marked` for surfaces, `label` for field labels, `num` for figures in columns, `traceable` for a value that leads to its source. No rounded cards, no drop-in component library.
+- The direction is "Schaltplan" (ADR-26, PRD §7): the tender as a single-line diagram, modules on a mounting plate, pilot lamps for status, copper only for what is energised or is the next thing to do. Use the building blocks in `apps/web/src/styles/app.css`: `display` and `heading` for headlines, `caption` for field names, `num` for figures, `code` for ordinal and article numbers, `module` for a surface, `lamp` for status, `traceable` for a value that leads to its source, `action` for the one primary action. No drop-in component library.
+- One headline, one sentence and one action per view. Detail opens on request. If a view feels crowded, remove something before adding a container.
+- Motion answers an action, apart from the one switching-on sequence on the overview. Every animation goes through `usePace()` in `src/lib/pace.ts`, which keeps the starting state in the markup and removes the way there under reduced motion.
+- No capitals for labels, no arrows on links, no mono for running text.
 
 - Tokens live in `apps/web/src/styles/tokens.css` and are the single source of colour. Use the Tailwind utilities mapped from them (`bg-surface`, `text-ink-2`), never raw hex in components.
 - Figures use the `num` class so columns line up.
-- Status colours carry meaning (approved, settled, open, caution) and are never decoration. They ship with a label or an icon, never colour alone. Any new chart colour goes through the `dataviz` skill's validator against both sheet colours.
+- Status colours carry meaning (approved, settled, open, caution) and are never decoration. They ship with a label or an icon, never colour alone. Any new chart colour goes through the `dataviz` skill's validator against every surface colour, and every new colour pair is added to `src/styles/tokens.test.ts`.
 - Every value shown has a source. If it cannot be traced, it is not shown.
 - UI copy is German first with an English mirror in `src/lib/i18n.ts`. Domain terms stay German in both.
-- Honour `prefers-reduced-motion`. Keyboard access and visible focus on everything interactive.
+- Honour `prefers-reduced-motion`. Keyboard access and visible focus on everything interactive; a long list is one Tab stop. A new behaviour gets a check in `scripts/uiProbe.ts`.
 
 ## Git
 

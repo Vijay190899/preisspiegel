@@ -2,28 +2,30 @@
 
 ## 1. Where we are
 
-**M0 and M1 are closed and audited. A first slice of the interface is built. M2 has not started.** Updated 2026-11-17.
+**M0 and M1 are closed and audited. The interface was rebuilt in a new direction and audited again. M2 is next.** Updated 2026-11-17.
 
 Built and verified:
 
 - **M0:** workspace, task runner, CI, model layer with cost meter. The provider probe passed on OpenRouter with `claude-haiku-5-5`: every check returned the expected shape, and prompt caching showed a cache read on the repeat call (`bench/results/provider_probe.json`).
 - **M1:** GAEB and PDF readers in `packages/core`; a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; `pnpm seed`; the tender tables in Convex. See [DATA](DATA.md).
-- **Interface:** the "Planblatt" design system; the overview; the positions workspace with a virtualised list, the open position with each supplier's offer side by side, and the source viewer that opens a PDF at the page a value was read from and marks it, or shows the GAEB item's lines; ⌘K jump. `pnpm shots` passes on the overview and on positions at 390 px and 1440 px in both themes.
-- `pnpm check` green: lint, formatting, typecheck of six projects, 93 tests. `pnpm build` green.
+- **Interface, "Schaltplan" (ADR-26):** the overview draws the tender as a single-line diagram that switches on once; the positions workspace has a virtualised list, the open position, and one row per offer; a traced number opens its document beside the position, at the page and the place it was read, while the list gives way (ADR-31); ⌘K jump; German and English; light and dark.
+- `pnpm check` green: lint, formatting, typecheck of six projects, 174 tests. `pnpm build` green. `pnpm shots` green on five routes at 390, 1024, 1280 and 1440 px in both themes. `pnpm probe:ui` green: 21 behaviour checks.
 
-**Audit of M0 and M1: on plan, with gaps.** Every count in the docs was recounted and holds, every gate check that could be re-run passed, and no non-negotiable was breached. Fixed since:
+**First audit (M0 and M1): on plan, with gaps.** Every count in the docs was recounted and holds, and no non-negotiable was breached. Fixed since: the model call path records a billed call before reading its answer (ADR-24); the PDF reader warns in four cases where it used to drop text; overstated claims were corrected; deviations logged (ADR-25).
 
-- The model call path could bill a call without recording it when an answer was cut off or malformed. It now records first and returns a typed failure (ADR-24). A role can no longer name a model without a price. Ledger rows carry a run id.
-- The PDF reader dropped text silently in four cases. It now warns: no header found, a page without its own header, a priced row with no description. It also accepts centred headers and no longer mistakes an article named "Summen..." for a total. Twelve hand-written tables test it apart from the generator.
-- Claims in the docs that overstated were corrected (trap density, which attributes the mismatches use, what the rectangle check proves, what the probe proves).
-- Unlogged deviations are logged (ADR-25).
+**Second audit (the first interface and those fixes): on plan, with gaps.** Its words: the slice "is not yet stunning, one displayed figure is wrong under its label, the layout breaks at 1280 to 1440 px, and the two fixes close the reported paths but not the whole class". No non-negotiable was breached and every count held. What was done with it:
 
-Open from the audit, scheduled as the first tasks of M2 (see [BUILD_PLAN](BUILD_PLAN.md) and "What this data does not prove yet" in [DATA](DATA.md)):
+- The interface it reviewed was replaced (ADR-26). Its defects were checked against the new one and are closed, each with a check in `pnpm probe:ui` or a test: a price per ring labelled per metre; offer columns overflowing at 1280 px; 1,170 Tab stops in front of the numbers; the palette reopening on Enter; a crash on `?quelle=123` and an empty list on `?titel=10`; contrast failures; the description link marking the wrong element; a PDF too small to read; the document language after a reload; step arrows ignoring the title filter.
+- Still open, scheduled first in M2: the PDF reader loses lines without a warning on two ordinary layouts (left-aligned headers over right-aligned numbers; an indented continuation that reaches the quantity column). `llmParse` still throws on a provider error and loses the answer if the ledger write fails, and has no test of its own.
+- Still open, later: the list query sends every position (about 280 kB), so live status needs its own query; the GAEB source downloads the whole file to show one item; the palette does not lock the page behind it.
+- Docs corrected where it found them wrong, and four unlogged deviations logged (ADR-27 to 29).
 
-- **The benchmark is too easy to mean much.** Six plain rules with no model reproduce the expected decision on 94.7% of positions, because most trap kinds leave a mark no clean line has. The generator needs clean lines with the same oddities, one price per article per offer, and a published no-model baseline.
+Open from the first audit, also first in M2 (see [BUILD_PLAN](BUILD_PLAN.md) and "What this data does not prove yet" in [DATA](DATA.md)):
+
+- **The benchmark is too easy to mean much.** Six plain rules with no model reproduce the expected decision on 94.7% of positions. The generator needs clean lines with the same oddities, one price per article per offer, and a published no-model baseline.
 - Disputed expectations in the ground truth.
 - The GAEB reader mishandles mixed text and markup, some entities, prefixed namespaces and a missing quantity.
-- No PDF from other software is tested yet. A wrapped header ("Artikel-" over "Nr.") is still not recognised; the reader now says so instead of returning nothing quietly.
+- No PDF from other software is tested yet. A wrapped header ("Artikel-" over "Nr.") is still not recognised.
 - The ledger patches one row per call and will contend under a concurrent batch: record per batch in M2.
 
 `llm/client.ts` has still made no real call. The first is in M2.
@@ -48,7 +50,7 @@ pnpm check
 - A local Convex deployment only runs while `pnpm dev` does. `pnpm seed load` and `convex run` need it up.
 - After changing the Convex schema or `convex.config.ts`, `pnpm dev` regenerates `convex/_generated/`, which is committed.
 - `pnpm env:push` copies `.env.local` into the Convex deployment's environment. Run it after changing a model role or a key.
-- `pnpm shots` drives the Chrome installed on the machine.
+- `pnpm shots` and `pnpm probe:ui` drive the Chrome installed on the machine and need `pnpm dev` running with the seed loaded.
 
 ## 3. Decisions already made (do not re-litigate)
 
@@ -60,7 +62,7 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 - **Own agent runtime on Convex**, not an agent framework (ADR-6).
 - **Synthetic data, fictional names** (ADR-1). No real company's name, branding or copy anywhere.
 - **The ground truth stays out of the database** (ADR-17). Only the benchmarks read `data/seed/truth.json`.
-- **The interface is a drawing sheet, built by hand on the tokens** (ADR-20, 21). No component library, no rounded cards.
+- **The interface is "Schaltplan", built by hand on the tokens** (ADR-26, 21). One headline, one sentence, one action per view; no component library.
 - **An independent audit closes every milestone** (ADR-23).
 
 ## 4. Working agreements
