@@ -19,6 +19,7 @@
     "bench": "tsx bench/src/run.ts",
     "bench:replay": "tsx bench/src/replay.ts",
     "bench:heldout": "tsx bench/src/heldOut.ts",
+    "bench:seeds": "tsx bench/src/seeds.ts",
     "env:push": "tsx scripts/pushEnv.ts",
     "probe:llm": "tsx bench/src/probe.ts",
     "shots": "tsx scripts/screenshot.ts",

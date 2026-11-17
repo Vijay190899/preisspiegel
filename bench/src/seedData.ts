@@ -20,7 +20,6 @@ const seedDir = resolve(
   '../..',
   process.env.SEED_DIR ?? 'data/seed',
 )
-const read = (name: string) => readFileSync(resolve(seedDir, name))
 
 export interface SeedData {
   positions: Array<Position>
@@ -28,10 +27,12 @@ export interface SeedData {
   truth: Truth
 }
 
-export async function loadSeed(): Promise<SeedData> {
-  const positions = gaebPositions(
-    parseGaeb(read('tender.x83').toString('utf8')),
-  )
+/** Reads a tender's files with the real readers, wherever the files are. */
+export async function readSeed(
+  read: (name: string) => Uint8Array,
+): Promise<SeedData> {
+  const text = (name: string) => Buffer.from(read(name)).toString('utf8')
+  const positions = gaebPositions(parseGaeb(text('tender.x83')))
   const lines: Array<OfferLine> = []
   for (const [key, file] of [
     ['a', 'angebot-rheinbogen.pdf'],
@@ -40,12 +41,11 @@ export async function loadSeed(): Promise<SeedData> {
     const pdf = await extractPdfText(new Uint8Array(read(file)))
     lines.push(...parseOfferPdf(pdf.items, key).lines)
   }
-  lines.push(
-    ...gaebOfferLines(
-      parseGaeb(read('angebot-osterholt.x84').toString('utf8')),
-      'c',
-    ),
-  )
-  const truth = JSON.parse(read('truth.json').toString('utf8')) as Truth
+  lines.push(...gaebOfferLines(parseGaeb(text('angebot-osterholt.x84')), 'c'))
+  const truth = JSON.parse(text('truth.json')) as Truth
   return { positions, lines, truth }
+}
+
+export function loadSeed(): Promise<SeedData> {
+  return readSeed((name) => readFileSync(resolve(seedDir, name)))
 }
