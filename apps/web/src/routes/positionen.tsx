@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef } from 'react'
 import { PositionList } from '~/components/positions/PositionList'
+import { settleQueue, settleStatuses } from '~/lib/decisions'
 import {
   positionsQuery,
   reviewQueueQuery,
@@ -15,6 +16,7 @@ import {
   tenderQuery,
 } from '~/lib/queries'
 import { searchFlag, searchText } from '~/lib/searchParams'
+import { useDecisions } from '~/lib/useDecisions'
 
 export const Route = createFileRoute('/positionen')({
   /**
@@ -51,6 +53,7 @@ function Positions() {
     ...reviewQueueQuery,
     enabled: offen === true,
   })
+  const { decided } = useDecisions()
   const navigate = useNavigate()
 
   const visible = useRef<Array<string>>(rows.map((row) => row.oz))
@@ -104,8 +107,14 @@ function Positions() {
           rows={rows}
           selected={oz}
           title={titel}
-          statuses={statuses}
-          queue={offen === true ? (queue ?? null) : undefined}
+          statuses={settleStatuses(statuses, decided)}
+          queue={
+            offen === true
+              ? queue === undefined
+                ? null
+                : settleQueue(queue, decided)
+              : undefined
+          }
           onVisibleChange={onVisibleChange}
         />
       </aside>

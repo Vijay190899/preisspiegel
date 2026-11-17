@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { findingText, reasonLabel } from '~/lib/findings'
 import {
   formatMoney,
@@ -17,6 +17,7 @@ import { offerSource, tenderSource } from '~/lib/sources'
 import { useTenderText } from '~/lib/tenderText'
 import { Locator } from './Locator'
 import type { ReactNode } from 'react'
+import type { Decided } from '~/lib/decisions'
 import type {
   Finding,
   Match,
@@ -91,11 +92,18 @@ export function PositionView({
   source,
   previous,
   next,
+  decision,
+  onDecide,
+  onReopen,
 }: {
   tender: Tender
   detail: PositionDetail
   /** The decision of the last run, if there has been one. */
   match: Match | null
+  /** What the estimator decided about it, if anything. */
+  decision: Decided | undefined
+  onDecide: (offerId: string | null, unitPrice?: number) => void
+  onReopen: () => void
   source: string | undefined
   previous: string | undefined
   next: string | undefined
@@ -165,6 +173,51 @@ export function PositionView({
     transition: pace({ delay: order * 0.05, duration: 0.42, ease: EASE }),
   })
 
+  const needsPerson = match?.status === 'review'
+  // 1, 2, 3 take the cheapest priced offer of that supplier's column; U
+  // takes a decision back. The columns keep their order, so the keys do.
+  const takeable = suppliers.map(
+    (supplier) =>
+      shown
+        .filter(
+          (entry) =>
+            entry.supplier.key === supplier.key &&
+            entry.offer !== null &&
+            entry.unitPrice !== null,
+        )
+        .sort((a, b) => (a.unitPrice ?? 0) - (b.unitPrice ?? 0))[0]?.offer?.id,
+  )
+  const keys = useRef({
+    takeable,
+    needsPerson,
+    decided: decision !== undefined,
+  })
+  keys.current = { takeable, needsPerson, decided: decision !== undefined }
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target instanceof HTMLElement ? event.target : null
+      if (target?.closest('input, textarea, [role="dialog"]')) return
+      const now = keys.current
+      if (!now.needsPerson) return
+      if (event.key.toLowerCase() === 'u' && now.decided) {
+        event.preventDefault()
+        onReopen()
+        return
+      }
+      const column = Number(event.key) - 1
+      const offerId = Number.isInteger(column)
+        ? now.takeable[column]
+        : undefined
+      if (offerId !== undefined) {
+        event.preventDefault()
+        onDecide(offerId)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onDecide, onReopen])
+
   return (
     <article className="sheet mx-auto w-full max-w-[940px] px-5 pb-24 pt-5 sm:px-8 lg:pt-8">
       <motion.header {...arrive(0)}>
@@ -232,23 +285,46 @@ export function PositionView({
 
       {match !== null && (
         <motion.div {...arrive(1)} className="mt-8">
-          <Decision
-            match={match}
-            unit={perUnitLabel(position.unit)}
-            supplier={
-              match.best === null
-                ? undefined
-                : (supplierOf(match.best.supplierKey)?.supplierName ??
-                  undefined)
-            }
-          />
+          {decision === undefined ? (
+            <Decision
+              match={match}
+              unit={perUnitLabel(position.unit)}
+              supplier={
+                match.best === null
+                  ? undefined
+                  : (supplierOf(match.best.supplierKey)?.supplierName ??
+                    undefined)
+              }
+            />
+          ) : (
+            <Settled
+              decision={decision}
+              qty={position.qty}
+              unit={perUnitLabel(position.unit)}
+              supplier={
+                decision.supplierKey === null
+                  ? undefined
+                  : (supplierOf(decision.supplierKey)?.supplierName ??
+                    undefined)
+              }
+              onReopen={onReopen}
+            />
+          )}
+          {needsPerson && decision === undefined && (
+            <OwnPrice unit={perUnitLabel(position.unit)} onDecide={onDecide} />
+          )}
         </motion.div>
       )}
 
       <motion.section {...arrive(2)} className="mt-10">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <h2 className="heading text-[1.3rem]">{t('pos.offers')}</h2>
-          <p className="caption">{t('pos.offersHint')}</p>
+          <p className="caption">
+            {t('pos.offersHint')}
+            {needsPerson &&
+              takeable.some((id) => id !== undefined) &&
+              ` ${t('decision.keys', { n: suppliers.length })}`}
+          </p>
         </div>
 
         {/* The Preisspiegel: one column per supplier, always in the same order. */}
@@ -271,7 +347,21 @@ export function PositionView({
                       shown={entry}
                       chosen={
                         entry.offer !== null &&
-                        match?.best?.id === entry.offer.id
+                        (decision === undefined
+                          ? match?.best?.id === entry.offer.id
+                          : decision.offerId === entry.offer.id)
+                      }
+                      taken={
+                        entry.offer !== null &&
+                        decision?.offerId === entry.offer.id
+                      }
+                      onTake={
+                        needsPerson &&
+                        entry.offer !== null &&
+                        entry.unitPrice !== null &&
+                        decision?.offerId !== entry.offer.id
+                          ? () => onDecide(entry.offer?.id ?? null)
+                          : undefined
                       }
                       tenderUnit={position.unit}
                       tenderQty={position.qty}
@@ -387,6 +477,102 @@ function Decision({
   )
 }
 
+/** What the estimator decided, and the way back. */
+function Settled({
+  decision,
+  qty,
+  unit,
+  supplier,
+  onReopen,
+}: {
+  decision: Decided
+  qty: number
+  unit: string
+  supplier: string | undefined
+  onReopen: () => void
+}) {
+  const t = useT()
+  const total = `${formatMoney(Math.round(qty * decision.unitPrice * 100) / 100)} €`
+  const body = t(
+    decision.offerId === null
+      ? 'decision.decided.own'
+      : 'decision.decided.offer',
+    {
+      supplier: supplier ?? '',
+      price: formatUnitPrice(decision.unitPrice),
+      unit,
+      total,
+    },
+  )
+  return (
+    <div>
+      <p className="statement verdict">
+        <span
+          className="lamp mr-3 translate-y-[-0.18em]"
+          style={lampStyle('settled')}
+        />
+        <b>{t('decision.decided')}</b>
+        {'. '}
+        <span className="num">{strong(body, [total])}</span>
+      </p>
+      <button
+        type="button"
+        onClick={onReopen}
+        className="quiet-action -ml-3.5 mt-2 !h-9 text-[0.92rem]"
+      >
+        {t('decision.undo')}
+      </button>
+    </div>
+  )
+}
+
+/** A price of the estimator's own, for a position no offer settles. */
+function OwnPrice({
+  unit,
+  onDecide,
+}: {
+  unit: string
+  onDecide: (offerId: null, unitPrice: number) => void
+}) {
+  const t = useT()
+  const field = useId()
+  const [text, setText] = useState('')
+  // Both ways of writing a decimal are accepted: 12,50 and 12.50.
+  const price = Number(text.trim().replace(',', '.'))
+  const valid = text.trim() !== '' && Number.isFinite(price) && price > 0
+
+  return (
+    <form
+      className="mt-4 flex flex-wrap items-end gap-3"
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (valid) onDecide(null, price)
+      }}
+    >
+      <div>
+        <label htmlFor={field} className="caption block">
+          {t('decision.own.label', { unit })}
+        </label>
+        <input
+          id={field}
+          inputMode="decimal"
+          autoComplete="off"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          className="num mt-1.5 h-10 w-36 rounded-control border border-line-strong bg-surface px-3 text-[1rem] text-ink outline-none transition-colors duration-150 focus:border-focus"
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={!valid}
+        className="flex h-10 items-center rounded-control border border-line-strong px-3 text-[0.92rem] font-medium text-ink transition-colors duration-150 hover:bg-ink/[0.06] disabled:opacity-40"
+      >
+        {t('decision.own.submit')}
+      </button>
+    </form>
+  )
+}
+
 /** A sentence with some of its figures set strong. */
 function strong(text: string, figures: ReadonlyArray<string>): ReactNode {
   const figure = figures.find((candidate) => text.includes(candidate))
@@ -494,6 +680,8 @@ function Unanswered({
 function Offer({
   shown,
   chosen,
+  taken,
+  onTake,
   tenderUnit,
   tenderQty,
   share,
@@ -503,6 +691,10 @@ function Offer({
   shown: Shown
   /** The offer the position is priced with. */
   chosen: boolean
+  /** The estimator took this offer. */
+  taken: boolean
+  /** Takes this offer for the position, where that is a choice to make. */
+  onTake: (() => void) | undefined
   tenderUnit: string
   tenderQty: number
   /** This price as a share of the highest one offered, if there are several. */
@@ -612,7 +804,7 @@ function Offer({
       {chosen && (
         <p className="mt-3 flex items-center gap-2 text-[0.9rem] font-medium text-settled-ink">
           <span className="h-[3px] w-4 shrink-0 rounded-full bg-settled" />
-          {t('offer.chosen')}
+          {t(taken ? 'decision.taken' : 'offer.chosen')}
         </p>
       )}
       {offer === null && (line.alternative || second) && (
@@ -643,6 +835,16 @@ function Offer({
             )
           })}
         </ul>
+      )}
+
+      {onTake !== undefined && (
+        <button
+          type="button"
+          onClick={onTake}
+          className="mt-4 flex h-9 items-center rounded-control border border-line-strong px-3 text-[0.9rem] font-medium text-ink transition-colors duration-150 hover:border-ink-3 hover:bg-ink/[0.06]"
+        >
+          {t('decision.take')}
+        </button>
       )}
 
       <button

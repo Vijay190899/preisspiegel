@@ -9,9 +9,11 @@ import { PictureKey } from '~/components/overview/PictureKey'
 import { RunLine } from '~/components/overview/RunLine'
 import { Scenery } from '~/components/overview/Scenery'
 import { formatMoney, formatQty } from '~/lib/format'
+import { settleCounts, settleQueue, settleStatuses } from '~/lib/decisions'
 import { useT } from '~/lib/i18n'
 import { usePace } from '~/lib/pace'
 import { useTenderText } from '~/lib/tenderText'
+import { useDecisions } from '~/lib/useDecisions'
 import {
   offers,
   reviewQueueQuery,
@@ -43,7 +45,10 @@ function Overview() {
   const { data: tender } = useSuspenseQuery(tenderQuery)
   const { data: run } = useSuspenseQuery(runQuery)
   const { data: statuses } = useSuspenseQuery(statusesQuery)
-  const { data: queue } = useSuspenseQuery(reviewQueueQuery)
+  const { data: wholeQueue } = useSuspenseQuery(reviewQueueQuery)
+  // What the estimator has decided is laid over what the run decided.
+  const { decided: mine } = useDecisions()
+  const queue = settleQueue(wholeQueue, mine)
   const [pointing, setPointing] = useState<Pointing>(null)
 
   if (tender === null) {
@@ -81,7 +86,8 @@ function Overview() {
       ? null
       : said.storey(tender.storeys[parseInt(letter, 36)] ?? '', true) || null
   }
-  const open = done?.review ?? 0
+  const counts = done === null ? null : settleCounts(done, wholeQueue, mine)
+  const open = counts?.review ?? 0
 
   return (
     <div>
@@ -107,7 +113,7 @@ function Overview() {
             <motion.div {...arrive(2)}>
               {decided ? (
                 <p className="statement">
-                  <b>{formatQty(done.auto ?? 0)}</b>{' '}
+                  <b>{formatQty(counts?.auto ?? 0)}</b>{' '}
                   {t('overview.priced', { total: formatQty(done.positions) })}{' '}
                   {open > 0 && (
                     <>
@@ -115,16 +121,18 @@ function Overview() {
                       {t(
                         open === 1 ? 'overview.wait.one' : 'overview.wait.many',
                       )}
-                      {done.atRisk !== null && done.atRisk > 0 && (
-                        <>
-                          {' '}
-                          {t('overview.stake.before')}{' '}
-                          <b className="whitespace-nowrap">
-                            {formatMoney(done.atRisk)} €
-                          </b>
-                          {t('overview.stake.after')}
-                        </>
-                      )}
+                      {counts !== null &&
+                        counts.atRisk !== null &&
+                        counts.atRisk > 0 && (
+                          <>
+                            {' '}
+                            {t('overview.stake.before')}{' '}
+                            <b className="whitespace-nowrap">
+                              {formatMoney(counts.atRisk)} €
+                            </b>
+                            {t('overview.stake.after')}
+                          </>
+                        )}
                     </>
                   )}
                 </p>
@@ -164,7 +172,7 @@ function Overview() {
         <div className="mt-12 sm:mt-16 lg:mt-20">
           <Facade
             tender={tender}
-            statuses={statuses}
+            statuses={settleStatuses(statuses, mine)}
             reading={underWay ? current.read : null}
             pointing={pointing}
           />
