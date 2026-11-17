@@ -81,7 +81,7 @@ Rows refer to their tender by slug (ADR-15).
 ```
 positions, offer lines
   ─► buildQuestions   lines that name the position, a text search over those that name none,
-                      and lines whose quantity is the total of the position's kind (ADR-45)
+                      and lines whose quantity is the total of the position's kind (ADR-45, 48)
   ─► the matcher      per line: same, different, unrelated or unsure, with compared attributes and a quote for each
   ─► verifyAnswer     every quote looked up in its source; values compared by arithmetic where they can be
   ─► assess           unit, arithmetic, quantity and ambiguity checks per line
@@ -176,7 +176,7 @@ LLM_MATCH_MODEL=claude-sonnet-5-5
 
 **Cost meter.** Every call appends `{ day, at, provider, role, model, tokens by kind, usd, stopReason, runId }` to `llmLedger` and adds to that day's row in `llmSpend`. A call that fails before a response arrives has no usage to record.
 
-**Measured**, on `claude-haiku-5-5` at effort `low`: the first full run made 787 calls for $0.37 in seven minutes; the two unseen tenders made 731 calls for $0.34 and 642 calls for $0.29, each with some answers taken from the cache. That is about $0.0005 per call. A run on an empty cache costs about 40 cents; no file records one for the demo tender as it is now.
+**Measured**, on `claude-haiku-5-5` at effort `low`: the first full run made 787 calls for $0.37 in seven minutes; the three unseen tenders made 731 calls for $0.34, 642 for $0.29 and 503 for $0.24, each with some answers taken from the cache. That is about $0.0005 per call. A run on an empty cache costs about 40 cents; no file records one for the demo tender as it is now.
 
 ## 6. Frontend (apps/web)
 

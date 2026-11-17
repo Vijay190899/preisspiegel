@@ -24,23 +24,24 @@
 
 Measured against ground truth from the generator and committed to [`bench/results/`](bench/results) with provider, model IDs, seed, n and git SHA. The model is `claude-haiku-5-5` at effort `low`; a full run costs about 40 cents.
 
-The prompt and the checks were worked on while looking at the demo tender, so the column to judge by is the **unseen tender**: generated from another seed, run once, scored. An independent audit of this milestone then found that the search lost true offers on other tenders; the column is from a tender generated after that was fixed (seed 501). The run before the fix (seed 119) is kept beside it.
+The prompt and the checks were worked on while looking at the demo tender, so the column to judge by is the **unseen tender**: generated from another seed, run once, scored. Two independent audits then showed that the search and the attribution had been fitted to the tenders they were worked on; the column is from a tender generated after both were fixed (seed 502). The two earlier unseen runs are kept beside it.
 
-| ID  | Measures                                                   | No reader | First run      | Unseen tender            |
-| --- | ---------------------------------------------------------- | --------- | -------------- | ------------------------ |
-| B1  | Positions priced without a person (expected)               | 84.9%     | 85.6% (91.4%)  | **91.9%** (92.3%)        |
-| B1  | of those, rightly so                                       | 97.5%     | 99.8%          | **100%**                 |
-| B1  | Euro error over what was priced without a person           | 53,218 €  | 196 €          | **1,417 €** of 781,237 € |
-| B2  | Planted traps found on their line                          | 39 of 60  | 54 of 60       | **58 of 60**             |
-| B2  | Expected reviews found                                     | 72.8%     | 98.0%          | **100%**                 |
-| B2  | Reviews raised that belong in the queue                    | 37.9%     | 58.9%          | **94.7%**                |
-| B3  | Numbers the readers took from a file, found at their place | —         | 6,567 of 6,577 | **6,676 of 6,676**       |
+| ID  | Measures                                                   | No reader | First run      | Unseen tender          |
+| --- | ---------------------------------------------------------- | --------- | -------------- | ---------------------- |
+| B1  | Positions priced without a person (expected)               | 84.9%     | 85.6% (91.4%)  | **91.6%** (91.8%)      |
+| B1  | of those, rightly so                                       | 97.5%     | 99.8%          | **100%**               |
+| B1  | Euro error over what was priced without a person           | 53,218 €  | 196 €          | **170 €** of 770,755 € |
+| B2  | Planted traps found on their line                          | 39 of 60  | 54 of 60       | **60 of 60**           |
+| B2  | Expected reviews found                                     | 72.8%     | 98.0%          | **100%**               |
+| B2  | Reviews raised that belong in the queue                    | 37.9%     | 58.9%          | **98.0%**              |
+| B3  | Numbers the readers took from a file, found at their place | —         | 6,567 of 6,577 | **6,559 of 6,559**     |
 
 - **No reader** reads no text and trusts every position reference: what a few plain rules amount to. **First run** is the first full run, kept in `bench/results/baseline/` before anything was changed in response to it.
 - On the demo tender itself the pipeline now agrees with the ground truth on every position, which is what tuning on a tender buys and not a result.
-- What went wrong on the unseen tender: seven positions were priced at a valid offer that was not the cheapest, and two traps were missed, all on luminaires that differ from another tendered luminaire in one word. [docs/DATA.md](docs/DATA.md#what-the-benchmarks-show) has the full table, both unseen runs, what the audit found, and the failures written up.
-- With flawless reading (`pnpm bench:seeds`, no model), the checks agree with the ground truth on every position of six out of eight further unseen tenders. The other two are in the same write-up.
-- B4 (matcher alone against matcher plus a larger model) is not run: the misses are in the attribution, not in the reading, so a larger model has nothing to earn yet (ADR-41).
+- What went wrong on the unseen tender: two needless reviews, where the model left open a line that names its position, and one luminaire priced at the second-cheapest valid offer.
+- One run is one tender. With flawless reading and no model (`pnpm bench:seeds 5000-5199`), the checks agree with the ground truth on every position of **198 of 200** further tenders nobody had looked at, and miss a planted trap on 8 of them.
+- [docs/DATA.md](docs/DATA.md#what-the-benchmarks-show) has the full table, all three unseen runs, what the two audits found, and the failures written up.
+- B4 (matcher alone against matcher plus a larger model) is not run: what is left is the model being uneven on a few plain lines and one attribution miss, not misreading that a larger model would fix across the board (ADR-41).
 
 ## Architecture
 
