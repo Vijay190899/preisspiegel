@@ -10,7 +10,7 @@
  * model never gives it.
  */
 import { canonicalUnit } from './measure'
-import { squash } from './text'
+import { containsWhole, squash } from './text'
 
 export interface LaborEntry {
   key: string
@@ -154,27 +154,6 @@ export function within(limit: Limit, size: number): boolean {
   if (limit.max !== null && size > limit.max) return false
   if (limit.min === null) return true
   return limit.minExclusive ? size > limit.min : size >= limit.min
-}
-
-/**
- * Whether `quote` stands in `source` word for word and at word boundaries:
- * `50 A` is not in `250 A`, and `10` is not in `(100 m/Ring)`. Case and
- * spacing do not count.
- */
-export function containsWhole(source: string, quote: string): boolean {
-  const hay = squash(source).toLowerCase()
-  const needle = squash(quote).toLowerCase()
-  if (needle === '') return false
-  const wordy = (char: string | undefined) =>
-    char !== undefined && /[\p{L}\p{N}]/u.test(char)
-  for (let from = 0; ;) {
-    const at = hay.indexOf(needle, from)
-    if (at < 0) return false
-    const cutsFront = wordy(hay[at - 1]) && wordy(needle[0])
-    const cutsBack = wordy(hay[at + needle.length]) && wordy(needle.at(-1))
-    if (!cutsFront && !cutsBack) return true
-    from = at + 1
-  }
 }
 
 const say = (value: number) => String(value).replace('.', ',')

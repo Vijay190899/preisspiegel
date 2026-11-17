@@ -24,6 +24,14 @@ describe('containsQuote', () => {
     expect(containsQuote(source, 'Nennstrom 250 A')).toBe(false)
     expect(containsQuote(source, 'Schutzart IP44')).toBe(false)
     expect(containsQuote(source, '   ')).toBe(false)
+    // A number is not cut out of a longer one; a word may end a compound.
+    expect(containsQuote('Bemessungsstrom 250 A', '50 A')).toBe(false)
+    expect(containsQuote('NYM-J 3x1,5 (100 m/Ring)', '10')).toBe(false)
+    expect(containsQuote('NYM-J 3x2,5 mm²', '3x2')).toBe(false)
+    expect(containsQuote('Ausschaltvermögen 50 kA', 'vermögen 50 kA')).toBe(
+      true,
+    )
+    expect(containsQuote('LS-Schalter B16 1p', 'B16')).toBe(true)
   })
 })
 

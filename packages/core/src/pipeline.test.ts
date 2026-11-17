@@ -918,3 +918,19 @@ describe('triage', () => {
     })
   })
 })
+
+describe('valueIn', () => {
+  it('finds a value only as a whole number of its quote', async () => {
+    const { valueIn } = await import('./pipeline')
+    expect(valueIn('Bemessungsstrom 250 A', '250 A')).toBe(true)
+    expect(valueIn('Bemessungsstrom 250 A', '50 A')).toBe(false)
+    expect(valueIn('NYM-J 3X1,5 (100 m/Ring)', '100')).toBe(true)
+    expect(valueIn('NYM-J 3X1,5 (100 m/Ring)', '10')).toBe(false)
+    expect(valueIn('NYY-J 5 x 16 mm²', '5x16')).toBe(true)
+    expect(valueIn('NYM-J 3x2,5', '2')).toBe(false)
+    expect(valueIn('NYM-J 3x2,5 mm²', '2,5')).toBe(true)
+    expect(valueIn('LS-Schalter B16 1p', 'B16')).toBe(true)
+    expect(valueIn('Typ A', 'A')).toBe(true)
+    expect(valueIn('anything', '')).toBe(false)
+  })
+})
