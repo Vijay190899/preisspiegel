@@ -15,7 +15,7 @@ import { readSeed } from './seedData'
 import type { OfferDraft } from '../../data/src/offers'
 import type { Score } from './score'
 
-/** Tenders nobody has looked at while changing the pipeline. */
+/** What runs without arguments. These have been read; they are a quick look, not a measure. */
 const DEFAULT_SEEDS = [431, 432, 433, 434, 435, 436, 437, 438]
 
 export interface SeedRow {
@@ -129,7 +129,15 @@ export async function sweep(
       const row = await seedRow(seed)
       rows.push(row)
       each?.(row)
-    } catch {
+    } catch (error) {
+      // The generator cannot plant its plan on a few seeds and says so.
+      // Anything else is a fault in what is being measured and must show.
+      if (
+        !(error instanceof Error) ||
+        !/^sample of \d+ from/.test(error.message)
+      ) {
+        throw error
+      }
       failed.push(seed)
     }
   }

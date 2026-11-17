@@ -333,6 +333,53 @@ async function main(): Promise<void> {
         .count()) === 1,
     )
 
+    console.log('Overview, below the picture')
+    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    // What a line is about: its article and the reason beside the lamp.
+    const ledger = await page.locator('a.ledger-row').evaluateAll((rows) =>
+      rows.map((row) => ({
+        about: [
+          row.querySelector('.line-clamp-2')?.textContent ?? '',
+          row.querySelector('.lamp')?.nextSibling?.textContent ?? '',
+        ].join(' | '),
+        text: row.textContent,
+      })),
+    )
+    check(
+      'one article for one reason is one line of the ledger, with its positions counted',
+      ledger.length > 1 &&
+        new Set(ledger.map((row) => row.about)).size === ledger.length &&
+        ledger.some((row) => /\d+ Positionen: /.test(row.text)),
+      ledger.map((row) => row.about),
+    )
+    await page.getByRole('link', { name: /^07\s*Beleuchtung$/ }).click()
+    await page.waitForURL(/titel=07/)
+    await page.waitForURL(/\/positionen\/07\./)
+    check('a title named under the picture opens its positions', true)
+
+    await page.goto(`${base}/positionen/01.01.0020`, {
+      waitUntil: 'networkidle',
+    })
+    const columnTops = () =>
+      page
+        .locator('.offers-column')
+        .evaluateAll((columns) =>
+          columns.map((column) =>
+            Math.round(column.getBoundingClientRect().top),
+          ),
+        )
+    const besideEachOther = new Set(await columnTops()).size === 1
+    await page.goto(`${base}/positionen/01.01.0020?quelle=lv.qty`, {
+      waitUntil: 'networkidle',
+    })
+    await settle(page, 900)
+    const stacked = await columnTops()
+    check(
+      'the suppliers stand side by side, and stack when a document takes half the room',
+      besideEachOther && new Set(stacked).size === stacked.length,
+      { besideEachOther, stacked },
+    )
+
     console.log('Units')
     await page.goto(`${base}/positionen?offen=true`, {
       waitUntil: 'networkidle',
