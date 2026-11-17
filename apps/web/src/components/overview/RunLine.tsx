@@ -32,7 +32,7 @@ export function RunLine({
         <p className="flex items-center gap-2.5 text-ink-2">
           <span
             className="lamp animate-pulse"
-            style={{ '--lamp': 'var(--t-copper)' } as React.CSSProperties}
+            style={{ '--lamp': 'var(--t-lamp)' } as React.CSSProperties}
           />
           {current.status === 'deciding' ? (
             t('run.deciding')
@@ -50,7 +50,7 @@ export function RunLine({
         </p>
         <div className="mt-3 h-1 overflow-hidden rounded-full bg-surface-sunken">
           <motion.div
-            className="h-full origin-left rounded-full bg-copper"
+            className="h-full origin-left rounded-full bg-lamp"
             animate={{ scaleX: current.status === 'deciding' ? 1 : share }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           />

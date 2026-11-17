@@ -157,7 +157,7 @@ export function CommandPalette() {
                   {index === active && (
                     <motion.span
                       layoutId="palette-active"
-                      className="absolute inset-0 rounded-control bg-copper-soft"
+                      className="absolute inset-0 rounded-control bg-lamp-soft"
                       transition={{
                         type: 'spring',
                         stiffness: 600,

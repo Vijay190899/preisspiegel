@@ -13,8 +13,10 @@ import { useT } from '~/lib/i18n'
 import { usePace } from '~/lib/pace'
 import { offers } from '~/lib/queries'
 import { offerSource, tenderSource } from '~/lib/sources'
+import { Locator } from './Locator'
 import type { ReactNode } from 'react'
 import type {
+  Finding,
   Match,
   MatchOffer,
   PositionDetail,
@@ -147,10 +149,6 @@ export function PositionView({
       })
     }
   }
-  const silent = suppliers.filter(
-    (supplier) => !shown.some((entry) => entry.supplier.key === supplier.key),
-  )
-
   const prices = shown
     .map((entry) => entry.unitPrice)
     .filter((price): price is number => price !== null)
@@ -165,7 +163,7 @@ export function PositionView({
   })
 
   return (
-    <article className="mx-auto w-full max-w-[680px] px-5 pb-20 pt-5 sm:px-8 lg:pt-8">
+    <article className="sheet mx-auto w-full max-w-[940px] px-5 pb-24 pt-5 sm:px-8 lg:pt-8">
       <motion.header {...arrive(0)}>
         <div className="flex items-center justify-between gap-4">
           <p className="caption min-w-0 truncate">
@@ -197,35 +195,34 @@ export function PositionView({
           </nav>
         </div>
 
-        <p className="code mt-7 text-[0.95rem] text-copper-ink">
-          {position.oz}
-        </p>
-        <h1 className="heading mt-2 text-[clamp(1.55rem,2.6vw,2.1rem)]">
-          {position.shortText}
-        </h1>
+        <div className="sheet-head mt-6">
+          <div className="min-w-0">
+            <p className="code text-[0.95rem] text-ink-3">{position.oz}</p>
+            <h1 className="display mt-2.5 text-[clamp(1.75rem,4.6cqi,2.6rem)] !leading-[1.06]">
+              {position.shortText}
+            </h1>
+            <p className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-[1.5rem] leading-none">
+                <Traceable
+                  source={tenderSource('qty')}
+                  active={source}
+                  className="num font-medium"
+                >
+                  {formatQty(position.qty)}
+                </Traceable>
+                <span className="ml-1.5 text-[1.05rem] text-ink-2">
+                  {unitLabel(position.unit)}
+                </span>
+              </span>
+              <span className="caption">{t('pos.quantity')}</span>
+            </p>
+          </div>
+          <Locator tender={tender} seq={position.seq} />
+        </div>
       </motion.header>
 
-      <motion.div
-        {...arrive(1)}
-        className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1"
-      >
-        <p className="text-[1.9rem] leading-none">
-          <Traceable
-            source={tenderSource('qty')}
-            active={source}
-            className="num font-medium"
-          >
-            {formatQty(position.qty)}
-          </Traceable>
-          <span className="ml-2 text-[1.15rem] text-ink-2">
-            {unitLabel(position.unit)}
-          </span>
-        </p>
-        <p className="caption">{t('pos.quantity')}</p>
-      </motion.div>
-
       {match !== null && (
-        <motion.div {...arrive(2)} className="mt-7">
+        <motion.div {...arrive(1)} className="mt-8">
           <Decision
             match={match}
             unit={unitLabel(position.unit)}
@@ -239,8 +236,57 @@ export function PositionView({
         </motion.div>
       )}
 
-      <motion.div {...arrive(3)} className="mt-7">
-        <Description text={position.longText} />
+      <motion.section {...arrive(2)} className="mt-10">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <h2 className="heading text-[1.3rem]">{t('pos.offers')}</h2>
+          <p className="caption">{t('pos.offersHint')}</p>
+        </div>
+
+        {/* The Preisspiegel: one column per supplier, always in the same order. */}
+        <div
+          className="offers"
+          style={{ '--columns': suppliers.length } as React.CSSProperties}
+        >
+          {suppliers.map((supplier) => {
+            const own = shown.filter(
+              (entry) => entry.supplier.key === supplier.key,
+            )
+            return (
+              <div key={supplier.key} className="offers-column">
+                {own.length === 0 ? (
+                  <Unanswered offer={supplier} afterRun={match !== null} />
+                ) : (
+                  own.map((entry) => (
+                    <Offer
+                      key={`${entry.line.supplierKey}.${entry.line.seq}`}
+                      shown={entry}
+                      chosen={
+                        entry.offer !== null &&
+                        match?.best?.id === entry.offer.id
+                      }
+                      tenderUnit={position.unit}
+                      tenderQty={position.qty}
+                      share={
+                        compare && entry.unitPrice !== null
+                          ? entry.unitPrice / highest
+                          : undefined
+                      }
+                      source={source}
+                      pace={pace}
+                    />
+                  ))
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </motion.section>
+
+      <motion.section {...arrive(3)} className="mt-12">
+        <h2 className="heading text-[1.3rem]">{t('pos.asked')}</h2>
+        <div className="mt-3">
+          <Description text={position.longText} />
+        </div>
         <p className="mt-3 text-[0.92rem]">
           <Traceable
             source={tenderSource('text')}
@@ -250,40 +296,6 @@ export function PositionView({
             {t('pos.source')}
           </Traceable>
         </p>
-      </motion.div>
-
-      <motion.section {...arrive(4)} className="mt-12">
-        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-          <h2 className="heading text-[1.2rem]">{t('pos.offers')}</h2>
-          <p className="caption">{t('pos.offersHint')}</p>
-        </div>
-
-        <div className="module divide-y divide-line overflow-hidden">
-          {shown.map((entry) => (
-            <OfferRow
-              key={`${entry.line.supplierKey}.${entry.line.seq}`}
-              shown={entry}
-              chosen={
-                entry.offer !== null && match?.best?.id === entry.offer.id
-              }
-              tenderUnit={position.unit}
-              share={
-                compare && entry.unitPrice !== null
-                  ? entry.unitPrice / highest
-                  : undefined
-              }
-              source={source}
-              pace={pace}
-            />
-          ))}
-          {silent.map((supplier) => (
-            <Unanswered
-              key={supplier.key}
-              offer={supplier}
-              afterRun={match !== null}
-            />
-          ))}
-        </div>
       </motion.section>
     </article>
   )
@@ -323,32 +335,35 @@ function Decision({
               ? t('decision.review.unpriced', { unit })
               : ''
 
+  // The figures in the sentence are what it is about.
+  const figures = [
+    match.atRisk === null ? null : `${formatMoney(match.atRisk)} €`,
+    !review && match.materialTotal !== null
+      ? `${formatMoney(match.materialTotal)} €`
+      : null,
+  ].filter((figure): figure is string => figure !== null)
+
   return (
-    <div
-      className={`rounded-module border px-4 py-3.5 sm:px-5 ${
-        review ? 'border-open/35 bg-open-soft' : 'border-line bg-surface'
-      }`}
-    >
-      <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-medium">
-        <span className="lamp" style={lampStyle(review ? 'open' : 'settled')} />
-        {t(review ? 'decision.review' : 'decision.auto')}
-        {review &&
-          match.reasons.map((reason) => (
-            <span
-              key={reason}
-              className="rounded-full border border-open/40 px-2.5 py-0.5 text-[0.84rem] font-medium text-open-ink"
-            >
-              {t(reasonLabel(reason))}
+    <div>
+      <p className="statement verdict">
+        <span
+          className="lamp mr-3 translate-y-[-0.18em]"
+          style={lampStyle(review ? 'open' : 'settled')}
+        />
+        <b>{t(review ? 'decision.review' : 'decision.auto')}</b>
+        {review && match.reasons.length > 0 && (
+          <>
+            {': '}
+            <span className="text-open-ink">
+              {match.reasons.map((reason) => t(reasonLabel(reason))).join(', ')}
             </span>
-          ))}
+          </>
+        )}
+        {'. '}
+        {body !== '' && <span className="num">{strong(body, figures)}</span>}
       </p>
-      {body !== '' && (
-        <p className="num mt-1.5 max-w-[60ch] leading-snug text-ink-2">
-          {body}
-        </p>
-      )}
       {match.noted.length > 0 && (
-        <p className="caption mt-2">
+        <p className="caption mt-3">
           {t('decision.noted', {
             reasons: match.noted
               .map((reason) => t(reasonLabel(reason)))
@@ -357,6 +372,20 @@ function Decision({
         </p>
       )}
     </div>
+  )
+}
+
+/** A sentence with some of its figures set strong. */
+function strong(text: string, figures: ReadonlyArray<string>): ReactNode {
+  const figure = figures.find((candidate) => text.includes(candidate))
+  if (figure === undefined) return text
+  const at = text.lastIndexOf(figure)
+  return (
+    <>
+      {text.slice(0, at)}
+      <b className="whitespace-nowrap">{figure}</b>
+      {text.slice(at + figure.length)}
+    </>
   )
 }
 
@@ -434,28 +463,27 @@ function Unanswered({
 }) {
   const t = useT()
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 px-4 py-4 sm:px-5">
-      <span className="lamp translate-y-[-1px]" />
-      <div className="min-w-0">
-        <p className="truncate text-ink-2">{offer.supplierName}</p>
-        <p className="mt-0.5 text-[0.92rem] text-ink-3">
-          {/* Before a run, a supplier that quotes by article shows nothing
-              here yet; after one, nothing means it did not offer this. */}
-          {t(
-            afterRun || offer.referenceCount > 0
-              ? 'offer.noLine'
-              : 'offer.noRefs',
-          )}
-        </p>
-      </div>
+    <div className="py-5">
+      <p className="caption">{offer.supplierName}</p>
+      <p className="mt-3 text-[0.95rem] text-ink-3">
+        {/* Before a run, a supplier that quotes by article shows nothing
+            here yet; after one, nothing means it did not offer this. */}
+        {t(
+          afterRun || offer.referenceCount > 0
+            ? 'offer.noLine'
+            : 'offer.noRefs',
+        )}
+      </p>
     </div>
   )
 }
 
-function OfferRow({
+/** One offer in its supplier's column. */
+function Offer({
   shown,
   chosen,
   tenderUnit,
+  tenderQty,
   share,
   source,
   pace,
@@ -464,6 +492,7 @@ function OfferRow({
   /** The offer the position is priced with. */
   chosen: boolean
   tenderUnit: string
+  tenderQty: number
   /** This price as a share of the highest one offered, if there are several. */
   share: number | undefined
   source: string | undefined
@@ -476,7 +505,7 @@ function OfferRow({
     offerSource(line.supplierKey, line.seq, field)
 
   // A number traced from inside the details opens them; the price and the
-  // wording in the row itself are in view either way.
+  // wording above them are in view either way.
   const traced =
     source !== undefined &&
     source.startsWith(`${line.supplierKey}.${line.seq}.`) &&
@@ -496,133 +525,128 @@ function OfferRow({
     shown.unitPrice !== null &&
     line.unitPrice !== null &&
     Math.abs(shown.unitPrice - line.unitPrice) > 1e-9
-  const lamp: Lamp =
-    offer === null
-      ? second
-        ? 'caution'
-        : 'settled'
-      : flagged
-        ? 'open'
-        : 'settled'
 
   return (
-    <div className={flagged ? 'bg-open-soft/40' : ''}>
-      <div className="relative grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 px-4 py-4 transition-colors duration-150 hover:bg-ink/[0.03] sm:px-5">
-        <span className="lamp" style={lampStyle(lamp)} />
+    <div className="py-5">
+      <p className="caption flex items-center gap-2">
+        {flagged && <span className="lamp" style={lampStyle('open')} />}
+        <span className="min-w-0">
+          {second ? t('offer.second') : supplier.supplierName}
+        </span>
+      </p>
 
-        <div className="min-w-0">
-          {/* The whole row opens the details; the links in it stay links. */}
-          <button
-            type="button"
-            onClick={() => setPicked(!open)}
-            aria-expanded={open}
-            aria-controls={details}
-            aria-label={`${supplier.supplierName}: ${t(open ? 'offer.hide' : 'offer.show')}`}
-            className="block max-w-full truncate text-left font-medium outline-none after:absolute after:inset-0 focus-visible:after:rounded-[inherit] focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-focus"
-          >
-            {second ? t('offer.second') : supplier.supplierName}
-          </button>
-
-          {ownWording ? (
-            // What the supplier wrote: one line, and all of it once open.
-            <p
-              className={`relative z-[1] mt-0.5 w-fit max-w-full text-[0.92rem] text-ink-2 ${
-                open ? '' : 'truncate'
-              }`}
+      {line.unitPrice !== null && (
+        <>
+          <p className="mt-3 whitespace-nowrap leading-none">
+            <Traceable
+              source={name('unitPrice')}
+              active={source}
+              className="num font-display text-[1.9rem] font-normal tracking-[-0.02em]"
             >
-              <Traceable source={name('text')} active={source}>
-                {line.text}
-              </Traceable>
-            </p>
-          ) : (
-            <p className="mt-0.5 truncate text-[0.92rem] text-ink-3">
-              {hasArticle
-                ? `${t('offer.articleNo')} ${line.articleNo}`
-                : supplier.fileName}
-            </p>
-          )}
+              {formatMoney(line.unitPrice)}
+            </Traceable>
+            <span className="ml-1.5 text-[1.05rem] text-ink-3">€</span>
+          </p>
+          <p className="caption num mt-1.5">
+            {t('offer.per')}{' '}
+            {line.priceBasis !== 1 && `${formatQty(line.priceBasis)} `}
+            {unit}
+            {shown.unitPrice !== null &&
+              (tenderQty !== 1 || converted) &&
+              ` · ${t('offer.forAll', {
+                qty: formatQty(tenderQty),
+                unit: unitLabel(tenderUnit),
+                total: formatMoney(
+                  Math.round(tenderQty * shown.unitPrice * 100) / 100,
+                ),
+              })}`}
+          </p>
+        </>
+      )}
 
-          {chosen && (
-            <p className="mt-1.5 flex items-center gap-2 text-[0.86rem] font-medium text-copper-ink">
-              <span className="h-[3px] w-4 rounded-full bg-copper" />
-              {t('offer.chosen')}
-            </p>
-          )}
-          {offer === null && line.alternative && (
-            <p className="mt-1.5 flex items-center gap-2 text-[0.86rem] text-ink-2">
-              <span className="lamp" style={lampStyle('caution')} />
-              {t('offer.alternative')}
-            </p>
-          )}
-        </div>
+      {share !== undefined && (
+        // Each price as a length, on the same scale in every column.
+        <span className="mt-4 block h-[3px] rounded-full bg-surface-sunken">
+          <motion.span
+            className={`block h-full origin-left rounded-full ${
+              chosen ? 'bg-settled' : flagged ? 'bg-open' : 'bg-ink-3'
+            }`}
+            style={{ width: `${Math.max(1.5, share * 100)}%` }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={pace({ delay: 0.25, duration: 0.7, ease: EASE })}
+          />
+        </span>
+      )}
 
-        <div className="relative z-[1] text-right">
-          {line.unitPrice !== null && (
-            <>
-              <p className="whitespace-nowrap leading-tight">
-                <Traceable
-                  source={name('unitPrice')}
-                  active={source}
-                  className="num text-[1.3rem] font-medium"
-                >
-                  {formatMoney(line.unitPrice)}
-                </Traceable>
-                <span className="ml-1.5 text-ink-3">€</span>
-              </p>
-              <p className="caption num mt-0.5 whitespace-nowrap">
-                {t('offer.per')}{' '}
-                {line.priceBasis !== 1 && `${formatQty(line.priceBasis)} `}
-                {unit}
-              </p>
-            </>
-          )}
-        </div>
+      {ownWording ? (
+        // What the supplier wrote.
+        <p className="mt-4 text-[0.92rem] leading-snug text-ink-2">
+          <Traceable source={name('text')} active={source}>
+            {line.text}
+          </Traceable>
+        </p>
+      ) : (
+        <p className="mt-4 text-[0.92rem] text-ink-3">
+          {hasArticle
+            ? `${t('offer.articleNo')} ${line.articleNo}`
+            : t('offer.tenderWording')}
+        </p>
+      )}
 
+      {chosen && (
+        <p className="mt-3 flex items-center gap-2 text-[0.9rem] font-medium text-settled-ink">
+          <span className="h-[3px] w-4 shrink-0 rounded-full bg-settled" />
+          {t('offer.chosen')}
+        </p>
+      )}
+      {offer === null && (line.alternative || second) && (
+        <p className="mt-3 flex items-center gap-2 text-[0.9rem] text-ink-2">
+          <span className="lamp" style={lampStyle('caution')} />
+          {t(line.alternative ? 'offer.alternative' : 'offer.second')}
+        </p>
+      )}
+
+      {flagged && (
+        // What was found, in words, drawn to scale where it is a measure.
+        <ul className="mt-4 grid gap-4">
+          {findings.map((finding, index) => {
+            const said = findingText(t, finding)
+            return (
+              <li key={index} className="text-[0.95rem] leading-snug">
+                <span className="font-medium text-open-ink">
+                  {t(reasonLabel(finding.code))}.
+                </span>{' '}
+                <span className="num">{said.text}</span>
+                <Gauge finding={finding} />
+                {said.arithmetic !== undefined && (
+                  <span className="code mt-2 block text-[0.84rem] text-ink-2">
+                    {said.arithmetic}
+                  </span>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setPicked(!open)}
+        aria-expanded={open}
+        aria-controls={details}
+        aria-label={`${supplier.supplierName}: ${t(open ? 'offer.hide' : 'offer.show')}`}
+        className="-ml-2 mt-4 flex h-9 items-center gap-1.5 rounded-control px-2 text-[0.9rem] text-ink-2 transition-colors duration-150 hover:bg-ink/[0.07] hover:text-ink"
+      >
+        {t('offer.details')}
         <ChevronDown
-          size={17}
+          size={16}
           aria-hidden
-          className={`text-ink-3 transition-transform duration-300 ease-arrive ${
+          className={`transition-transform duration-300 ease-arrive ${
             open ? 'rotate-180' : ''
           }`}
         />
-
-        {flagged && (
-          // What was found, in words, with the arithmetic where there is one.
-          <ul className="col-span-full mt-3 grid gap-2 pl-[1.35rem]">
-            {findings.map((finding, index) => {
-              const said = findingText(t, finding)
-              return (
-                <li key={index} className="text-[0.95rem] leading-snug">
-                  <span className="font-medium text-open-ink">
-                    {t(reasonLabel(finding.code))}.
-                  </span>{' '}
-                  <span className="num">{said.text}</span>
-                  {said.arithmetic !== undefined && (
-                    <span className="code mt-1 block text-[0.84rem] text-ink-2">
-                      {said.arithmetic}
-                    </span>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        )}
-
-        {share !== undefined && (
-          // The Preisspiegel itself: each price as a length, side by side.
-          <span className="col-span-full mt-3.5 block h-[3px] rounded-full bg-surface-sunken">
-            <motion.span
-              className={`block h-full origin-left rounded-full ${
-                chosen ? 'bg-copper' : 'bg-ink-3'
-              }`}
-              style={{ width: `${Math.max(1.5, share * 100)}%` }}
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={pace({ delay: 0.3, duration: 0.7, ease: EASE })}
-            />
-          </span>
-        )}
-      </div>
+      </button>
 
       <AnimatePresence initial={false}>
         {open && (
@@ -634,83 +658,139 @@ function OfferRow({
             exit={{ height: 0, opacity: 0 }}
             transition={pace({ duration: 0.32, ease: EASE })}
           >
-            <div className="px-4 pb-5 pl-[2.35rem] sm:px-5 sm:pl-[2.6rem]">
-              <dl className="mt-1 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
-                {line.qty !== null && (
-                  <Fact label={t('offer.qty')}>
-                    <Traceable
-                      source={name('qty')}
-                      active={source}
-                      className="num"
-                    >
-                      {formatQty(line.qty)}
-                    </Traceable>{' '}
-                    <span className="text-ink-3">{unit}</span>
-                  </Fact>
-                )}
-                {line.listPrice !== null && (
-                  <Fact label={t('offer.list')}>
-                    <Traceable
-                      source={name('listPrice')}
-                      active={source}
-                      className="num"
-                    >
-                      {formatMoney(line.listPrice)}
-                    </Traceable>
-                  </Fact>
-                )}
-                {line.discountPct !== null && (
-                  <Fact label={t('offer.discount')}>
-                    <Traceable
-                      source={name('discountPct')}
-                      active={source}
-                      className="num"
-                    >
-                      {formatQty(line.discountPct)}
-                    </Traceable>{' '}
-                    <span className="text-ink-3">%</span>
-                  </Fact>
-                )}
-                {line.total !== null && (
-                  <Fact label={t('offer.total')}>
-                    <Traceable
-                      source={name('total')}
-                      active={source}
-                      className="num"
-                    >
-                      {formatMoney(line.total)}
-                    </Traceable>{' '}
-                    <span className="text-ink-3">€</span>
-                  </Fact>
-                )}
-                {hasArticle && (
-                  <Fact label={t('offer.articleNo')} wide>
-                    <Traceable
-                      source={name('articleNo')}
-                      active={source}
-                      className="code text-[0.92rem]"
-                    >
-                      {line.articleNo}
-                    </Traceable>
-                  </Fact>
-                )}
-              </dl>
-
-              {converted && shown.unitPrice !== null && (
-                <p className="caption num mt-4">
-                  {t('offer.converted', {
-                    price: formatUnitPrice(shown.unitPrice),
-                    unit: unitLabel(tenderUnit),
-                  })}
-                </p>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 pt-3">
+              {line.qty !== null && (
+                <Fact label={t('offer.qty')}>
+                  <Traceable
+                    source={name('qty')}
+                    active={source}
+                    className="num"
+                  >
+                    {formatQty(line.qty)}
+                  </Traceable>{' '}
+                  <span className="text-ink-3">{unit}</span>
+                </Fact>
               )}
+              {line.listPrice !== null && (
+                <Fact label={t('offer.list')}>
+                  <Traceable
+                    source={name('listPrice')}
+                    active={source}
+                    className="num"
+                  >
+                    {formatMoney(line.listPrice)}
+                  </Traceable>
+                </Fact>
+              )}
+              {line.discountPct !== null && (
+                <Fact label={t('offer.discount')}>
+                  <Traceable
+                    source={name('discountPct')}
+                    active={source}
+                    className="num"
+                  >
+                    {formatQty(line.discountPct)}
+                  </Traceable>{' '}
+                  <span className="text-ink-3">%</span>
+                </Fact>
+              )}
+              {line.total !== null && (
+                <Fact label={t('offer.total')}>
+                  <Traceable
+                    source={name('total')}
+                    active={source}
+                    className="num"
+                  >
+                    {formatMoney(line.total)}
+                  </Traceable>{' '}
+                  <span className="text-ink-3">€</span>
+                </Fact>
+              )}
+              {hasArticle && (
+                <Fact label={t('offer.articleNo')} wide>
+                  <Traceable
+                    source={name('articleNo')}
+                    active={source}
+                    className="code text-[0.92rem]"
+                  >
+                    {line.articleNo}
+                  </Traceable>
+                </Fact>
+              )}
+            </dl>
 
-              {offer !== null && <Evidence offer={offer} />}
-            </div>
+            {converted && shown.unitPrice !== null && (
+              <p className="caption num mt-4">
+                {t('offer.converted', {
+                  price: formatUnitPrice(shown.unitPrice),
+                  unit: unitLabel(tenderUnit),
+                })}
+              </p>
+            )}
+
+            {offer !== null && <Evidence offer={offer} />}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+const measure = (value: number) =>
+  formatQty(
+    Math.abs(value) >= 20 ? Math.round(value) : Math.round(value * 10) / 10,
+  )
+
+/**
+ * What was asked for and what is offered, as two lengths on one scale. Only
+ * drawn where the checks compared the two as measures in the same unit.
+ */
+function Gauge({ finding }: { finding: Finding }) {
+  const t = useT()
+  const { askedValue, offeredValue, scaleUnit } = finding.detail
+  if (
+    typeof askedValue !== 'number' ||
+    typeof offeredValue !== 'number' ||
+    typeof scaleUnit !== 'string' ||
+    askedValue <= 0 ||
+    offeredValue <= 0
+  ) {
+    return null
+  }
+  const full = Math.max(askedValue, offeredValue)
+  const gap = offeredValue - askedValue
+  const rows = [
+    { label: t('gauge.asked'), value: askedValue, tone: 'bg-ink-3' },
+    { label: t('gauge.offered'), value: offeredValue, tone: 'bg-open' },
+  ]
+
+  return (
+    <span className="mt-3 block">
+      <span className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 text-[0.86rem]">
+        {rows.map((row) => (
+          <span key={row.label} className="contents">
+            <span className="text-ink-3">{row.label}</span>
+            <span className="block h-2 rounded-[2px] bg-surface-sunken">
+              <span
+                className={`block h-full rounded-[2px] ${row.tone}`}
+                style={{ width: `${(row.value / full) * 100}%` }}
+              />
+            </span>
+            <span className="num text-right text-ink">
+              {measure(row.value)} {scaleUnit}
+            </span>
+          </span>
+        ))}
+      </span>
+      {Math.abs(gap) >= 0.05 && (
+        <span className="num mt-1.5 block text-[0.86rem] text-ink-2">
+          {t(gap < 0 ? 'gauge.less' : 'gauge.more', {
+            gap: measure(Math.abs(gap)),
+            unit: scaleUnit,
+          })}
+        </span>
+      )}
+    </span>
   )
 }
 
@@ -730,15 +810,24 @@ function Evidence({ offer }: { offer: MatchOffer }) {
   return (
     <div className="mt-5">
       <p className="caption">{t('offer.compared')}</p>
-      <ul className="mt-1.5 grid gap-1 text-[0.92rem] text-ink-2">
+      <ul className="mt-2 grid gap-2.5 text-[0.92rem] text-ink-2">
         {offer.pairs.map((pair, index) => (
-          <li key={index} className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-ink-3">{pair.attribute}</span>
-            <span className="num">{pair.tender.value}</span>
-            <span aria-hidden="true" className="text-ink-3">
-              {pair.agrees ? '=' : '≠'}
+          <li key={index}>
+            <span className="flex flex-wrap items-baseline gap-x-2">
+              <span className="text-ink-3">{pair.attribute}</span>
+              <span className="num text-ink">{pair.tender.value}</span>
+              <span aria-hidden="true" className="text-ink-3">
+                {pair.agrees ? '=' : '≠'}
+              </span>
+              <span className="sr-only">
+                {t(pair.agrees ? 'offer.agrees' : 'offer.differs')}
+              </span>
+              <span className="num text-ink">{pair.offer.value}</span>
             </span>
-            <span className="num">{pair.offer.value}</span>
+            {/* The words each value was read from, as they stand in the files. */}
+            <span className="mt-0.5 block text-[0.84rem] leading-snug text-ink-3">
+              „{pair.tender.quote}“ · „{pair.offer.quote}“
+            </span>
           </li>
         ))}
         {note !== null && <li>{note}</li>}
@@ -759,7 +848,7 @@ function Fact({
   return (
     <div className={wide ? 'col-span-2' : ''}>
       <dt className="caption">{label}</dt>
-      <dd className="mt-1 whitespace-nowrap text-[1.02rem]">{children}</dd>
+      <dd className="mt-1 text-[1.02rem]">{children}</dd>
     </div>
   )
 }

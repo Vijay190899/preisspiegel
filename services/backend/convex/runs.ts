@@ -48,6 +48,7 @@ const summary = (run: Doc<'runs'>) => ({
   review: run.review,
   materialTotal: run.materialTotal,
   atRisk: run.atRisk,
+  wins: run.wins ?? {},
   note: run.note,
 })
 
@@ -158,6 +159,16 @@ export const reviewQueue = query({
         atRisk: row.atRisk,
         best: row.best,
         offers: row.offers.length,
+        // What each offer comes to for the whole quantity, and whether
+        // anything was found on it: the shape of the decision at a glance.
+        quotes: row.offers.map((entry) => ({
+          supplierKey: entry.supplierKey,
+          total:
+            entry.unitPrice === null
+              ? null
+              : Math.round(position.qty * entry.unitPrice * 100) / 100,
+          clean: entry.verdict === 'confirmed' && entry.findings.length === 0,
+        })),
       })
     }
     return queue

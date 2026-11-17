@@ -64,14 +64,15 @@ An independent audit closes each milestone (ADR-23). A fresh agent with no part 
 
 ## Frontend quality bar
 
-- The direction is "Schaltplan" (ADR-26, PRD §7): the tender as a single-line diagram, modules on a mounting plate, pilot lamps for status, copper only for what is energised or is the next thing to do. Use the building blocks in `apps/web/src/styles/app.css`: `display` and `heading` for headlines, `caption` for field names, `num` for figures, `code` for ordinal and article numbers, `module` for a surface, `lamp` for status, `traceable` for a value that leads to its source, `action` for the one primary action. No drop-in component library.
-- One headline, one sentence and one action per view. Detail opens on request. If a view feels crowded, remove something before adding a container.
-- Motion answers an action, apart from the one switching-on sequence on the overview. Every animation goes through `usePace()` in `src/lib/pace.ts`, which keeps the starting state in the markup and removes the way there under reduced motion.
+- The direction is "Weidenufer" (ADR-42, PRD §7): the building the tender is for, seen across the river at night. Every position is a window, lit when priced and red when it needs a person. The light of a window is also the colour of the one primary action; red means "a person decides" and nothing else. Use the building blocks in `apps/web/src/styles/app.css`: `display` for what is said large, `heading` for a section, `statement` for the sentence that says how things stand, `caption` for field names, `num` for figures, `code` for ordinal and article numbers, `lamp` for status, `traceable` for a value that leads to its source, `action` for the one primary action. No drop-in component library.
+- One headline, one sentence and one action per view. Detail opens on request. If a view feels crowded, remove something before adding a container. No label above a heading, no boxed alert, no grid of equal cards; a comparison is columns ruled apart.
+- Motion answers an action, apart from the building: its lights come on once, and after that the red windows breathe together and the water drifts. All of that is CSS, so it needs no script and stops under reduced motion; every other animation goes through `usePace()` in `src/lib/pace.ts`, which keeps the starting state in the markup and removes the way there.
 - No capitals for labels, no arrows on links, no mono for running text.
+- A layout inside a position follows the room the position has (container queries on `.sheet`), not the screen: with a document open beside it, it is half as wide.
 
 - Tokens live in `apps/web/src/styles/tokens.css` and are the single source of colour. Use the Tailwind utilities mapped from them (`bg-surface`, `text-ink-2`), never raw hex in components.
 - Figures use the `num` class so columns line up.
-- Status colours carry meaning (approved, settled, open, caution) and are never decoration. They ship with a label or an icon, never colour alone. Any new chart colour goes through the `dataviz` skill's validator against every surface colour, and every new colour pair is added to `src/styles/tokens.test.ts`.
+- Status colours carry meaning (priced, open, caution, approved) and are never decoration. They ship with a label, never colour alone. Every new colour pair is added to `src/styles/tokens.test.ts`; a chart that needs more than these goes through the `dataviz` skill's validator first.
 - Every value shown has a source. If it cannot be traced, it is not shown.
 - UI copy is German first with an English mirror in `src/lib/i18n.ts`. Domain terms stay German in both.
 - Honour `prefers-reduced-motion`. Keyboard access and visible focus on everything interactive; a long list is one Tab stop. A new behaviour gets a check in `scripts/uiProbe.ts`.
@@ -79,5 +80,6 @@ An independent audit closes each milestone (ADR-23). A fresh agent with no part 
 ## Git
 
 - Small commits at each gate: `feat(m2): matcher step + quote verification`.
+- **Work on a branch and open a pull request** (ADR-44). Nothing is committed straight to `main`; the merge is the owner's.
 - **Do not add `Co-Authored-By` trailers or any AI attribution to commits or PRs.**
 - Log deviations from the plan in `docs/DECISIONS.md` (one numbered line plus why).

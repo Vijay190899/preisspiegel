@@ -18,6 +18,7 @@ import {
   gaebPositions,
   parseGaeb,
   parseOfferPdf,
+  storeyPlan,
 } from '@preisspiegel/core'
 import { extractPdfText } from './extractPdf'
 import { FILES, SEED, generate } from './generate'
@@ -120,6 +121,9 @@ async function load(prod: boolean): Promise<void> {
     if (last?.rno === title.rno) last.positionCount++
     else titles.push({ ...title, positionCount: 1 })
   }
+  const storeys = storeyPlan(
+    positions.map((position) => position.path[1]?.label),
+  )
   const tables: Record<string, Array<object>> = {
     tenders: [
       {
@@ -133,6 +137,8 @@ async function load(prod: boolean): Promise<void> {
         positionCount: positions.length,
         referencedPositionCount: referenced.size,
         titles,
+        storeys: storeys.storeys,
+        storeyByPosition: storeys.byPosition,
       },
     ],
     documents: [

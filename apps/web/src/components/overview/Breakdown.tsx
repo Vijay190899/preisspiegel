@@ -1,0 +1,77 @@
+import { reasonLabel } from '~/lib/findings'
+import { formatQty } from '~/lib/format'
+import { useT } from '~/lib/i18n'
+import type { ReasonCode, ReviewItem, TenderDocument } from '~/lib/queries'
+
+/**
+ * A count per name, each with a bar on one scale and its figure beside it.
+ * The figure is the label; the bar only shows the proportion.
+ */
+function Tally({
+  rows,
+  tone,
+}: {
+  rows: ReadonlyArray<{ key: string; name: string; count: number }>
+  tone: 'open' | 'pane'
+}) {
+  const largest = Math.max(1, ...rows.map((row) => row.count))
+  return (
+    <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-5 gap-y-3.5">
+      {rows.map((row) => (
+        <div key={row.key} className="contents">
+          <dt className="min-w-0">
+            <span className="block text-[0.95rem] leading-snug text-ink-2">
+              {row.name}
+            </span>
+            <span
+              className={`mt-2 block h-[3px] min-w-[3px] rounded-full ${
+                tone === 'open' ? 'bg-open' : 'bg-pane'
+              }`}
+              style={{ width: `${(row.count / largest) * 100}%` }}
+            />
+          </dt>
+          <dd className="num text-right text-[0.95rem] text-ink">
+            {formatQty(row.count)}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+/** Why positions need a person: one line per reason, the commonest first. */
+export function Reasons({ items }: { items: ReadonlyArray<ReviewItem> }) {
+  const t = useT()
+  const counts = new Map<ReasonCode, number>()
+  for (const item of items) {
+    for (const code of item.reasons) {
+      counts.set(code, (counts.get(code) ?? 0) + 1)
+    }
+  }
+  const rows = [...counts.entries()]
+    .sort(([, a], [, b]) => b - a)
+    .map(([code, count]) => ({
+      key: code,
+      name: t(reasonLabel(code)),
+      count,
+    }))
+  return <Tally rows={rows} tone="open" />
+}
+
+/** Whose offer each priced position is priced with. */
+export function Shares({
+  wins,
+  suppliers,
+}: {
+  wins: Record<string, number>
+  suppliers: ReadonlyArray<TenderDocument>
+}) {
+  const rows = suppliers
+    .map((supplier) => ({
+      key: supplier.key,
+      name: supplier.supplierName ?? supplier.key,
+      count: wins[supplier.key] ?? 0,
+    }))
+    .sort((a, b) => b.count - a.count)
+  return <Tally rows={rows} tone="pane" />
+}

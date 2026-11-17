@@ -6,9 +6,10 @@ const STORAGE_KEY = 'preisspiegel:theme'
 
 /**
  * Runs in <head> before first paint, so the page never flashes the wrong
- * theme. A stored choice wins; otherwise the operating system decides.
+ * theme. A stored choice wins; otherwise it is night, which is how the
+ * interface was drawn. Day is a choice.
  */
-export const themeBootScript = `(function(){try{var s=localStorage.getItem('${STORAGE_KEY}');var t=s==='light'||s==='dark'?s:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}})()`
+export const themeBootScript = `(function(){var t='dark';try{var s=localStorage.getItem('${STORAGE_KEY}');if(s==='light'||s==='dark')t=s}catch(e){}document.documentElement.dataset.theme=t})()`
 
 const listeners = new Set<() => void>()
 
@@ -18,7 +19,7 @@ function subscribe(onChange: () => void): () => void {
 }
 
 function readTheme(): Theme {
-  return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
 }
 
 export function setTheme(theme: Theme): void {
@@ -31,7 +32,7 @@ export function setTheme(theme: Theme): void {
   listeners.forEach((notify) => notify())
 }
 
-/** The active theme. On the server it reports light; the boot script corrects it. */
+/** The active theme. The server renders night; the boot script applies a stored choice. */
 export function useTheme(): Theme {
-  return useSyncExternalStore(subscribe, readTheme, () => 'light')
+  return useSyncExternalStore(subscribe, readTheme, () => 'dark')
 }

@@ -32,6 +32,24 @@ describe('compareValues', () => {
     expect(result.agrees).toBe(false)
     // 138 kVA at 400 V three-phase is 199 A.
     expect(result.arithmetic).toBe('138 kVA / (√3 × 400 V) = 199 A')
+    // Both on one scale, so the shortfall can be drawn.
+    expect(result.scale?.asked).toBe(250)
+    expect(result.scale?.offered).toBeCloseTo(199.2, 1)
+    expect(result.scale?.unit).toBe('A')
+  })
+
+  it('puts two measures of one kind on the scale of the one asked for', () => {
+    expect(compareValues('1.800 lm', '900 lm').scale).toEqual({
+      asked: 1800,
+      offered: 900,
+      unit: 'lm',
+    })
+    expect(compareValues('30 mA', '0,3 A').scale).toEqual({
+      asked: 30,
+      offered: 300,
+      unit: 'mA',
+    })
+    expect(compareValues('NYM-J', 'NYY-J').scale).toBeUndefined()
   })
 
   it('accepts a cabinet whose kVA rating covers the current', () => {

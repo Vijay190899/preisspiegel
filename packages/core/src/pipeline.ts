@@ -187,6 +187,8 @@ export interface Pair {
   decidedBy: 'code' | 'model'
   /** The conversion behind the comparison, where there was one. */
   arithmetic?: string
+  /** Both values as numbers in one unit, where they were compared as measures. */
+  scale?: { asked: number; offered: number; unit: string }
 }
 
 export interface Judgement {
@@ -275,6 +277,7 @@ export function verifyAnswer(
         ...(compared.arithmetic === undefined
           ? {}
           : { arithmetic: compared.arithmetic }),
+        ...(compared.scale === undefined ? {} : { scale: compared.scale }),
       })
     }
 
@@ -439,6 +442,13 @@ export function assess(
             ...(pair.arithmetic === undefined
               ? {}
               : { arithmetic: pair.arithmetic }),
+            ...(pair.scale === undefined
+              ? {}
+              : {
+                  askedValue: pair.scale.asked,
+                  offeredValue: Math.round(pair.scale.offered * 100) / 100,
+                  scaleUnit: pair.scale.unit,
+                }),
           },
         })
       }

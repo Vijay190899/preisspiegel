@@ -96,7 +96,7 @@ async function main(): Promise<void> {
     console.log('Source of a number')
     // The wholesaler's price: its offer is a PDF, so a page gets drawn.
     await page
-      .locator('.module > div', { hasText: 'Rheinbogen' })
+      .locator('.offers-column', { hasText: 'Rheinbogen' })
       .locator('.traceable.num')
       .first()
       .click()
@@ -186,9 +186,12 @@ async function main(): Promise<void> {
 
     console.log('Decisions')
     await page.goto(`${base}/`, { waitUntil: 'networkidle' })
-    const lead = await page.locator('main p.text-\\[1\\.25rem\\]').innerText()
+    const lead = (await page.locator('main p.statement').innerText()).replace(
+      /\s+/g,
+      ' ',
+    )
     const split =
-      /([\d.]+) von ([\d.]+) Positionen sind kalkuliert\. ([\d.]+) brauchen/.exec(
+      /([\d.]+) von ([\d.]+) Positionen sind kalkuliert\. ([\d.]+) warten/.exec(
         lead,
       )
     check(
@@ -197,6 +200,71 @@ async function main(): Promise<void> {
       lead,
     )
     const openCount = split?.[3] ?? ''
+
+    console.log('The building')
+    await settle(page, 3000)
+    const front = page.locator('[role="application"]:visible')
+    const windows = await front.locator('rect.pane').count()
+    const red = await front.locator('rect.pane[data-s="open"]').count()
+    check(
+      'every position has a window and the open ones are red',
+      String(windows) === (split?.[2] ?? '').replace('.', '') &&
+        String(red) === openCount,
+      { windows, red },
+    )
+    const target = front.locator('rect.pane[data-s="open"]').nth(3)
+    const spot = await target.boundingBox()
+    if (spot !== null) {
+      await page.mouse.move(spot.x + spot.width / 2, spot.y + spot.height / 2)
+    }
+    await settle(page, 400)
+    const note = await front.locator('.note').innerText()
+    const pointed = /\d\d\.\d\d\.\d{4}/.exec(note)?.[0]
+    check(
+      'pointing at a window says which position it is and how it stands',
+      pointed !== undefined && note.includes('braucht eine Entscheidung'),
+      note,
+    )
+    if (spot !== null) {
+      await page.mouse.click(spot.x + spot.width / 2, spot.y + spot.height / 2)
+    }
+    await page.waitForURL(/\/positionen\/\d/)
+    check(
+      'a click on the window opens that position',
+      pointed !== undefined && path(page) === `/positionen/${pointed}`,
+      path(page),
+    )
+    check(
+      'the position shows where it is in the building',
+      await page
+        .locator('article a.locator')
+        .waitFor({ timeout: 5000 })
+        .then(() => true)
+        .catch(() => false),
+    )
+
+    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await settle(page, 600)
+    await page.getByRole('link', { name: 'Alle Positionen' }).focus()
+    await page.keyboard.press('Tab')
+    const onFront = await page.evaluate(
+      () => document.activeElement?.getAttribute('role') === 'application',
+    )
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowUp')
+    await settle(page, 200)
+    const walked = await front.locator('.note').innerText()
+    const chosenOz = /\d\d\.\d\d\.\d{4}/.exec(walked)?.[0]
+    await page.keyboard.press('Enter')
+    await page.waitForURL(/\/positionen\/\d/)
+    check(
+      'the building is one Tab stop; arrows choose a window and Enter opens it',
+      onFront &&
+        chosenOz !== undefined &&
+        path(page) === `/positionen/${chosenOz}`,
+      { onFront, chosenOz, at: path(page) },
+    )
+    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
 
     await page.getByRole('link', { name: 'Entscheidungen öffnen' }).click()
     await page.waitForURL(/offen=true/)
@@ -319,28 +387,31 @@ async function main(): Promise<void> {
     watch(calmPage, 'reduced motion')
     await calmPage.goto(`${base}/`, { waitUntil: 'networkidle' })
     await settle(calmPage, 300)
-    const total = await calmPage
-      .locator('figure foreignObject p.num')
-      .innerText()
-    check(
-      'the diagram shows its total at once',
-      total.replace(/\s+/g, ' ').includes('1.170'),
-      total,
-    )
-    const hidden = await calmPage.evaluate(
+    // Nothing may wait for an animation: every window, the light around
+    // them and the picture in the water are there at once.
+    const waiting = await calmPage.evaluate(
       () =>
-        [...document.querySelectorAll('figure svg *')].filter(
+        [...document.querySelectorAll('rect.pane, .halo, .mirror')].filter(
           (element) =>
-            getComputedStyle(element).opacity === '0' &&
-            element.closest('[clip-path]') === null,
+            element.closest('svg')?.getClientRects().length !== 0 &&
+            getComputedStyle(element).opacity === '0',
         ).length,
     )
-    check('no part of the diagram waits for an animation', hidden === 0, hidden)
+    check('no part of the building waits for an animation', waiting === 0, {
+      waiting,
+    })
+    check(
+      'the interface opens at night unless day was chosen',
+      (await calmPage.evaluate(
+        () => document.documentElement.dataset.theme,
+      )) === 'dark',
+    )
     await calm.close()
 
     console.log('Phone')
     const phone = await browser.newContext({
       viewport: { width: 390, height: 844 },
+      hasTouch: true,
     })
     const phonePage = await phone.newPage()
     watch(phonePage, 'phone')
@@ -350,6 +421,24 @@ async function main(): Promise<void> {
       'a phone shows the list and opens no position by itself',
       path(phonePage) === '/positionen',
       path(phonePage),
+    )
+    await phonePage.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await settle(phonePage, 600)
+    const upright = phonePage.locator('[role="application"]:visible')
+    const shape = await upright.boundingBox()
+    check(
+      'on a phone the house stands upright',
+      shape !== null && shape.height > shape.width,
+      shape,
+    )
+    const pane = upright.locator('rect.pane[data-s="open"]').first()
+    await pane.scrollIntoViewIfNeeded()
+    await pane.tap()
+    await settle(phonePage, 300)
+    check(
+      'a tap says what the window is and offers to open it',
+      (await upright.getByRole('link', { name: 'Position öffnen' }).count()) ===
+        1,
     )
     await phonePage.goto(`${base}/positionen/01.01.0020?quelle=a.0.unitPrice`, {
       waitUntil: 'networkidle',

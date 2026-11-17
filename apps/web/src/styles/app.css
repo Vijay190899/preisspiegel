@@ -1,3 +1,4 @@
+@import '@fontsource-variable/jost/wght.css';
 @import '@fontsource-variable/archivo/wdth.css';
 @import '@fontsource/ibm-plex-mono/latin-400.css';
 @import '@fontsource/ibm-plex-mono/latin-500.css';
@@ -11,6 +12,7 @@
 /* Expose the tokens as Tailwind utilities: bg-surface, text-ink-2, ... */
 @theme inline {
   --color-bg: var(--t-bg);
+  --color-sky: var(--t-sky);
   --color-surface: var(--t-surface);
   --color-surface-raised: var(--t-surface-raised);
   --color-surface-sunken: var(--t-surface-sunken);
@@ -22,22 +24,25 @@
   --color-ink-2: var(--t-ink-2);
   --color-ink-3: var(--t-ink-3);
 
-  --color-copper: var(--t-copper);
-  --color-copper-bright: var(--t-copper-bright);
-  --color-copper-ink: var(--t-copper-ink);
-  --color-copper-soft: var(--t-copper-soft);
-  --color-on-copper: var(--t-on-copper);
-  --color-wire: var(--t-wire);
+  --color-action: var(--t-action);
+  --color-on-action: var(--t-on-action);
+  --color-lamp: var(--t-lamp);
+  --color-lamp-ink: var(--t-lamp-ink);
+  --color-lamp-soft: var(--t-lamp-soft);
 
-  --color-approved: var(--t-approved);
-  --color-approved-ink: var(--t-approved-ink);
-  --color-approved-soft: var(--t-approved-soft);
-  --color-settled: var(--t-settled);
-  --color-settled-ink: var(--t-settled-ink);
-  --color-settled-soft: var(--t-settled-soft);
+  --color-wall: var(--t-wall);
+  --color-slab: var(--t-slab);
+  --color-pane: var(--t-pane);
+  --color-pane-off: var(--t-pane-off);
+  --color-water: var(--t-water);
+
   --color-open: var(--t-open);
   --color-open-ink: var(--t-open-ink);
   --color-open-soft: var(--t-open-soft);
+  --color-settled: var(--t-settled);
+  --color-settled-ink: var(--t-settled-ink);
+  --color-approved: var(--t-approved);
+  --color-approved-ink: var(--t-approved-ink);
   --color-caution: var(--t-caution);
   --color-caution-soft: var(--t-caution-soft);
   --color-idle: var(--t-idle);
@@ -49,6 +54,7 @@
   --color-focus: var(--t-focus);
   --color-scrim: var(--t-scrim);
 
+  --font-display: var(--t-font-display);
   --font-sans: var(--t-font-sans);
   --font-mono: var(--t-font-mono);
 
@@ -70,26 +76,14 @@
     background-color: var(--t-bg);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* The parts of the page the browser draws belong to the design too. */
+    scrollbar-color: var(--t-line-strong) transparent;
+    caret-color: var(--t-lamp);
   }
 
-  /*
-   * The mounting plate: a field of fine dots, lit from above. Both layers are
-   * fixed, so content moves over the plate.
-   */
   body {
     min-height: 100dvh;
     background-color: var(--t-bg);
-    background-image:
-      radial-gradient(
-        1100px 520px at 50% -140px,
-        var(--t-light),
-        transparent 70%
-      ),
-      radial-gradient(circle at 1px 1px, var(--t-dot) 1px, transparent 0);
-    background-size:
-      100% 100%,
-      22px 22px;
-    background-attachment: fixed;
   }
 
   :focus-visible {
@@ -99,7 +93,7 @@
   }
 
   ::selection {
-    background: var(--t-copper-soft);
+    background: color-mix(in oklab, var(--t-lamp) 45%, transparent);
     color: var(--t-ink);
   }
 
@@ -108,6 +102,7 @@
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
@@ -115,37 +110,35 @@
 }
 
 @layer components {
-  /* The headline: the family at its widest, set tight. */
+  /* What is said large: light, wide-set letters drawn tight. */
   .display {
-    font-stretch: 118%;
-    font-weight: 620;
-    letter-spacing: -0.028em;
-    line-height: 1.02;
+    font-family: var(--t-font-display);
+    font-weight: 300;
+    letter-spacing: -0.035em;
+    line-height: 1;
     text-wrap: balance;
   }
 
   /* A heading inside the workspace. */
   .heading {
-    font-stretch: 108%;
-    font-weight: 600;
-    letter-spacing: -0.018em;
-    line-height: 1.14;
+    font-family: var(--t-font-display);
+    font-weight: 450;
+    letter-spacing: -0.022em;
+    line-height: 1.12;
     text-wrap: balance;
   }
 
-  /* A quiet name for a field: narrower, smaller, never capitals. */
+  /* A quiet name for a field. */
   .caption {
-    font-stretch: 94%;
     font-size: 0.8125rem;
-    font-weight: 500;
-    line-height: 1.3;
+    font-weight: 450;
+    line-height: 1.35;
     color: var(--t-ink-3);
   }
 
   /* Figures that sit in columns line up. */
   .num {
     font-variant-numeric: tabular-nums;
-    font-stretch: 96%;
     letter-spacing: -0.01em;
   }
 
@@ -156,7 +149,7 @@
     letter-spacing: -0.02em;
   }
 
-  /* A module: one unit on the plate, softly raised. */
+  /* A surface in front of the sky. */
   .module {
     min-width: 0;
     background: var(--t-surface);
@@ -165,7 +158,7 @@
     box-shadow: var(--t-shadow-module);
   }
 
-  /* A pilot lamp. Set `--lamp` to a status colour. */
+  /* A small light. Set `--lamp` to a state colour. */
   .lamp {
     --lamp: var(--t-idle);
     display: inline-block;
@@ -173,14 +166,13 @@
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 999px;
-    background: radial-gradient(
-      circle at 35% 30%,
-      color-mix(in oklab, var(--lamp) 55%, white),
-      var(--lamp) 62%
-    );
-    box-shadow:
-      0 0 0 1px color-mix(in oklab, var(--lamp) 50%, transparent),
-      0 0 10px 1px color-mix(in oklab, var(--lamp) 55%, transparent);
+    background: var(--lamp);
+    box-shadow: 0 0 10px 0
+      color-mix(
+        in oklab,
+        var(--lamp) calc(var(--t-pane-glow) * 80%),
+        transparent
+      );
   }
 
   /* A number that can be traced: a dotted rule that turns into the marker. */
@@ -202,24 +194,23 @@
     text-decoration-thickness: 1.5px;
   }
 
-  /* The one thing to do next: copper, lit from above. */
+  /* The one thing to do next: by night a lit window, by day ink. */
   .action {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     height: 2.75rem;
-    padding: 0 1.15rem;
+    padding: 0 1.2rem;
     border-radius: var(--t-radius-control);
     font-weight: 560;
-    color: var(--t-on-copper);
-    background: linear-gradient(
-      180deg,
-      var(--t-action-from),
-      var(--t-action-to)
-    );
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.35) inset,
-      0 8px 20px -8px var(--t-glow);
+    color: var(--t-on-action);
+    background: var(--t-action);
+    box-shadow: 0 10px 30px -10px
+      color-mix(
+        in oklab,
+        var(--t-action) calc(var(--t-pane-glow) * 70%),
+        transparent
+      );
     transition:
       transform var(--t-dur-fast) var(--t-ease),
       box-shadow var(--t-dur) var(--t-ease);
@@ -227,13 +218,10 @@
 
   .action:hover {
     transform: translateY(-1px);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.35) inset,
-      0 14px 28px -8px var(--t-glow);
   }
 
   .action:active {
-    transform: translateY(0);
+    transform: scale(0.98);
   }
 
   /* A second choice: no fill until it is pointed at. */
@@ -252,8 +240,206 @@
   }
 
   .quiet-action:hover {
-    background: color-mix(in oklab, var(--t-ink) 7%, transparent);
+    background: color-mix(in oklab, var(--t-ink) 8%, transparent);
     color: var(--t-ink);
+  }
+
+  /*
+   * The scene the overview opens on: sky, the building on the bank, the
+   * river. The sky runs the full width of the page.
+   */
+  .scene {
+    background:
+      radial-gradient(
+        ellipse 70% 46% at 50% 100%,
+        var(--t-horizon),
+        transparent 72%
+      ),
+      linear-gradient(180deg, var(--t-bg) 0%, var(--t-sky) 100%);
+  }
+
+  /* The bank is a line of stone; under it the river, which fades into the page. */
+  .water {
+    border-top: 1px solid var(--t-line-strong);
+    background:
+      linear-gradient(180deg, var(--t-slab) 0 5px, transparent 5px),
+      linear-gradient(180deg, var(--t-water) 40%, var(--t-bg) 100%);
+    overflow: hidden;
+  }
+
+  /*
+   * A window comes on the way a fluorescent tube does: it catches, drops,
+   * and holds. Each window sets its own `--at`, so the light crosses the
+   * front in the order the positions were read.
+   */
+  .pane {
+    fill: var(--t-pane);
+    animation: pane-on 520ms steps(1, end) var(--at, 0ms) both;
+  }
+
+  /* A window that needs a decision keeps asking, all of them together. */
+  .pane[data-s='open'] {
+    fill: var(--t-open);
+    animation:
+      pane-on 520ms steps(1, end) var(--at, 0ms) both,
+      pane-ask 2800ms ease-in-out 2600ms infinite;
+  }
+
+  /* The light on the wall, and the picture in the water, follow the windows. */
+  .halo {
+    opacity: 0;
+    animation: halo-in 900ms ease-out 1700ms forwards;
+  }
+
+  /* The water can only show what is lit: it comes last. */
+  .mirror {
+    opacity: 0;
+    animation: appear 1100ms ease-out 2300ms forwards;
+  }
+
+  /* The water moves a little, all the time. */
+  .ripple {
+    animation: ripple var(--period, 9s) ease-in-out infinite alternate;
+  }
+
+  /* What the run came to, said in one breath. The figures carry it. */
+  .statement {
+    max-width: 30ch;
+    font-family: var(--t-font-display);
+    font-size: clamp(1.35rem, 2.1vw, 1.7rem);
+    font-weight: 350;
+    line-height: 1.32;
+    letter-spacing: -0.015em;
+    color: var(--t-ink-2);
+    text-wrap: pretty;
+  }
+
+  .statement b {
+    font-weight: 500;
+    color: var(--t-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The same voice, a size down, for what was decided about one position. */
+  .statement.verdict {
+    max-width: 54ch;
+    font-size: clamp(1.15rem, 2.6cqi, 1.4rem);
+    line-height: 1.38;
+  }
+
+  /* A line of the ledger: number, what it is, what is asked, what it is worth. */
+  .ledger-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'oz sum'
+      'text text';
+    align-items: center;
+    gap: 0.35rem 1.25rem;
+    padding: 0.95rem 0.75rem;
+    margin: 0 -0.75rem;
+    border-radius: 8px;
+    transition: background-color var(--t-dur-fast) var(--t-ease);
+  }
+
+  /* The names of the ledger's columns, set on the same grid as its lines. */
+  .ledger-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'oz sum';
+    gap: 0 1.25rem;
+    padding-bottom: 0.6rem;
+    font-size: 0.8125rem;
+    color: var(--t-ink-3);
+  }
+
+  .ledger-row:hover {
+    background: color-mix(in oklab, var(--t-ink) 5%, transparent);
+  }
+
+  @media (min-width: 640px) {
+    .ledger-row,
+    .ledger-head {
+      grid-template-columns: 6.25rem minmax(0, 1fr) 6rem 7.5rem;
+      grid-template-areas: 'oz text quotes sum';
+    }
+  }
+
+  /*
+   * One position. Its parts arrange themselves by the room the sheet has,
+   * not by the screen: with a document open beside it, it is half as wide.
+   */
+  .sheet {
+    container-type: inline-size;
+  }
+
+  .sheet-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+    align-items: end;
+  }
+
+  .sheet-head > .locator {
+    display: none;
+  }
+
+  /* The Preisspiegel: the suppliers side by side, ruled apart. */
+  .offers {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    border-top: 1px solid var(--t-line-strong);
+    border-bottom: 1px solid var(--t-line);
+  }
+
+  .offers-column + .offers-column {
+    border-top: 1px solid var(--t-line);
+  }
+
+  .offers-column > * + * {
+    border-top: 1px dashed var(--t-line);
+  }
+
+  @container (min-width: 700px) {
+    .sheet-head {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .sheet-head > .locator {
+      display: block;
+    }
+
+    .offers {
+      grid-template-columns: repeat(var(--columns, 3), minmax(0, 1fr));
+    }
+
+    .offers-column + .offers-column {
+      border-top: 0;
+      border-left: 1px solid var(--t-line);
+    }
+
+    .offers-column > * {
+      padding-inline: 1.25rem;
+    }
+
+    .offers-column:first-child > * {
+      padding-left: 0;
+    }
+
+    .offers-column:last-child > * {
+      padding-right: 0;
+    }
+  }
+
+  /* What a window is, said beside it. */
+  .note {
+    padding: 0.7rem 0.85rem;
+    color: var(--t-ink);
+    background: var(--t-surface-raised);
+    border: 1px solid var(--t-line-strong);
+    border-radius: 10px;
+    /* Close and soft: the windows right under the note must stay readable. */
+    box-shadow: 0 8px 20px -8px var(--t-scrim);
   }
 
   /*
@@ -408,10 +594,10 @@
     background: linear-gradient(
       180deg,
       transparent,
-      color-mix(in oklab, var(--t-copper-bright) 30%, transparent)
+      color-mix(in oklab, var(--t-lamp) 30%, transparent)
     );
-    border-bottom: 2px solid var(--t-copper-bright);
-    box-shadow: 0 8px 22px var(--t-glow);
+    border-bottom: 2px solid var(--t-lamp);
+    box-shadow: 0 8px 22px color-mix(in oklab, var(--t-lamp) 35%, transparent);
     animation: scan 900ms cubic-bezier(0.4, 0, 0.2, 1) 60ms both;
   }
 
@@ -429,6 +615,52 @@
 @keyframes draw {
   to {
     stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pane-on {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  45% {
+    opacity: 0.25;
+  }
+  60% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes halo-in {
+  to {
+    opacity: var(--t-pane-glow);
+  }
+}
+
+@keyframes pane-ask {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes ripple {
+  from {
+    transform: translateX(-14px);
+  }
+  to {
+    transform: translateX(14px);
   }
 }
 

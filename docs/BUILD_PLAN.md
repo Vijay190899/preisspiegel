@@ -51,8 +51,8 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 
 **Built, interface:**
 
-- The "Schaltplan" design system, the overview as a single-line diagram, the positions workspace, the source of every number, ⌘K jump, `pnpm probe:ui`.
-- With the run's results: the split and the euros at stake on the overview, with each title's bar in two parts; the review queue, the costliest decision first, stepped through with J and K; the decision on each position with what it is worth; findings in words on the offer they concern, with the arithmetic; what was compared, per offer; the run's state, live.
+- The design system (now "Weidenufer", ADR-42), the overview as the front of the building with one window per position, the positions workspace, the source of every number, ⌘K jump, `pnpm probe:ui`.
+- With the run's results: the split and the euros at stake on the overview, with every window lit or red; the review queue, the costliest decision first, stepped through with J and K; the decision on each position with what it is worth; findings in words on the offer they concern, with the arithmetic; what was compared, per offer; the run's state, live.
 
 **Moved to M3:** labor and the copper surcharge (ADR-40); starting a run from the interface (ADR-39). **Not run:** B4 (ADR-41).
 

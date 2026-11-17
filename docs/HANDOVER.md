@@ -10,8 +10,8 @@ Built and verified:
 - **M1:** GAEB and PDF readers in `packages/core`; a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; `pnpm seed`. See [DATA](DATA.md).
 - **M2, pipeline:** search for the lines that could answer a position, the matcher on `claude-haiku-5-5`, quote verification, comparison of values by arithmetic, per-line checks, attribution of by-article lines by quantity, and the decision ([ARCHITECTURE §4](ARCHITECTURE.md#4-pipeline-built-in-packagescoresrcpipelinets)). The agent runtime runs it in batches with an event log, budgets and an answer cache ([§3](ARCHITECTURE.md#3-backend-servicesbackend)).
 - **M2, benchmarks:** `pnpm bench` (B1 to B3), `pnpm bench:replay`, `pnpm bench:heldout`. On a tender the pipeline had not seen: 99.4% of what it prices by itself is right, with a euro error of zero; 57 of 60 traps found; 93.3% of expected reviews found; 85.7% of raised reviews belong; every shown number is at its source. One full run costs about 40 cents. [DATA](DATA.md#what-the-benchmarks-show) has the table, the first run, and the failure written up.
-- **Interface, "Schaltplan" (ADR-26):** the overview draws the tender as a single-line diagram and says how many positions are priced, how many need a decision and how many euros rest on them; the positions workspace lists everything or only what is open, the costliest first; a position shows its decision, each offer with its findings in words and the arithmetic, and what was compared; a traced number opens its document beside the position at the place it was read.
-- `pnpm check` green: lint, formatting, typecheck of six projects, 269 tests. `pnpm build` green. `pnpm shots` green on six routes at four widths in both themes. `pnpm probe:ui` green: 27 behaviour checks.
+- **Interface, "Weidenufer" (ADR-42), the third direction:** the overview is the front of the building at night with one window per position, lit when priced and red when it needs a person, mirrored in the river; it says how many positions are priced, how many wait for a decision and how many euros rest on them, and lists the costliest decisions. A window says what it is and opens its position. A position shows what was decided as a sentence, the suppliers side by side with their prices on one scale, findings in words with the arithmetic and, for a measure, a drawing to scale, and where its window is in the building. A traced number opens its document beside the position at the place it was read.
+- `pnpm check` green: lint, formatting, typecheck of six projects, 298 tests. `pnpm build` green. `pnpm shots` green on six routes at four widths in both themes. `pnpm probe:ui` green: 34 behaviour checks.
 
 **Audits so far.** The first (M0 and M1) and the second (the first interface and the fixes to the first audit) both said "on plan, with gaps". Their findings are closed, each with a test or a probe check, except the ones listed under open items below. The audit of M2 is the next thing to run.
 
@@ -53,7 +53,8 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 - **Own agent runtime on Convex**, not an agent framework (ADR-6).
 - **Synthetic data, fictional names** (ADR-1). No real company's name, branding or copy anywhere.
 - **The ground truth stays out of the database** (ADR-17). Only the benchmarks read `data/seed/truth.json`.
-- **The interface is "Schaltplan", built by hand on the tokens** (ADR-26, 21). One headline, one sentence, one action per view; no component library.
+- **The interface is "Weidenufer", built by hand on the tokens** (ADR-42, 21). One headline, one sentence, one action per view; no component library. Night is the default theme.
+- **Branches and pull requests** (ADR-44). Nothing goes straight to `main`.
 - **An independent audit closes every milestone** (ADR-23).
 
 ## 4. Working agreements

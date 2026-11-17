@@ -189,7 +189,7 @@ export function PositionList({
               replace
               title={t('list.clearTitle')}
               aria-label={`${t('list.clearTitle')}: ${title} ${titleLabel ?? ''}`}
-              className="flex h-7 items-center gap-1.5 rounded-full bg-copper-soft pl-2.5 pr-1.5 text-[0.82rem] font-medium text-copper-ink transition-colors duration-150 hover:bg-copper-ink hover:text-on-copper"
+              className="flex h-7 items-center gap-1.5 rounded-full bg-lamp-soft pl-2.5 pr-1.5 text-[0.82rem] font-medium text-lamp-ink transition-colors duration-150 hover:bg-lamp-ink hover:text-bg"
             >
               <span className="code text-[0.76rem]">{title}</span>
               <span className="max-w-[13ch] truncate">{titleLabel}</span>
@@ -287,9 +287,7 @@ function ActiveMarker() {
       layoutId="position-active"
       className="absolute inset-0 rounded-control bg-surface-raised shadow-module"
       transition={{ type: 'spring', stiffness: 520, damping: 40 }}
-    >
-      <span className="absolute inset-y-2.5 left-0 w-[3px] rounded-full bg-copper" />
-    </motion.span>
+    />
   )
 }
 
@@ -308,7 +306,7 @@ function ListItem({
   if (item.kind === 'title') {
     return (
       <div className="flex h-full items-end gap-2.5 px-4 pb-2">
-        <span className="code text-[0.8rem] text-copper-ink">{item.rno}</span>
+        <span className="code text-[0.8rem] text-lamp-ink">{item.rno}</span>
         <span className="heading truncate text-[1rem]">{item.label}</span>
       </div>
     )

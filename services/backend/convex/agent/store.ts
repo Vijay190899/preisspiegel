@@ -396,6 +396,7 @@ export const finishRun = internalMutation({
     materialTotal: v.number(),
     atRisk: v.number(),
     statuses: v.string(),
+    wins: v.record(v.string(), v.number()),
   },
   handler: async (ctx, { runId, ...totals }) => {
     const current = await ctx.db.get('runs', runId)

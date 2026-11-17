@@ -715,6 +715,9 @@ describe('triage', () => {
         tender: '250 A',
         offer: '138 kVA',
         arithmetic: '138 kVA / (√3 × 400 V) = 199 A',
+        askedValue: 250,
+        offeredValue: 199.19,
+        scaleUnit: 'A',
       },
     })
   })
