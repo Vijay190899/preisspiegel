@@ -69,12 +69,25 @@ const UNIT_LABELS: Record<Locale, Partial<Record<string, string>>> = {
     mtr: 'm',
     h: 'h',
     psch: 'lump sum',
+    // How suppliers pack what they sell.
+    ve: 'pack',
+    rg: 'coil',
+    ring: 'coil',
+    tr: 'drum',
+    rl: 'roll',
   },
 }
 
-export function unitLabel(unit: string | null): string {
+/** A unit, for the quantity it stands beside: `1 pc`, `2 pcs`. */
+export function unitLabel(unit: string | null, quantity?: number): string {
   if (unit === null) return ''
-  return UNIT_LABELS[activeLocale()][unit.toLowerCase()] ?? unit
+  const label = UNIT_LABELS[activeLocale()][unit.toLowerCase()] ?? unit
+  return quantity === 1 && label === 'pcs' ? 'pc' : label
+}
+
+/** How a quotation is set off in the language of the page. */
+export function quoted(text: string): string {
+  return activeLocale() === 'en' ? `\u201c${text}\u201d` : `\u201e${text}\u201c`
 }
 
 /** A unit after "per": `je St`, `per piece`. */

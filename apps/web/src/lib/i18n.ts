@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { formatQty } from './format'
-import { noteLocale } from './locale'
+import { LOCALE_COOKIE, noteLocale, requestedLocale } from './locale'
 import type { Locale } from './locale'
 
 export type { Locale } from './locale'
@@ -470,31 +470,33 @@ function subscribe(onChange: () => void): () => void {
 }
 
 function readLocale(): Locale {
+  if (requestedLocale() === 'en') return 'en'
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return stored === 'en' || stored === 'de' ? stored : DEFAULT_LOCALE
+    // A choice made before the cookie existed.
+    return localStorage.getItem(STORAGE_KEY) === 'en' ? 'en' : DEFAULT_LOCALE
   } catch {
     return DEFAULT_LOCALE
   }
 }
 
 export function setLocale(locale: Locale): void {
+  // A year; the server reads it to render the page in this language.
+  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`
   try {
     localStorage.setItem(STORAGE_KEY, locale)
   } catch {
-    // Private mode or blocked storage: the choice lasts for this page only.
+    // Private mode or blocked storage: the cookie carries the choice.
   }
   document.documentElement.lang = locale
   listeners.forEach((notify) => notify())
 }
 
-/** The active locale. The server always renders German; the client corrects it. */
+/**
+ * The active locale. The server renders the language the request's cookie
+ * names, and the browser starts from the same, so the two agree.
+ */
 export function useLocale(): Locale {
-  const locale = useSyncExternalStore(
-    subscribe,
-    readLocale,
-    () => DEFAULT_LOCALE,
-  )
+  const locale = useSyncExternalStore(subscribe, readLocale, requestedLocale)
   // The formatters follow the language of the render they are called in.
   noteLocale(locale)
   return locale

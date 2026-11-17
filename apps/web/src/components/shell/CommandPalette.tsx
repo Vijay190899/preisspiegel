@@ -174,7 +174,7 @@ export function CommandPalette() {
                     {said.item(row.shortText)}
                   </span>
                   <span className="num relative shrink-0 text-[0.84rem] text-ink-3">
-                    {formatQty(row.qty)} {unitLabel(row.unit)}
+                    {formatQty(row.qty)} {unitLabel(row.unit, row.qty)}
                   </span>
                 </li>
               ))}

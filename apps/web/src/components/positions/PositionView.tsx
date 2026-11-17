@@ -8,6 +8,7 @@ import {
   formatQty,
   formatUnitPrice,
   perUnitLabel,
+  quoted,
   unitLabel,
 } from '~/lib/format'
 import { useT } from '~/lib/i18n'
@@ -273,7 +274,7 @@ export function PositionView({
                   {formatQty(position.qty)}
                 </Traceable>
                 <span className="ml-1.5 text-[1.05rem] text-ink-2">
-                  {unitLabel(position.unit)}
+                  {unitLabel(position.unit, position.qty)}
                 </span>
               </span>
               <span className="caption">{t('pos.quantity')}</span>
@@ -787,8 +788,8 @@ function Offer({
       )}
 
       {ownWording ? (
-        // What the supplier wrote.
-        <p className="mt-4 text-[0.92rem] leading-snug text-ink-2">
+        // What the supplier wrote, in the supplier's words.
+        <p className="mt-4 text-[0.92rem] leading-snug text-ink-2" lang="de">
           <Traceable source={name('text')} active={source}>
             {line.text}
           </Traceable>
@@ -1043,8 +1044,11 @@ function Evidence({ offer }: { offer: MatchOffer }) {
               <span className="num text-ink">{pair.offer.value}</span>
             </span>
             {/* The words each value was read from, as they stand in the files. */}
-            <span className="mt-0.5 block text-[0.84rem] leading-snug text-ink-3">
-              „{pair.tender.quote}“ · „{pair.offer.quote}“
+            <span
+              className="mt-0.5 block text-[0.84rem] leading-snug text-ink-3"
+              lang="de"
+            >
+              {quoted(pair.tender.quote)} · {quoted(pair.offer.quote)}
             </span>
           </li>
         ))}

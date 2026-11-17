@@ -5,8 +5,10 @@
  * must stay as it was written. But the names of its sections, its storeys
  * and what an item is can be said in English for a reader who does not read
  * German, as long as the original is one click away. This is a glossary of
- * the trade's terms applied phrase by phrase, not a translation service: a
- * text it has no words for comes back unchanged.
+ * the trade's terms applied phrase by phrase, not a translation service. A
+ * text is shown in English only if the glossary covers all of it; one with
+ * a word it does not know is shown as the tender wrote it, never half in
+ * one language and half in the other.
  */
 import { useLocale } from './i18n'
 import type { Locale } from './locale'
@@ -24,7 +26,7 @@ const PHRASES: ReadonlyArray<readonly [RegExp, string]> = (
       'Testing and measurement of the installation, with report',
     ],
     ['Bestands- und Revisionsunterlagen', 'As-built and revision documents'],
-    ['Einweisung des Betreibers', 'Instruction of the operator'],
+    ['Einweisung des Betreibers', 'Handover and instruction of the operator'],
     [
       'Unterflur-Geräteeinsatz für (\\d+) Steckdosen und (\\d+) Datendosen',
       'Underfloor device insert for $1 sockets and $2 data outlets',
@@ -41,9 +43,9 @@ const PHRASES: ReadonlyArray<readonly [RegExp, string]> = (
       'Dachleitungshalter für Flachdach',
       'Roof conductor holder for flat roofs',
     ],
-    ['Stundenlohnarbeiten Obermonteur', 'Hourly work, senior fitter'],
-    ['Stundenlohnarbeiten Monteur', 'Hourly work, fitter'],
-    ['Stundenlohnarbeiten Helfer', 'Hourly work, helper'],
+    ['Stundenlohnarbeiten Obermonteur', 'Daywork, chargehand'],
+    ['Stundenlohnarbeiten Monteur', 'Daywork, electrician'],
+    ['Stundenlohnarbeiten Helfer', 'Daywork, labourer'],
     // Distribution and protection.
     ['Anschlussverteilerschrank', 'Site distribution cabinet'],
     ['für Baustrom', 'for site power'],
@@ -54,6 +56,7 @@ const PHRASES: ReadonlyArray<readonly [RegExp, string]> = (
     ['FI/LS-Schalter', 'RCBO'],
     ['Lasttrennschalter', 'Switch-disconnector'],
     ['Standverteiler', 'Floor-standing distribution board'],
+    ['Wandverteiler Aufputz', 'Surface-mounted distribution board'],
     ['Wandverteiler', 'Wall-mounted distribution board'],
     ['Überspannungsableiter', 'Surge arrester'],
     ['Kombiableiter', 'Combined arrester'],
@@ -144,6 +147,7 @@ const PHRASES: ReadonlyArray<readonly [RegExp, string]> = (
     ['(\\d+) TE', '$1 modules'],
     ['(\\d+) HE', '$1 U'],
     ['(\\d+) Zoll', '$1 inch'],
+    ['(\\d+) Port', '$1-port'],
     ['(\\d+) Fasern', '$1 fibres'],
     ['Aufputz', 'surface-mounted'],
     ['Unterputz', 'flush-mounted'],
@@ -174,24 +178,81 @@ const PHRASES: ReadonlyArray<readonly [RegExp, string]> = (
   english,
 ])
 
-/** German figures in a text, in English notation: `3x1,5` and `3.600`. */
+/**
+ * German figures in English notation, where they are measures: a decimal
+ * comma (`3x1,5`, `0,5 m`) and a thousands point before a unit (`3.600 lm`).
+ * A date or a version number is left alone.
+ */
 function figures(text: string): string {
-  return text.replace(/\d+(?:[.,]\d+)+/g, (number) =>
-    number.replace(/[.,]/g, (mark) => (mark === ',' ? '.' : ',')),
-  )
+  return text
+    .replace(/(\d),(\d)/g, '$1.$2')
+    .replace(
+      /(?<![\d.,])(\d{1,3})\.(\d{3})(?=\s?(?:lm|mm|m|W|K|A|V|kg|h)(?![\p{L}]))/gu,
+      '$1,$2',
+    )
+}
+
+/** A phrase as it stands inside a sentence: without its capital. */
+function lowerFirst(text: string): string {
+  return /^[A-Z][a-z]/.test(text)
+    ? text.charAt(0).toLowerCase() + text.slice(1)
+    : text
+}
+
+/** Words that are the same in both languages, or are codes and names. */
+const SAME = new Set([
+  'cat',
+  'simplex',
+  'duplex',
+  'port',
+  'schuko',
+  'led',
+  'dali',
+])
+
+/** Whether what the phrases left over is free of words they did not know. */
+function covered(rest: string): boolean {
+  for (const [word] of rest.matchAll(/[\p{L}]+/gu)) {
+    // Units, single letters and codes written in capitals stay as they are.
+    if (word.length <= 2 || word === word.toUpperCase()) continue
+    if (!SAME.has(word.toLowerCase())) return false
+  }
+  return true
 }
 
 const said = new Map<string, string>()
 
-/** What an item is, in English. */
+/**
+ * What an item is, in English, or the tender's own words where the
+ * glossary does not cover all of them.
+ */
 export function itemInEnglish(shortText: string): string {
   const known = said.get(shortText)
   if (known !== undefined) return known
-  let text = shortText
+
+  // Each phrase found is set aside, so what is left over can be looked at.
+  const found: Array<string> = []
+  let rest = shortText
   for (const [pattern, english] of PHRASES) {
-    text = text.replace(pattern, english)
+    rest = rest.replace(pattern, (...match) => {
+      const groups = match.slice(1, -2) as Array<string | undefined>
+      found.push(
+        english.replace(/\$(\d)/g, (_, digit: string) =>
+          String(groups[Number(digit) - 1] ?? ''),
+        ),
+      )
+      return `\u27e6${found.length - 1}\u27e7`
+    })
   }
-  text = figures(text).replace(/,,/g, ',')
+  const text = covered(rest.replace(/\u27e6\d+\u27e7/g, ' '))
+    ? figures(
+        rest.replace(/\u27e6(\d+)\u27e7/g, (_, at: string, offset: number) => {
+          const phrase = String(found[Number(at)] ?? '')
+          // Only the start of a name has a capital.
+          return offset === 0 ? phrase : lowerFirst(phrase)
+        }),
+      ).replace(/,,/g, ',')
+    : shortText
   said.set(shortText, text)
   return text
 }
@@ -240,7 +301,7 @@ const HEADINGS: Partial<Record<string, string>> = {
   'Erdung, Blitz- und Überspannungsschutz':
     'Earthing, lightning and surge protection',
   Datennetz: 'Data network',
-  Stundenlohnarbeiten: 'Hourly work',
+  Stundenlohnarbeiten: 'Daywork',
   // Sections that serve the whole building.
   Baustromversorgung: 'Site power supply',
   'Allgemeine Leistungen': 'General services',
@@ -284,46 +345,189 @@ export function projectInEnglish(name: string): string {
     )
 }
 
+/** What is compared about a product, by its German name in lower case. */
 const ATTRIBUTES: Partial<Record<string, string>> = {
-  bemessungsstrom: 'Rated current',
-  nennstrom: 'Rated current',
-  schutzart: 'Degree of protection',
-  polzahl: 'Number of poles',
-  leistung: 'Power',
-  systemleistung: 'System power',
-  lichtstrom: 'Luminous flux',
-  leuchtenlichtstrom: 'Luminous flux',
-  farbtemperatur: 'Colour temperature',
-  lichtfarbe: 'Colour temperature',
-  querschnitt: 'Cross-section',
-  aderzahl: 'Number of cores',
-  auslösecharakteristik: 'Tripping characteristic',
-  charakteristik: 'Tripping characteristic',
-  bemessungsfehlerstrom: 'Rated residual current',
-  fehlerstrom: 'Residual current',
-  schaltvermögen: 'Breaking capacity',
-  länge: 'Length',
+  abdeckung: 'Cover',
+  abmessung: 'Dimensions',
   abmessungen: 'Dimensions',
-  breite: 'Width',
-  höhe: 'Height',
-  typ: 'Type',
-  montageart: 'Mounting',
-  montage: 'Mounting',
+  'abmessungen h x b x t': 'Dimensions H x W x D',
+  aderquerschnitt: 'Core cross-section',
+  aderzahl: 'Number of cores',
+  anschlussart: 'Connection type',
   ansteuerung: 'Control',
-  betriebsgerät: 'Control gear',
-  material: 'Material',
-  kategorie: 'Category',
-  spannung: 'Voltage',
+  anzahl: 'Number',
+  'anzahl anschlüsse': 'Number of terminals',
+  'anzahl datendosen': 'Number of data outlets',
+  'anzahl der anschlüsse': 'Number of terminals',
+  'anzahl der felder': 'Number of panels',
+  'anzahl der fächer': 'Number of compartments',
+  'anzahl der plätze': 'Number of spaces',
+  'anzahl der steckdosen': 'Number of sockets',
+  'anzahl fächer': 'Number of compartments',
+  'anzahl plätze': 'Number of spaces',
+  'anzahl pole': 'Number of poles',
+  'anzahl ports': 'Number of ports',
+  'anzahl rangierbügel': 'Number of cable brackets',
+  'anzahl steckdosen': 'Number of sockets',
+  aufbau: 'Construction',
+  ausführung: 'Version',
+  'ausführung sockel': 'Base version',
+  ausgang: 'Output',
+  auslösecharakteristik: 'Tripping characteristic',
+  ausschaltvermögen: 'Breaking capacity',
+  batterie: 'Battery',
+  batteriebetrieb: 'Battery operation',
+  batterieversorgung: 'Battery supply',
+  bauart: 'Design',
+  bauform: 'Design',
+  bauhöhe: 'Height',
+  bemessungsfehlerstrom: 'Rated residual current',
+  bemessungsgrenzkurzschlussausschaltvermögen:
+    'Rated ultimate short-circuit breaking capacity',
+  bemessungsschaltvermögen: 'Rated breaking capacity',
   bemessungsspannung: 'Rated voltage',
-  nennbetriebsdauer: 'Rated duration',
+  bemessungsstrom: 'Rated current',
+  betriebsart: 'Operating mode',
   betriebsdauer: 'Duration',
-  produkt: 'Product',
+  'betriebsdauer einzelbatterie': 'Battery duration',
+  betriebsgerät: 'Control gear',
+  'betriebsgerät dali': 'DALI control gear',
+  brandklasse: 'Fire class',
+  brandschutzklasse: 'Fire protection class',
+  brandverhalten: 'Reaction to fire',
+  breite: 'Width',
+  charakteristik: 'Characteristic',
+  datendosen: 'Data outlets',
+  deckel: 'Lid',
+  dimmbarkeit: 'Dimmability',
+  durchmesser: 'Diameter',
+  einbau: 'Installation',
+  einbauart: 'Installation type',
+  einbaubreite: 'Installation width',
+  einbauhöhe: 'Installation height',
+  einsatz: 'Insert',
+  einzelbatterie: 'Self-contained battery',
+  'einzelbatterie betriebsdauer': 'Battery duration',
+  'einzelbatterie-betriebsdauer': 'Battery duration',
+  erfassungswinkel: 'Detection angle',
+  erkennungsweite: 'Viewing distance',
+  farbe: 'Colour',
+  farbtemperatur: 'Colour temperature',
+  'faserart om4': 'Fibre type OM4',
+  faserklasse: 'Fibre class',
+  faserzahl: 'Number of fibres',
+  fehlerstrom: 'Residual current',
+  fernmeldekontakt: 'Signalling contact',
+  flachleiter: 'Flat conductor',
+  flachleiteranschluss: 'Flat conductor connection',
+  formteil: 'Fitting',
+  'formteil bogen 90°': '90° bend fitting',
+  'formteil winkel': 'Fitting angle',
+  funktion: 'Function',
+  funktionserhalt: 'Circuit integrity',
+  halogenfrei: 'Halogen-free',
+  halogenfreiheit: 'Halogen-free',
+  holmhöhe: 'Side height',
+  höhe: 'Height',
+  höheneinheiten: 'Rack units',
+  'innere unterteilung': 'Internal separation',
+  kabeltyp: 'Cable type',
+  kategorie: 'Category',
+  klappdeckel: 'Hinged lid',
+  klemmleiste: 'Terminal strip',
+  leistung: 'Power',
+  leistungsbereich: 'Power range',
+  leiterquerschnitt: 'Conductor cross-section',
+  leitertyp: 'Conductor type',
+  leitungsquerschnitt: 'Conductor cross-section',
+  leitungstyp: 'Cable type',
+  leuchtenlichtstrom: 'Luminous flux',
+  lichtfarbe: 'Colour temperature',
+  lichtregelung: 'Light control',
+  lichtstrom: 'Luminous flux',
+  lochung: 'Perforation',
+  länge: 'Length',
+  material: 'Material',
+  maße: 'Dimensions',
+  montage: 'Mounting',
+  montageart: 'Mounting',
+  nennbetriebsdauer: 'Rated duration',
+  'nennbetriebsdauer einzelbatterie': 'Rated battery duration',
+  nenngröße: 'Nominal size',
+  nennstrom: 'Rated current',
+  netzsystem: 'System earthing',
+  oberfläche: 'Finish',
+  polzahl: 'Number of poles',
+  ports: 'Ports',
   product: 'Product',
+  produkt: 'Product',
+  querschnitt: 'Cross-section',
+  reichweite: 'Range',
+  reihen: 'Rows',
+  reihenzahl: 'Number of rows',
+  relaisausgang: 'Relay output',
+  runddraht: 'Round wire',
+  'rundleiter-bereich': 'Round conductor range',
+  schaltart: 'Switching type',
+  schalterart: 'Switch type',
+  schaltertyp: 'Switch type',
+  schaltglied: 'Contact element',
+  schaltstrom: 'Switching current',
+  schaltung: 'Circuit',
+  schaltungsart: 'Circuit type',
+  schaltvermögen: 'Breaking capacity',
+  schirmung: 'Shielding',
+  schließer: 'Normally open contact',
+  schnittstelle: 'Interface',
+  schutzart: 'Degree of protection',
+  spannung: 'Voltage',
+  steckdosentyp: 'Socket type',
+  steckertyp: 'Connector type',
+  steuerung: 'Control',
+  strom: 'Current',
+  stromstärke: 'Current',
+  systemart: 'System type',
+  systemleistung: 'System power',
+  teilungseinheiten: 'Modules',
+  tiefe: 'Depth',
+  typ: 'Type',
+  verlegeart: 'Installation method',
+  verriegelung: 'Interlock',
+  verzinkung: 'Galvanising',
+  werkstoff: 'Material',
+  winkel: 'Angle',
+  wippe: 'Rocker',
+  zuleitung: 'Supply cable',
+  'überspannungsableiter-typ': 'Surge arrester type',
+  überspannungsschutz: 'Surge protection',
 }
 
-/** The name of a compared attribute, where it is one of the usual ones. */
+/**
+ * The name of a compared attribute. A model writes these, often joining two
+ * ("Aderzahl und Querschnitt", "Höhe x Breite"); each part is looked up and
+ * the name is given in English only if every part is known.
+ */
 export function attributeInEnglish(name: string): string {
-  return ATTRIBUTES[name.trim().toLowerCase()] ?? name
+  const whole = ATTRIBUTES[name.trim().toLowerCase()]
+  if (whole !== undefined) return whole
+  // Where two things are joined: by a word, by `x`, or by a slash.
+  const joints = [...name.matchAll(/\s+(und|mit|x)\s+|\//g)]
+  if (joints.length === 0) return name
+  const parts = name.split(/\s+(?:und|mit|x)\s+|\//)
+  let english = ''
+  for (const [at, part] of parts.entries()) {
+    const word = ATTRIBUTES[part.trim().toLowerCase()]
+    if (word === undefined) return name
+    english += at === 0 ? word : lowerFirst(word)
+    const joint = joints[at]
+    if (joint === undefined) continue
+    const by = joint[1]
+    english +=
+      by === undefined
+        ? '/'
+        : ` ${by === 'und' ? 'and' : by === 'mit' ? 'with' : 'x'} `
+  }
+  return english
 }
 
 /** The tender's words in the language of the page. German is the original. */
