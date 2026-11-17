@@ -71,6 +71,9 @@ const pair = v.object({
   agrees: v.boolean(),
   decidedBy: v.union(v.literal('code'), v.literal('model')),
   arithmetic: v.optional(v.string()),
+  scale: v.optional(
+    v.object({ asked: v.number(), offered: v.number(), unit: v.string() }),
+  ),
 })
 
 const verdict = v.union(
@@ -154,6 +157,13 @@ export default defineSchema({
         positionCount: v.number(),
       }),
     ),
+    /**
+     * The storeys the tender is cut by, from the ground up, and for every
+     * position which one it belongs to: one character each, the storey's
+     * index in base 36, or `-` for a position that serves the whole building.
+     */
+    storeys: v.optional(v.array(v.string())),
+    storeyByPosition: v.optional(v.string()),
   }).index('by_slug', ['slug']),
 
   documents: defineTable({
@@ -255,6 +265,8 @@ export default defineSchema({
      * thousand positions show its state from one small document.
      */
     statuses: v.union(v.string(), v.null()),
+    /** How many positions each supplier is the cheapest clean offer for. */
+    wins: v.optional(v.record(v.string(), v.number())),
     /** Why a run stopped or failed. */
     note: v.union(v.string(), v.null()),
   }).index('by_tenderSlug_and_startedAt', ['tenderSlug', 'startedAt']),

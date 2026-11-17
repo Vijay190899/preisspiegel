@@ -58,6 +58,11 @@ export interface Comparison {
   decidedBy: 'code' | 'model'
   /** The conversion that was done, written out, where there was one. */
   arithmetic?: string
+  /**
+   * Both values as numbers in one unit, where they were compared as
+   * measures. This is what lets a difference be drawn to scale.
+   */
+  scale?: { asked: number; offered: number; unit: string }
 }
 
 /** Ratings are rounded to catalogue sizes, so 1% apart is the same value. */
@@ -80,10 +85,17 @@ const whole = (value: number) => String(Math.round(value))
 export function compareValues(tender: string, offer: string): Comparison {
   const asked = parseMeasure(tender)
   const given = parseMeasure(offer)
+  /** The unit as the tender writes it, for showing. */
+  const shown =
+    /[a-zäöüµμ°%]+[23²³]?\s*$/i.exec(tender.trim())?.[0].trim() ?? ''
 
   if (asked !== null && given !== null) {
     if (asked.unit === given.unit) {
-      return { agrees: close(asked.value, given.value), decidedBy: 'code' }
+      return {
+        agrees: close(asked.value, given.value),
+        decidedBy: 'code',
+        scale: { asked: asked.value, offered: given.value, unit: shown },
+      }
     }
     // A bare number beside a number with a unit. The same number is the same
     // value with its unit left off. A different number may be a code for
@@ -97,9 +109,11 @@ export function compareValues(tender: string, offer: string): Comparison {
     const g = UNITS[given.unit]
     if (a !== undefined && g !== undefined) {
       if (a.of === g.of) {
+        const offered = (given.value * g.factor) / a.factor
         return {
-          agrees: close(asked.value * a.factor, given.value * g.factor),
+          agrees: close(asked.value, offered),
           decidedBy: 'code',
+          scale: { asked: asked.value, offered, unit: shown },
         }
       }
       if (a.of === 'current' && g.of === 'apparent power') {
@@ -110,6 +124,7 @@ export function compareValues(tender: string, offer: string): Comparison {
           agrees: amps >= needed * (1 - TOLERANCE),
           decidedBy: 'code',
           arithmetic: `${offer.trim()} / (√3 × ${NOMINAL_LINE_VOLTAGE} V) = ${whole(amps)} A`,
+          scale: { asked: needed, offered: amps, unit: 'A' },
         }
       }
       // Two known units of different kinds are not the same measure.

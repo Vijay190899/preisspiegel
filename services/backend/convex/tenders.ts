@@ -28,6 +28,8 @@ export const get = query({
       positionCount: tender.positionCount,
       referencedPositionCount: tender.referencedPositionCount,
       titles: tender.titles,
+      storeys: tender.storeys ?? [],
+      storeyByPosition: tender.storeyByPosition ?? '',
       documents: documents.map((document) => ({
         key: document.key,
         kind: document.kind,

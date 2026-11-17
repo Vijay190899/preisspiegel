@@ -400,6 +400,13 @@ export const decide = internalAction({
         statuses: matches
           .map((match) => (match.status === 'auto' ? 'a' : 'r'))
           .join(''),
+        wins: matches.reduce<Record<string, number>>((count, match) => {
+          if (match.status === 'auto' && match.best !== null) {
+            const key = match.best.supplierKey
+            count[key] = (count[key] ?? 0) + 1
+          }
+          return count
+        }, {}),
       })
     }),
 })
