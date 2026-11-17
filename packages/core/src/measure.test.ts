@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { canonicalUnit, compareValues, parseMeasure, sameText } from './measure'
+import {
+  canonicalUnit,
+  compareValues,
+  kindKey,
+  parseMeasure,
+  sameText,
+  specSignature,
+} from './measure'
 
 describe('parseMeasure', () => {
   it('reads a number with its unit, in German notation', () => {
@@ -139,5 +146,46 @@ describe('canonicalUnit', () => {
     expect(canonicalUnit('psch')).toEqual({ unit: 'psch', pack: false })
     expect(canonicalUnit('kg')).toEqual({ unit: 'kg', pack: false })
     expect(canonicalUnit(null)).toEqual({ unit: '', pack: false })
+  })
+})
+
+describe('specSignature and kindKey', () => {
+  const light = (rating: string, end = 'liefern und montieren.') =>
+    `LED-Downlight als Deckeneinbauleuchte, Deckenausschnitt Ø 200 mm, Systemleistung 26 W, Leuchtenlichtstrom 2.600 lm, Farbtemperatur 3000 K, Farbwiedergabe Ra > 80, Schutzart ${rating}, ${end}`
+
+  it('reads the measures and codes a text states, however they are spaced', () => {
+    expect(specSignature(light('IP 44'))).toBe(specSignature(light('IP44')))
+    expect(specSignature(light('IP 44'))).toContain('ip44')
+    expect(specSignature(light('IP 44'))).toContain('26w')
+    expect(specSignature('NYM-J 3x1,5 mm², B16, 1-polig')).toContain('3x1,5mm2')
+  })
+
+  it('tells two ratings apart', () => {
+    expect(specSignature(light('IP 20'))).not.toBe(
+      specSignature(light('IP 44')),
+    )
+  })
+
+  it('does not count where the thing is installed, or how the text ends', () => {
+    expect(
+      specSignature(
+        light(
+          'IP 20',
+          'einschließlich Lieferung.\nEinbauort: 2. Obergeschoss.',
+        ),
+      ),
+    ).toBe(specSignature(light('IP 20')))
+  })
+
+  it('gives positions that ask for the same thing one key', () => {
+    const at = (longText: string) =>
+      kindKey({ shortText: 'LED-Downlight, 26 W', longText, unit: 'St' })
+    expect(at(light('IP20'))).toBe(at(light('IP 20', 'liefern.')))
+    expect(at(light('IP 20'))).not.toBe(at(light('IP 44')))
+    expect(
+      kindKey({ shortText: 'Kabel', longText: 'Kabel 3x1,5', unit: 'm' }),
+    ).not.toBe(
+      kindKey({ shortText: 'Kabel', longText: 'Kabel 3x1,5', unit: 'St' }),
+    )
   })
 })

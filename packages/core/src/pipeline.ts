@@ -21,7 +21,7 @@
  * No number in the result comes from a model. Prices, quantities and totals
  * are the ones the readers parsed; what is derived from them is derived here.
  */
-import { canonicalText, canonicalUnit, compareValues } from './measure'
+import { canonicalText, canonicalUnit, compareValues, kindKey } from './measure'
 import { parseGermanNumber, roundCents } from './numbers'
 import { buildIndex } from './retrieval'
 import { containsQuote, squash } from './text'
@@ -50,10 +50,13 @@ export const SEARCH_DEPTH = 3
 export const LINE_SHARE = 0.5
 /**
  * A line is also put to the model for positions it does not read like, if
- * their quantities add up to its own and that is true of at most this many
- * kinds of position. A quantity that fits many kinds says nothing.
+ * their quantities add up to its own. Where that is true of more kinds of
+ * position than this, the quantity alone says too little, and only the
+ * kinds the line reads most like are kept.
  */
 export const QUANTITY_FITS = 2
+/** How far down a text search is looked at when a quantity points the way. */
+const QUANTITY_SEARCH_DEPTH = 12
 /** A supplier may round a quantity up by this share without being asked why. */
 export const QUANTITY_ALLOWANCE = 0.3
 /** How many groups of positions are tried against a line's quantity. */
@@ -122,10 +125,16 @@ export function buildQuestions(
 
   // Search for every position first: whether a result counts depends on how
   // well its line fits elsewhere.
-  const found = positions.map((position) =>
-    indexes.flatMap((index) =>
-      index.search(`${position.shortText} ${position.longText}`, SEARCH_DEPTH),
+  const deep = positions.map((position) =>
+    indexes.map((index) =>
+      index.search(
+        `${position.shortText} ${position.longText}`,
+        QUANTITY_SEARCH_DEPTH,
+      ),
     ),
+  )
+  const found = deep.map((perSupplier) =>
+    perSupplier.flatMap((results) => results.slice(0, SEARCH_DEPTH)),
   )
   const best = new Map<string, number>()
   for (const results of found) {
@@ -147,6 +156,7 @@ export function buildQuestions(
     positions,
     [...unreferenced.values()].flat(),
     byText,
+    deep.map((perSupplier) => perSupplier.flat()),
   )
 
   return positions.map((position, index) => {
@@ -178,19 +188,22 @@ export function buildQuestions(
  * position asking for it. If it quotes another article in place of the one
  * asked for, the text no longer leads to the line, but the quantity still
  * does: it is the total of exactly those positions. So a line whose
- * quantity is the total of one kind of position, and of few kinds at all,
- * is put to the model for that kind as well. Whether it is the right
- * product is still the model's to read and the checks' to decide.
+ * quantity is the total of one kind of position is put to the model for
+ * that kind as well. A small total fits many kinds; then only the kinds the
+ * line reads most like are kept, and none if it reads like none of them.
+ * Whether it is the right product is still the model's to read and the
+ * checks' to decide.
  */
 function quotedInPlace(
   positions: ReadonlyArray<Position>,
   lines: ReadonlyArray<OfferLine>,
   byText: ReadonlyArray<ReadonlyArray<OfferLine>>,
+  /** For every position, what a deeper search found, with its scores. */
+  deep: ReadonlyArray<ReadonlyArray<{ item: OfferLine; score: number }>>,
 ): Array<Array<OfferLine>> {
-  // Positions asking for the same thing have the same short text.
   const kinds = new Map<string, Array<number>>()
   positions.forEach((position, index) => {
-    const key = `${canonicalText(position.shortText)}|${canonicalUnit(position.unit).unit}`
+    const key = kindKey(position)
     kinds.set(key, [...(kinds.get(key) ?? []), index])
   })
   const totals = [...kinds.values()].map((members) => ({
@@ -202,24 +215,41 @@ function quotedInPlace(
     unit: canonicalUnit(positions[members[0] ?? 0]?.unit ?? '').unit,
   }))
   const shown = byText.map((found) => new Set(found.map(lineId)))
+  /** How much a line reads like a kind: its best score for any member. */
+  const likeness = (id: string, members: ReadonlyArray<number>) =>
+    Math.max(
+      0,
+      ...members.map(
+        (index) =>
+          deep[index]?.find((result) => lineId(result.item) === id)?.score ?? 0,
+      ),
+    )
 
   const added: Array<Array<OfferLine>> = positions.map(() => [])
   for (const line of lines) {
     const quantity = line.qty
     if (quantity === null || quantity <= 0) continue
     const unit = line.unit === null ? null : canonicalUnit(line.unit).unit
-    const fitting = totals.filter(
+    const id = lineId(line)
+    let fitting = totals.filter(
       (kind) =>
         Math.abs(kind.total - quantity) < 0.5 &&
         (unit === null || unit === kind.unit),
     )
-    if (fitting.length === 0 || fitting.length > QUANTITY_FITS) continue
-    const id = lineId(line)
+    if (fitting.length === 0) continue
     // The text search already led to a kind this quantity belongs to.
     const accounted = fitting.some((kind) =>
       kind.members.every((index) => shown[index]?.has(id) === true),
     )
     if (accounted) continue
+    if (fitting.length > QUANTITY_FITS) {
+      fitting = fitting
+        .map((kind) => ({ kind, like: likeness(id, kind.members) }))
+        .filter(({ like }) => like > 0)
+        .sort((x, y) => y.like - x.like)
+        .slice(0, QUANTITY_FITS)
+        .map(({ kind }) => kind)
+    }
     for (const kind of fitting) {
       for (const index of kind.members) {
         if (shown[index]?.has(id) !== true) added[index]?.push(line)
@@ -648,6 +678,31 @@ const sum = (values: Iterable<number>) => {
 }
 
 /**
+ * Whether some of these quantities, taken together, come to a total. Worked
+ * out in tenths, which is finer than any quantity in a tender.
+ */
+export function addsUpToSome(
+  quantities: ReadonlyArray<number>,
+  total: number,
+): boolean {
+  const target = Math.round(total * 10)
+  if (target <= 0) return false
+  let sums = new Set<number>([0])
+  for (const quantity of quantities) {
+    const step = Math.round(quantity * 10)
+    if (step <= 0) continue
+    const next = new Set(sums)
+    for (const reached of sums) {
+      const value = reached + step
+      if (Math.abs(value - target) < 5) return true
+      if (value < target) next.add(value)
+    }
+    sums = next
+  }
+  return false
+}
+
+/**
  * Settles which positions a line without a reference answers.
  *
  * Such a line offers an article for all the positions that ask for it, with
@@ -681,27 +736,43 @@ export function attribute(assessed: ReadonlyArray<Assessed>): Array<Assessed> {
     }
   }
 
-  /** `supplierKey|oz` for every position a supplier answers exactly. */
+  const asked = (group: Array<Use>) => sum(group.map((use) => use.position.qty))
+
+  /**
+   * `supplierKey|oz` for every position a supplier answers exactly: with a
+   * line that names it, or with a by-article line whose quantity is the
+   * total of the positions it matches. A by-article line that reads like a
+   * position but carries another quantity may have been quoted for others,
+   * and leaves open what the supplier quoted for this one.
+   */
   const answered = new Set<string>()
   for (const { position, offers } of assessed) {
     for (const offer of offers) {
-      if (offer.verdict === 'confirmed') {
+      if (offer.referenced && offer.verdict === 'confirmed') {
         answered.add(`${offer.supplierKey}|${position.oz}`)
       }
     }
   }
+  for (const entries of uses.values()) {
+    const exact = entries.filter((use) => use.offer.verdict === 'confirmed')
+    const quantity = entries[0]?.offer.quantity ?? null
+    if (quantity === null || Math.abs(asked(exact) - quantity) >= 0.5) continue
+    for (const use of exact) {
+      answered.add(`${use.offer.supplierKey}|${use.position.oz}`)
+    }
+  }
 
-  // Positions asking for the same thing have the same short text. The long
-  // text will not do: it also says where in the building the thing goes.
+  // Positions asking for the same thing have the same short text and state
+  // the same measures. The long text as a whole will not do: it also says
+  // where in the building the thing goes.
   const groupsOf = (entries: Array<Use>) => {
     const groups = new Map<string, Array<Use>>()
     for (const use of entries) {
-      const key = canonicalText(use.position.shortText)
+      const key = kindKey(use.position)
       groups.set(key, [...(groups.get(key) ?? []), use])
     }
     return [...groups.values()]
   }
-  const asked = (group: Array<Use>) => sum(group.map((use) => use.position.qty))
   const is = (verdict: Offer['verdict']) => (use: Use) =>
     use.offer.verdict === verdict
   /** A difference found by arithmetic, which no quantity argues away. */
@@ -791,10 +862,16 @@ export function attribute(assessed: ReadonlyArray<Assessed>): Array<Assessed> {
     )
     if (substituted !== undefined) continue
 
-    // 4. Nothing accounts for the quantity. For the positions the line
-    // does match, say so if it is more than rounding.
+    // 4. A supplier need not quote every position that asks for an
+    // article: the quantity of some of them is accounted for as well. If
+    // nothing accounts for it, say so on the positions the line does
+    // match, where it is more than rounding.
     if (
       exact.length > 0 &&
+      !addsUpToSome(
+        exact.map((use) => use.position.qty),
+        quantity,
+      ) &&
       !quantityCovers(
         asked(exact),
         quantity,
@@ -841,13 +918,16 @@ export interface Decision {
 }
 
 /**
- * Marks a price that stands far off what every other supplier asks. Where
- * two suppliers agree and a third is far away, the third is marked. With two
- * suppliers nobody can say which of them is off, so both are.
+ * Marks a price that stands far off what every other supplier asks for the
+ * same product. Where two suppliers agree and a third is far away, the
+ * third is marked. With two suppliers nobody can say which of them is off,
+ * so both are.
  */
 export function markOutliers(offers: Array<Offer>): void {
+  // The price of another product says nothing about this one's.
   const priced = offers.filter(
-    (offer): offer is Offer & { unitPrice: number } => offer.unitPrice !== null,
+    (offer): offer is Offer & { unitPrice: number } =>
+      offer.unitPrice !== null && offer.verdict === 'confirmed',
   )
   const far = (price: number, other: number) =>
     price > other * OUTLIER_FACTOR || price < other / OUTLIER_FACTOR
