@@ -48,6 +48,12 @@ export const SEARCH_DEPTH = 3
  * word with, so this drops most of what a search drags in.
  */
 export const LINE_SHARE = 0.5
+/**
+ * A line is also put to the model for positions it does not read like, if
+ * their quantities add up to its own and that is true of at most this many
+ * kinds of position. A quantity that fits many kinds says nothing.
+ */
+export const QUANTITY_FITS = 2
 /** A supplier may round a quantity up by this share without being asked why. */
 export const QUANTITY_ALLOWANCE = 0.3
 /** How many groups of positions are tried against a line's quantity. */
@@ -129,6 +135,20 @@ export function buildQuestions(
     }
   }
 
+  const byText = positions.map((_, index) =>
+    (found[index] ?? [])
+      .filter(
+        ({ item, score }) =>
+          score >= (best.get(lineId(item)) ?? 0) * LINE_SHARE,
+      )
+      .map(({ item }) => item),
+  )
+  const byQuantity = quotedInPlace(
+    positions,
+    [...unreferenced.values()].flat(),
+    byText,
+  )
+
   return positions.map((position, index) => {
     const named = byReference.get(position.oz) ?? []
     const repeats = (line: OfferLine) =>
@@ -143,15 +163,70 @@ export function buildQuestions(
         ...named
           .filter((line) => !repeats(line))
           .map((line) => candidateOf(line, true)),
-        ...(found[index] ?? [])
-          .filter(
-            ({ item, score }) =>
-              score >= (best.get(lineId(item)) ?? 0) * LINE_SHARE,
-          )
-          .map(({ item }) => candidateOf(item, false)),
+        ...(byText[index] ?? []).map((line) => candidateOf(line, false)),
+        ...(byQuantity[index] ?? []).map((line) => candidateOf(line, false)),
       ],
     }
   })
+}
+
+/**
+ * Lines the text search did not find for a position, but whose quantity
+ * says they were quoted for it.
+ *
+ * A supplier that quotes by article adds up the quantities of every
+ * position asking for it. If it quotes another article in place of the one
+ * asked for, the text no longer leads to the line, but the quantity still
+ * does: it is the total of exactly those positions. So a line whose
+ * quantity is the total of one kind of position, and of few kinds at all,
+ * is put to the model for that kind as well. Whether it is the right
+ * product is still the model's to read and the checks' to decide.
+ */
+function quotedInPlace(
+  positions: ReadonlyArray<Position>,
+  lines: ReadonlyArray<OfferLine>,
+  byText: ReadonlyArray<ReadonlyArray<OfferLine>>,
+): Array<Array<OfferLine>> {
+  // Positions asking for the same thing have the same short text.
+  const kinds = new Map<string, Array<number>>()
+  positions.forEach((position, index) => {
+    const key = `${canonicalText(position.shortText)}|${canonicalUnit(position.unit).unit}`
+    kinds.set(key, [...(kinds.get(key) ?? []), index])
+  })
+  const totals = [...kinds.values()].map((members) => ({
+    members,
+    total: members.reduce(
+      (sum, index) => sum + (positions[index]?.qty ?? 0),
+      0,
+    ),
+    unit: canonicalUnit(positions[members[0] ?? 0]?.unit ?? '').unit,
+  }))
+  const shown = byText.map((found) => new Set(found.map(lineId)))
+
+  const added: Array<Array<OfferLine>> = positions.map(() => [])
+  for (const line of lines) {
+    const quantity = line.qty
+    if (quantity === null || quantity <= 0) continue
+    const unit = line.unit === null ? null : canonicalUnit(line.unit).unit
+    const fitting = totals.filter(
+      (kind) =>
+        Math.abs(kind.total - quantity) < 0.5 &&
+        (unit === null || unit === kind.unit),
+    )
+    if (fitting.length === 0 || fitting.length > QUANTITY_FITS) continue
+    const id = lineId(line)
+    // The text search already led to a kind this quantity belongs to.
+    const accounted = fitting.some((kind) =>
+      kind.members.every((index) => shown[index]?.has(id) === true),
+    )
+    if (accounted) continue
+    for (const kind of fitting) {
+      for (const index of kind.members) {
+        if (shown[index]?.has(id) !== true) added[index]?.push(line)
+      }
+    }
+  }
+  return added
 }
 
 // ---------------------------------------------------------------------------

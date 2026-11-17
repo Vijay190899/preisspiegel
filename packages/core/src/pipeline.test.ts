@@ -107,6 +107,89 @@ describe('buildQuestions', () => {
   })
 })
 
+describe('buildQuestions, by quantity', () => {
+  // Blind buttons on three floors, 6 + 9 + 12 = 27 of them.
+  const buttons = [6, 9, 12].map((qty, floor) =>
+    position({
+      oz: `06.0${floor + 1}.0090`,
+      shortText: 'Jalousietaster, Unterputz',
+      longText: 'Jalousietaster für Rohrmotor, Unterputz, liefern.',
+      qty,
+      unit: 'St',
+    }),
+  )
+  const sockets = position({
+    oz: '06.01.0010',
+    shortText: 'SCHUKO-Steckdose 16 A, Unterputz',
+    longText: 'SCHUKO-Steckdose 16 A, 250 V, Unterputz, liefern.',
+    qty: 40,
+    unit: 'St',
+  })
+  // The supplier quotes a two-way switch where blind buttons were asked
+  // for. Nothing in its text leads to them; its quantity does.
+  const inPlace = (over: Partial<OfferLine> = {}) =>
+    line({
+      supplierKey: 'b',
+      seq: 5,
+      posRef: null,
+      text: 'Wippschalter Aus/Wechsel 10 AX reinweiß',
+      articleNo: null,
+      qty: 27,
+      unit: 'St',
+      ...over,
+    })
+  const idsFor = (
+    all: Array<Position>,
+    lines: Array<OfferLine>,
+    oz: string,
+  ): Array<string> =>
+    buildQuestions(all, lines)
+      .find((asked) => asked.oz === oz)!
+      .candidates.map((candidate) => candidate.id)
+
+  it('asks about a line for the positions whose quantities add up to its own', () => {
+    const all = [sockets, ...buttons]
+    for (const button of buttons) {
+      expect(idsFor(all, [inPlace()], button.oz)).toEqual(['b.5'])
+    }
+    expect(idsFor(all, [inPlace()], sockets.oz)).toEqual([])
+  })
+
+  it('does not when the quantity is not the total of a kind', () => {
+    const all = [sockets, ...buttons]
+    expect(idsFor(all, [inPlace({ qty: 26 })], buttons[0]!.oz)).toEqual([])
+  })
+
+  it('does not when the unit is another', () => {
+    const all = [sockets, ...buttons]
+    expect(idsFor(all, [inPlace({ unit: 'm' })], buttons[0]!.oz)).toEqual([])
+  })
+
+  it('does not when the quantity fits too many kinds to say anything', () => {
+    // Three more kinds that also come to 27.
+    const others = ['Taster', 'Dimmer', 'Abdeckrahmen'].map((name, at) =>
+      position({
+        oz: `06.09.00${at + 1}0`,
+        shortText: `${name}, Unterputz`,
+        longText: `${name}, Unterputz, liefern.`,
+        qty: 27,
+        unit: 'St',
+      }),
+    )
+    const all = [sockets, ...buttons, ...others]
+    expect(idsFor(all, [inPlace()], buttons[0]!.oz)).toEqual([])
+  })
+
+  it('leaves a line alone that the text search already led to its kind', () => {
+    const right = inPlace({ text: 'Jalousietaster Unterputz reinweiß' })
+    const all = [sockets, ...buttons]
+    // Found by its text for every button, and once only.
+    for (const button of buttons) {
+      expect(idsFor(all, [right], button.oz)).toEqual(['b.5'])
+    }
+  })
+})
+
 describe('verifyAnswer', () => {
   const asked = question([line()])
   const raw = (over: Partial<RawJudgement> = {}): RawJudgement => ({
