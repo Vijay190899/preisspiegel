@@ -404,3 +404,15 @@ export function paneBeside(
   }
   return best
 }
+
+const hundredths = (value: number) => Math.round(value * 100) / 100
+
+/** Every window of a set as one outline, for drawing them as a single shape. */
+export function outline(panes: ReadonlyArray<Pane>): string {
+  return panes
+    .map(
+      (pane) =>
+        `M${hundredths(pane.x)} ${hundredths(pane.y)}h${hundredths(pane.width)}v${hundredths(pane.height)}h${hundredths(-pane.width)}z`,
+    )
+    .join('')
+}

@@ -1,70 +1,121 @@
 import { Link } from '@tanstack/react-router'
 import { reasonLabel } from '~/lib/findings'
-import { formatMoney } from '~/lib/format'
+import { formatMoney, formatQty } from '~/lib/format'
 import { useT } from '~/lib/i18n'
 import type { CSSProperties } from 'react'
 import type { ReviewItem, TenderDocument } from '~/lib/queries'
 
+/** Decisions about one article for one reason, on however many storeys. */
+export interface DecisionGroup {
+  /** The costliest of them, which is the one the line opens. */
+  lead: ReviewItem
+  items: Array<ReviewItem>
+  /** What all of them together are worth. `null` where none has a figure. */
+  atRisk: number | null
+}
+
 /**
- * The decisions that carry the most money, as a ledger: what the position
- * is, why it needs a person, what each supplier asks for it, and what the
- * decision is worth.
+ * The same article is tendered on every storey, and what is wrong with a
+ * supplier's line for it is wrong on all of them. Listing each storey
+ * would fill the ledger with one decision said seven times, so decisions
+ * about the same thing for the same reason are one line.
+ */
+export function groupDecisions(
+  items: ReadonlyArray<ReviewItem>,
+): Array<DecisionGroup> {
+  const groups = new Map<string, DecisionGroup>()
+  for (const item of items) {
+    const key = `${item.shortText}|${item.unit}|${item.reasons.join('+')}`
+    const group = groups.get(key)
+    if (group === undefined) {
+      groups.set(key, { lead: item, items: [item], atRisk: item.atRisk })
+      continue
+    }
+    group.items.push(item)
+    if (item.atRisk !== null) {
+      group.atRisk = Math.round(((group.atRisk ?? 0) + item.atRisk) * 100) / 100
+    }
+    if ((item.atRisk ?? 0) > (group.lead.atRisk ?? 0)) group.lead = item
+  }
+  return [...groups.values()].sort((a, b) => (b.atRisk ?? 0) - (a.atRisk ?? 0))
+}
+
+/**
+ * The decisions that carry the most money, as a ledger: what it is about,
+ * why it needs a person, what each supplier asks, and what it is worth.
  */
 export function Decisions({
-  items,
+  groups,
   suppliers,
   storeyOf,
 }: {
-  items: ReadonlyArray<ReviewItem>
+  groups: ReadonlyArray<DecisionGroup>
   suppliers: ReadonlyArray<TenderDocument>
   /** The storey a position is on, by its place in the document. */
   storeyOf: (seq: number) => string | null
 }) {
   const t = useT()
+  // The bars stand in the suppliers' order; the head says which is which.
+  const order = suppliers
+    .map((supplier) => (supplier.supplierName ?? supplier.key).split(' ')[0])
+    .join(' · ')
+
   return (
     <div>
       <div className="ledger-head" aria-hidden="true">
         <span className="[grid-area:oz]">{t('ledger.col.position')}</span>
-        <span className="hidden [grid-area:quotes] sm:block">
-          {t('ledger.col.quotes')}
-        </span>
+        <span className="hidden [grid-area:quotes] sm:block">{order}</span>
         <span className="text-right [grid-area:sum]">
           {t('ledger.col.worth')}
         </span>
       </div>
       <ol className="border-t border-line-strong">
-        {items.map((item) => {
-          const storey = storeyOf(item.seq)
+        {groups.map(({ lead, items, atRisk }) => {
+          const storeys = [
+            ...new Set(
+              items
+                .map((item) => ({ seq: item.seq, name: storeyOf(item.seq) }))
+                .sort((a, b) => a.seq - b.seq)
+                .map((entry) => entry.name)
+                .filter((name): name is string => name !== null),
+            ),
+          ]
           return (
-            <li key={item.oz} className="border-b border-line">
+            <li key={lead.oz} className="border-b border-line">
               <Link
                 to="/positionen/$oz"
-                params={{ oz: item.oz }}
+                params={{ oz: lead.oz }}
+                search={{ offen: true }}
                 className="ledger-row"
               >
                 <span className="code text-[0.82rem] text-ink-3 [grid-area:oz]">
-                  {item.oz}
+                  {lead.oz}
                 </span>
                 <span className="min-w-0 [grid-area:text]">
                   <span className="line-clamp-2 text-[1.02rem] font-medium leading-snug text-ink">
-                    {item.shortText}
+                    {lead.shortText}
                   </span>
                   <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[0.88rem] text-ink-2">
                     <span
                       className="lamp"
                       style={{ '--lamp': 'var(--t-open)' } as CSSProperties}
                     />
-                    {item.reasons
+                    {lead.reasons
                       .map((code) => t(reasonLabel(code)))
                       .join(', ')}
-                    {storey !== null && (
-                      <span className="text-ink-3">· {storey}</span>
-                    )}
+                    <span className="text-ink-3">
+                      {items.length > 1
+                        ? t('ledger.several', {
+                            n: formatQty(items.length),
+                            where: storeys.join(', '),
+                          })
+                        : storeys.join(', ')}
+                    </span>
                   </span>
                 </span>
-                <Quotes item={item} suppliers={suppliers} />
+                <Quotes item={lead} suppliers={suppliers} />
                 <span className="num text-right text-[1.08rem] font-medium text-ink [grid-area:sum]">
-                  {item.atRisk === null ? '' : `${formatMoney(item.atRisk)} €`}
+                  {atRisk === null ? '' : `${formatMoney(atRisk)} €`}
                 </span>
               </Link>
             </li>
