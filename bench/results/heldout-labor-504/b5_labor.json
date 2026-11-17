@@ -1,0 +1,62 @@
+{
+  "benchmark": "B5",
+  "question": "Is each position tied to the right entry of the labor time table, and is what is not sent to a person?",
+  "generatedAt": "2026-11-17T22:22:05.180Z",
+  "gitSha": "9e8bc04-dirty",
+  "seed": 504,
+  "n": 1170,
+  "job": {
+    "id": "m1734g1vdk56vacq2r809jxm4h8jdgj7",
+    "mode": "live",
+    "model": "claude-haiku-5-5",
+    "calls": 524,
+    "answeredFromCache": 646,
+    "failed": 0,
+    "usd": 0.047,
+    "seconds": 122
+  },
+  "result": {
+    "positions": 1170,
+    "settled": 1169,
+    "settledShare": 0.9991,
+    "settledRight": 1164,
+    "settledPrecision": 0.9957,
+    "wrongEntry": 5,
+    "wrongMinutes": 5,
+    "wrongNone": 0,
+    "review": 1,
+    "reviewReasons": {
+      "quote": 1
+    },
+    "hoursTrue": 11323.72,
+    "hoursDecided": 11365.88,
+    "hoursError": 42.17
+  },
+  "wrong": [
+    {
+      "oz": "10.01.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    },
+    {
+      "oz": "10.02.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    },
+    {
+      "oz": "10.04.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    },
+    {
+      "oz": "10.05.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    },
+    {
+      "oz": "10.07.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    }
+  ]
+}
