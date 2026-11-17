@@ -96,23 +96,96 @@ export async function seedRow(seed: number): Promise<SeedRow> {
   }
 }
 
+/** `431`, or a range such as `5000-5149`. */
+function seedsOf(args: ReadonlyArray<string>): Array<number> {
+  return args.flatMap((arg) => {
+    const [from, to] = arg.split('-').map(Number)
+    if (from === undefined || !Number.isInteger(from)) return []
+    if (to === undefined || !Number.isInteger(to)) return [from]
+    return Array.from({ length: to - from + 1 }, (_, at) => from + at)
+  })
+}
+
+const clean = (row: SeedRow): boolean =>
+  row.perfectReader.wrongAuto === 0 &&
+  row.perfectReader.needless === 0 &&
+  row.perfectReader.reviewFound === row.expectedReview
+
+export interface Sweep {
+  rows: Array<SeedRow>
+  /** Seeds the generator could not make a tender from. */
+  failed: Array<number>
+}
+
+/** The reference runs on every seed given, one after the other. */
+export async function sweep(
+  seeds: ReadonlyArray<number>,
+  each?: (row: SeedRow) => void,
+): Promise<Sweep> {
+  const rows: Array<SeedRow> = []
+  const failed: Array<number> = []
+  for (const seed of seeds) {
+    try {
+      const row = await seedRow(seed)
+      rows.push(row)
+      each?.(row)
+    } catch {
+      failed.push(seed)
+    }
+  }
+  return { rows, failed }
+}
+
+/** What a sweep comes to, as the figures the write-up quotes. */
+export function summary(rows: ReadonlyArray<SeedRow>) {
+  const count = (test: (row: SeedRow) => boolean) => rows.filter(test).length
+  const missesTrap = (row: SeedRow) => {
+    const [caught = 0, planted = 0] = row.perfectReader.traps
+      .split('/')
+      .map(Number)
+    return caught < planted
+  }
+  return {
+    tenders: rows.length,
+    /** Tenders on which some true offer was never shown to a reader. */
+    losingOffers: count((row) => row.neverAsked > 0),
+    offersLost: rows.reduce((sum, row) => sum + row.neverAsked, 0),
+    /** Tenders where the perfect reader agrees on every position. */
+    agreeing: count(clean),
+    /** Tenders where it prices something that needed a person. */
+    pricingWrongly: count((row) => row.perfectReader.wrongAuto > 0),
+    positionsPricedWrongly: rows.reduce(
+      (sum, row) => sum + row.perfectReader.wrongAuto,
+      0,
+    ),
+    /** Tenders where it raises a review nobody needs. */
+    raisingNeedlessly: count((row) => row.perfectReader.needless > 0),
+    needlessReviews: rows.reduce(
+      (sum, row) => sum + row.perfectReader.needless,
+      0,
+    ),
+    /** Tenders where it misses a planted trap. */
+    missingTraps: count(missesTrap),
+  }
+}
+
 async function main(): Promise<void> {
-  const args = process.argv.slice(2).map(Number)
-  const seeds = args.length > 0 ? args : DEFAULT_SEEDS
+  const args = process.argv.slice(2)
+  const seeds = args.length > 0 ? seedsOf(args) : DEFAULT_SEEDS
+  // A long sweep prints only the tenders that are not clean.
+  const onlyFailures = seeds.length > 20
   console.log(
     'seed   expected    perfect reader                                          never asked',
   )
   console.log(
     '       auto  rev   auto  wrong  precision  traps  reviews found  needless',
   )
-  const rows: Array<SeedRow> = []
-  for (const seed of seeds) {
-    const row = await seedRow(seed)
-    rows.push(row)
+  const { rows, failed } = await sweep(seeds, (row) => {
+    if (onlyFailures && clean(row) && row.neverAsked === 0) return
     const p = row.perfectReader
     console.log(
       [
-        String(seed).padEnd(6),
+        String(row.seed).padEnd(6),
         String(row.expectedAuto).padEnd(5),
         String(row.expectedReview).padEnd(5),
         String(p.auto).padEnd(5),
@@ -124,16 +197,15 @@ async function main(): Promise<void> {
         String(row.neverAsked),
       ].join(' '),
     )
-  }
-  const clean = rows.filter(
-    (row) =>
-      row.perfectReader.wrongAuto === 0 &&
-      row.perfectReader.needless === 0 &&
-      row.perfectReader.reviewFound === row.expectedReview,
-  ).length
-  console.log(
-    `\nThe perfect reader agrees with the ground truth on every position of ${clean} of ${rows.length} tenders.`,
-  )
+  })
+  const s = summary(rows)
+  console.log(`
+${s.tenders} tenders${failed.length > 0 ? ` (the generator failed on ${failed.length}: ${failed.join(', ')})` : ''}, with flawless reading:
+  agrees with the ground truth on every position   ${s.agreeing}
+  some true offer never shown to a reader          ${s.losingOffers} tenders, ${s.offersLost} offers
+  prices a position that needed a person           ${s.pricingWrongly} tenders, ${s.positionsPricedWrongly} positions
+  raises a review nobody needs                     ${s.raisingNeedlessly} tenders, ${s.needlessReviews} reviews
+  misses a planted trap                            ${s.missingTraps} tenders`)
 }
 
 if (process.argv[1]?.endsWith('seeds.ts') === true) await main()
