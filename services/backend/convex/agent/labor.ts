@@ -18,7 +18,7 @@ import {
 } from '../_generated/server'
 import { utcDay } from '../llm/call'
 import { llmCall, roleModel, spendLimits } from '../llm/client'
-import { ledgerEntry, recordEntries } from '../llm/ledger'
+import { ledgerEntry } from '../llm/ledger'
 import {
   laborAnswerSchema,
   laborKey,
@@ -205,7 +205,7 @@ export const saveBatch = internalMutation({
         await ctx.db.insert('laborCache', { ...entry, model: job.model, at })
       }
     }
-    await recordEntries(ctx, args.entries)
+    // The calls are on the ledger already; here they count towards the pass.
 
     const count = (source: string) =>
       args.rows.filter((decided) => decided.source === source).length
@@ -315,7 +315,13 @@ export const step = internalAction({
             runId: `labor:${jobId}`,
           })
           if (outcome === null) return
-          if (outcome.entry !== null) entries.push(outcome.entry)
+          if (outcome.entry !== null) {
+            // On the ledger as soon as it is billed (see `run.ts`).
+            await ctx.runMutation(internal.llm.ledger.recordMany, {
+              entries: [outcome.entry],
+            })
+            entries.push(outcome.entry)
+          }
           if (outcome.result.ok) fresh.set(key, outcome.result.value)
         },
       )

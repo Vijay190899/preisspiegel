@@ -280,7 +280,14 @@ export const read = internalAction({
             failed.add(key)
             return
           }
-          if (outcome.entry !== null) entries.push(outcome.entry)
+          if (outcome.entry !== null) {
+            // On the ledger as soon as it is billed, so a step that dies
+            // later in the batch leaves no paid call unrecorded.
+            await ctx.runMutation(internal.llm.ledger.recordMany, {
+              entries: [outcome.entry],
+            })
+            entries.push(outcome.entry)
+          }
           const tokens = {
             ms: Date.now() - started,
             usd: outcome.entry?.usd ?? 0,
