@@ -1,7 +1,5 @@
-import { reasonLabel } from '~/lib/findings'
 import { formatQty } from '~/lib/format'
-import { useT } from '~/lib/i18n'
-import type { ReasonCode, ReviewItem, TenderDocument } from '~/lib/queries'
+import type { TenderDocument } from '~/lib/queries'
 
 /**
  * A count per name, each with a bar on one scale and its figure beside it.
@@ -9,10 +7,8 @@ import type { ReasonCode, ReviewItem, TenderDocument } from '~/lib/queries'
  */
 function Tally({
   rows,
-  tone,
 }: {
   rows: ReadonlyArray<{ key: string; name: string; count: number }>
-  tone: 'open' | 'pane'
 }) {
   const largest = Math.max(1, ...rows.map((row) => row.count))
   return (
@@ -24,9 +20,7 @@ function Tally({
               {row.name}
             </span>
             <span
-              className={`mt-2 block h-[3px] min-w-[3px] rounded-full ${
-                tone === 'open' ? 'bg-open' : 'bg-pane'
-              }`}
+              className="mt-2 block h-[3px] min-w-[3px] rounded-full bg-pane"
               style={{ width: `${(row.count / largest) * 100}%` }}
             />
           </dt>
@@ -37,25 +31,6 @@ function Tally({
       ))}
     </dl>
   )
-}
-
-/** Why positions need a person: one line per reason, the commonest first. */
-export function Reasons({ items }: { items: ReadonlyArray<ReviewItem> }) {
-  const t = useT()
-  const counts = new Map<ReasonCode, number>()
-  for (const item of items) {
-    for (const code of item.reasons) {
-      counts.set(code, (counts.get(code) ?? 0) + 1)
-    }
-  }
-  const rows = [...counts.entries()]
-    .sort(([, a], [, b]) => b - a)
-    .map(([code, count]) => ({
-      key: code,
-      name: t(reasonLabel(code)),
-      count,
-    }))
-  return <Tally rows={rows} tone="open" />
 }
 
 /** Whose offer each priced position is priced with. */
@@ -73,5 +48,5 @@ export function Shares({
       count: wins[supplier.key] ?? 0,
     }))
     .sort((a, b) => b.count - a.count)
-  return <Tally rows={rows} tone="pane" />
+  return <Tally rows={rows} />
 }

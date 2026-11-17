@@ -14,6 +14,7 @@ import {
 import { formatQty } from '~/lib/format'
 import { useT } from '~/lib/i18n'
 import { positionsQuery } from '~/lib/queries'
+import { useTenderText } from '~/lib/tenderText'
 import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react'
 import type {
   FacadeInput,
@@ -71,11 +72,14 @@ export function Facade({
   tender,
   statuses,
   reading,
+  pointing = null,
 }: {
   tender: Tender
   statuses: string | null
   /** How far a run that is under way has read, or `null`. */
   reading: number | null
+  /** Positions to pick out, by their place in the document: the rest step back. */
+  pointing?: ReadonlySet<number> | null
 }) {
   const input = useMemo<FacadeInput>(
     () => ({
@@ -89,14 +93,17 @@ export function Facade({
     () => paneStates(tender.positionCount, statuses, reading),
     [tender.positionCount, statuses, reading],
   )
+  // The house carries its name on the roof: the last word of the project's.
+  const sign = tender.project.trim().split(/\s+/).at(-1) ?? ''
+  const shared = { input, states, pointing, sign }
 
   return (
     <>
       <div className="hidden xl:block">
-        <Elevation name="block" input={input} shape={BLOCK} states={states} />
+        <Elevation name="block" shape={BLOCK} {...shared} />
       </div>
       <div className="xl:hidden">
-        <Elevation name="tower" input={input} shape={TOWER} states={states} />
+        <Elevation name="tower" shape={TOWER} {...shared} />
       </div>
     </>
   )
@@ -107,13 +114,18 @@ function Elevation({
   input,
   shape,
   states,
+  pointing,
+  sign,
 }: {
   name: string
   input: FacadeInput
   shape: FacadeShape
   states: ReadonlyArray<PaneState>
+  pointing: ReadonlySet<number> | null
+  sign: string
 }) {
   const t = useT()
+  const said = useTenderText()
   const navigate = useNavigate()
   const frame = useRef<SVGSVGElement>(null)
   // The window pointed at, and whether a pointer, a finger or a key chose it.
@@ -202,292 +214,303 @@ function Elevation({
     spot === undefined
       ? ''
       : [
-          spot.storey < 0 ? t('facade.house') : input.storeys[spot.storey],
-          input.titles[spot.title]?.label,
+          spot.storey < 0
+            ? t('facade.house')
+            : said.storey(input.storeys[spot.storey] ?? ''),
+          said.heading(input.titles[spot.title]?.label ?? ''),
         ]
           .filter(Boolean)
           .join(' · ')
 
   return (
     <div>
-      <div className="mx-auto w-full max-w-[1320px] px-4 sm:px-8">
-        <div
-          role="application"
-          tabIndex={0}
-          aria-label={t('facade.label', {
-            total: formatQty(total),
-            priced: formatQty(states.filter((s) => s === 'priced').length),
-            open: formatQty(states.filter((s) => s === 'open').length),
-          })}
-          aria-describedby={`${name}-hint`}
-          onKeyDown={onKeyDown}
-          onFocus={(event) => {
-            // A click focuses too; only a key should place the marker.
-            if (!event.currentTarget.matches(':focus-visible')) return
-            if (chosen !== null) return
-            const first =
-              layout.panes.find((p) => states[p.index] === 'open') ??
-              layout.panes[0]
-            if (first !== undefined) {
-              setChosen({ index: first.index, by: 'keys' })
-            }
-          }}
-          onBlur={(event) => {
-            if (event.currentTarget.contains(event.relatedTarget)) return
-            setChosen(null)
-          }}
-          className={`relative mx-auto rounded-[6px] outline-offset-8 ${
-            shape.columns === null ? '' : 'max-w-[26rem]'
-          }`}
-        >
-          <svg
-            ref={frame}
-            viewBox={`0 0 ${round(layout.width)} ${round(base)}`}
-            className="block w-full select-none overflow-visible"
-            style={{ cursor: pane === undefined ? 'default' : 'pointer' }}
-            aria-hidden="true"
-            onPointerMove={(event) => {
-              if (event.pointerType === 'touch') return
-              const hit = under(event)
-              // Only a move onto another window is news.
-              setChosen((before) =>
-                hit === null
-                  ? before === null || before.by === 'keys'
-                    ? before
-                    : null
-                  : before?.index === hit.index && before.by === 'pointer'
-                    ? before
-                    : { index: hit.index, by: 'pointer' },
-              )
-            }}
-            onPointerLeave={(event) => {
-              if (event.pointerType !== 'touch') setChosen(null)
-            }}
-            onClick={(event) => {
-              const hit = under(event as unknown as PointerEvent<SVGSVGElement>)
-              const touch =
-                (event.nativeEvent as globalThis.PointerEvent).pointerType ===
-                'touch'
-              if (hit === null) {
-                setChosen(null)
-                return
-              }
-              // A finger first asks what a window is; a pointer has already
-              // been told by hovering.
-              if (touch && chosen?.index !== hit.index) {
-                setChosen({ index: hit.index, by: 'touch' })
-                return
-              }
-              open(hit.index)
-            }}
-          >
-            <defs>
-              <filter
-                id={`${name}-halo`}
-                x="-4%"
-                y="-12%"
-                width="108%"
-                height="124%"
-              >
-                <feGaussianBlur stdDeviation="3.4" />
-              </filter>
-            </defs>
-
-            {/* What stands above the roof: one dimension line per bay. */}
-            {layout.bays.map((bay) => {
-              const y = wall.y - 11
-              const middle = bay.x + bay.width / 2
-              const gap = 15
-              return (
-                <g key={bay.rno} className="stroke-line-strong">
-                  <path
-                    d={`M${round(bay.x)} ${y - 3.5}v7M${round(bay.x)} ${y}H${round(middle - gap)}M${round(middle + gap)} ${y}H${round(bay.x + bay.width)}M${round(bay.x + bay.width)} ${y - 3.5}v7`}
-                    fill="none"
-                    strokeWidth="1"
-                  />
-                  <text
-                    x={round(middle)}
-                    y={y}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    className="code fill-ink-3 stroke-none"
-                    fontSize="11.5"
-                  >
-                    {bay.rno}
-                    <title>{bay.label}</title>
-                  </text>
-                </g>
-              )
+      <div className="relative">
+        <Shore />
+        <div className="relative mx-auto w-full max-w-[1320px] px-4 sm:px-8">
+          <div
+            role="application"
+            tabIndex={0}
+            aria-label={t('facade.label', {
+              total: formatQty(total),
+              priced: formatQty(states.filter((s) => s === 'priced').length),
+              open: formatQty(states.filter((s) => s === 'open').length),
             })}
+            aria-describedby={`${name}-hint`}
+            onKeyDown={onKeyDown}
+            onFocus={(event) => {
+              // A click focuses too; only a key should place the marker.
+              if (!event.currentTarget.matches(':focus-visible')) return
+              if (chosen !== null) return
+              const first =
+                layout.panes.find((p) => states[p.index] === 'open') ??
+                layout.panes[0]
+              if (first !== undefined) {
+                setChosen({ index: first.index, by: 'keys' })
+              }
+            }}
+            onBlur={(event) => {
+              if (event.currentTarget.contains(event.relatedTarget)) return
+              setChosen(null)
+            }}
+            className={`relative mx-auto rounded-[6px] outline-offset-8 ${
+              shape.columns === null ? '' : 'max-w-[26rem]'
+            }`}
+          >
+            <svg
+              ref={frame}
+              viewBox={`0 0 ${round(layout.width)} ${round(base)}`}
+              className="front block w-full select-none overflow-visible"
+              data-pointing={pointing !== null}
+              style={{ cursor: pane === undefined ? 'default' : 'pointer' }}
+              aria-hidden="true"
+              onPointerMove={(event) => {
+                if (event.pointerType === 'touch') return
+                const hit = under(event)
+                // Only a move onto another window is news.
+                setChosen((before) =>
+                  hit === null
+                    ? before === null || before.by === 'keys'
+                      ? before
+                      : null
+                    : before?.index === hit.index && before.by === 'pointer'
+                      ? before
+                      : { index: hit.index, by: 'pointer' },
+                )
+              }}
+              onPointerLeave={(event) => {
+                if (event.pointerType !== 'touch') setChosen(null)
+              }}
+              onClick={(event) => {
+                const hit = under(
+                  event as unknown as PointerEvent<SVGSVGElement>,
+                )
+                const touch =
+                  (event.nativeEvent as globalThis.PointerEvent).pointerType ===
+                  'touch'
+                if (hit === null) {
+                  setChosen(null)
+                  return
+                }
+                // A finger first asks what a window is; a pointer has already
+                // been told by hovering.
+                if (touch && chosen?.index !== hit.index) {
+                  setChosen({ index: hit.index, by: 'touch' })
+                  return
+                }
+                open(hit.index)
+              }}
+            >
+              <defs>
+                <filter
+                  id={`${name}-halo`}
+                  x="-4%"
+                  y="-12%"
+                  width="108%"
+                  height="124%"
+                >
+                  <feGaussianBlur stdDeviation="3.4" />
+                </filter>
+              </defs>
 
-            {/* The wall, its roof edge and the floors. */}
-            <rect
-              x={round(wall.x)}
-              y={round(wall.y)}
-              width={round(wall.width)}
-              height={round(wall.height)}
-              className="fill-wall"
-            />
-            <path
-              d={`M${round(wall.x - 4)} ${round(wall.y)}h${round(wall.width + 8)}`}
-              className="stroke-line-strong"
-              strokeWidth="1.5"
-              fill="none"
-            />
-            {layout.slabs.map((y) => (
+              <Roof wall={wall} room={shape.headRoom} sign={sign} />
+
+              {/* The wall, its roof edge and the floors. */}
+              <rect
+                x={round(wall.x)}
+                y={round(wall.y)}
+                width={round(wall.width)}
+                height={round(wall.height)}
+                className="fill-wall"
+              />
+              {/* The roof edge stands out a little over the front. */}
               <path
-                key={y}
-                d={`M${round(wall.x)} ${round(y + shape.slab / 2)}h${round(wall.width)}`}
-                className="stroke-slab"
-                strokeWidth="1"
+                d={`M${round(wall.x - 5)} ${round(wall.y)}h${round(wall.width + 10)}`}
+                className="stroke-on-wall-2"
+                strokeWidth="2"
                 fill="none"
               />
-            ))}
-
-            {/* Every window, dark. The lit ones are drawn over it. */}
-            <path d={drawn.all} className="fill-pane-off" />
-
-            {/* The light the windows throw on the wall around them. */}
-            <g className="halo" filter={`url(#${name}-halo)`}>
-              <path d={drawn.lit} className="fill-pane" opacity="0.5" />
-              <path d={drawn.open} className="fill-open" opacity="0.75" />
-            </g>
-
-            {layout.panes.map((p) => {
-              const s = states[p.index]
-              if (s === undefined || s === 'off') return null
-              const at =
-                s === 'read'
-                  ? (p.index % 30) * 14
-                  : LEAD_MS + (p.index / total) * SWEEP_MS
-              return (
-                <rect
-                  key={`${p.index}${s}`}
-                  className="pane"
-                  data-s={s}
-                  x={round(p.x)}
-                  y={round(p.y)}
-                  width={round(p.width)}
-                  height={round(p.height)}
-                  fillOpacity={
-                    s === 'open'
-                      ? 1
-                      : s === 'read'
-                        ? 0.38
-                        : round(brightness(p.index))
-                  }
-                  style={{ '--at': `${Math.round(at)}ms` } as CSSProperties}
+              {/* Each bay carries the number of its title on the band under the roof. */}
+              {layout.bays.map((bay) => (
+                <text
+                  key={bay.rno}
+                  x={round(bay.x + bay.width / 2)}
+                  y={round(wall.y + shape.parapet / 2 + 0.5)}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  className="code fill-on-wall-2"
+                  fontSize="11.5"
+                >
+                  {bay.rno}
+                  <title>{said.heading(bay.label)}</title>
+                </text>
+              ))}
+              {layout.slabs.map((y) => (
+                <path
+                  key={y}
+                  d={`M${round(wall.x)} ${round(y + shape.slab / 2)}h${round(wall.width)}`}
+                  className="stroke-slab"
+                  strokeWidth="1"
+                  fill="none"
                 />
-              )
-            })}
+              ))}
 
-            {/* What the figures at the right count. */}
-            {[...openByStorey.values()].some((count) => count > 0) && (
-              <text
-                x={round(wall.x + wall.width + 11)}
-                y={round(wall.y - 11)}
-                dominantBaseline="central"
-                fontSize="12"
-                className="fill-open-ink"
-              >
-                {t('facade.openHead')}
-              </text>
-            )}
+              {/* Every window, dark. The lit ones are drawn over it. */}
+              <path d={drawn.all} className="fill-glass-off" />
 
-            {/* Storey names on the left, what is open on each at the right. */}
-            {layout.storeys.map((storey, at) => {
-              const count = openByStorey.get(storeyCount - 1 - at) ?? 0
-              const y = round(storey.y + storey.height / 2)
-              return (
-                <g key={storey.label} fontSize="12">
+              {/* The light the windows throw on the wall around them. */}
+              <g className="halo" filter={`url(#${name}-halo)`}>
+                <path d={drawn.lit} className="fill-glass" opacity="0.5" />
+                <path
+                  d={drawn.open}
+                  className="fill-glass-open"
+                  opacity="0.75"
+                />
+              </g>
+
+              {layout.panes.map((p) => {
+                const s = states[p.index]
+                if (s === undefined || s === 'off') return null
+                const at =
+                  s === 'read'
+                    ? (p.index % 30) * 14
+                    : LEAD_MS + (p.index / total) * SWEEP_MS
+                return (
+                  <rect
+                    key={`${p.index}${s}`}
+                    className="pane"
+                    data-s={s}
+                    data-on={pointing?.has(p.index) === true ? '' : undefined}
+                    x={round(p.x)}
+                    y={round(p.y)}
+                    width={round(p.width)}
+                    height={round(p.height)}
+                    fillOpacity={
+                      s === 'open'
+                        ? 1
+                        : s === 'read'
+                          ? 0.38
+                          : round(brightness(p.index))
+                    }
+                    style={{ '--at': `${Math.round(at)}ms` } as CSSProperties}
+                  />
+                )
+              })}
+
+              {/* What the figures at the right count. */}
+              {[...openByStorey.values()].some((count) => count > 0) && (
+                <text
+                  x={round(wall.x + wall.width + 11)}
+                  y={round(wall.y - 11)}
+                  dominantBaseline="central"
+                  fontSize="12"
+                  className="fill-open-ink"
+                >
+                  {t('facade.openHead')}
+                </text>
+              )}
+
+              {/* Storey names on the left, what is open on each at the right. */}
+              {layout.storeys.map((storey, at) => {
+                const count = openByStorey.get(storeyCount - 1 - at) ?? 0
+                const y = round(storey.y + storey.height / 2)
+                return (
+                  <g key={storey.label} fontSize="12">
+                    <text
+                      x={round(wall.x - 11)}
+                      y={y}
+                      textAnchor="end"
+                      dominantBaseline="central"
+                      className="fill-ink-3"
+                    >
+                      {said.storey(storey.label, true)}
+                    </text>
+                    {count > 0 && (
+                      <text
+                        x={round(wall.x + wall.width + 11)}
+                        y={y}
+                        dominantBaseline="central"
+                        className="num fill-open-ink"
+                      >
+                        {count}
+                      </text>
+                    )}
+                  </g>
+                )
+              })}
+              {layout.plinth !== null && (
+                <g fontSize="12">
                   <text
                     x={round(wall.x - 11)}
-                    y={y}
+                    y={round(layout.plinth.y + layout.plinth.height / 2)}
                     textAnchor="end"
                     dominantBaseline="central"
                     className="fill-ink-3"
                   >
-                    {storey.label}
+                    {t('facade.house')}
                   </text>
-                  {count > 0 && (
+                  {(openByStorey.get(-1) ?? 0) > 0 && (
                     <text
                       x={round(wall.x + wall.width + 11)}
-                      y={y}
+                      y={round(layout.plinth.y + layout.plinth.height / 2)}
                       dominantBaseline="central"
                       className="num fill-open-ink"
                     >
-                      {count}
+                      {openByStorey.get(-1)}
                     </text>
                   )}
                 </g>
-              )
-            })}
-            {layout.plinth !== null && (
-              <g fontSize="12">
-                <text
-                  x={round(wall.x - 11)}
-                  y={round(layout.plinth.y + layout.plinth.height / 2)}
-                  textAnchor="end"
-                  dominantBaseline="central"
-                  className="fill-ink-3"
-                >
-                  {t('facade.house')}
-                </text>
-                {(openByStorey.get(-1) ?? 0) > 0 && (
-                  <text
-                    x={round(wall.x + wall.width + 11)}
-                    y={round(layout.plinth.y + layout.plinth.height / 2)}
-                    dominantBaseline="central"
-                    className="num fill-open-ink"
-                  >
-                    {openByStorey.get(-1)}
-                  </text>
-                )}
-              </g>
-            )}
+              )}
 
-            {pane !== undefined && (
-              <rect
-                x={round(pane.x - 2.5)}
-                y={round(pane.y - 2.5)}
-                width={round(pane.width + 5)}
-                height={round(pane.height + 5)}
-                rx="2"
-                fill="none"
-                strokeWidth="1.4"
-                className={
-                  chosen?.by === 'keys' ? 'stroke-focus' : 'stroke-ink'
-                }
+              {pane !== undefined && (
+                <rect
+                  x={round(pane.x - 2.5)}
+                  y={round(pane.y - 2.5)}
+                  width={round(pane.width + 5)}
+                  height={round(pane.height + 5)}
+                  rx="2"
+                  fill="none"
+                  strokeWidth="1.4"
+                  className={
+                    chosen?.by === 'keys'
+                      ? 'stroke-wall-focus'
+                      : 'stroke-on-wall'
+                  }
+                />
+              )}
+            </svg>
+
+            {pane !== undefined && state !== undefined && (
+              <Note
+                layout={layout}
+                pane={pane}
+                touch={chosen?.by === 'touch'}
+                oz={row?.oz}
+                text={row === undefined ? undefined : said.item(row.shortText)}
+                where={where}
+                state={state}
               />
             )}
-          </svg>
 
-          {pane !== undefined && state !== undefined && (
-            <Note
-              layout={layout}
-              pane={pane}
-              touch={chosen?.by === 'touch'}
-              oz={row?.oz}
-              text={row?.shortText}
-              where={where}
-              state={state}
-            />
-          )}
-
-          <p id={`${name}-hint`} className="sr-only">
-            {t('facade.hint')}
-          </p>
-          <p className="sr-only" aria-live="polite">
-            {pane === undefined || state === undefined
-              ? ''
-              : [row?.oz, row?.shortText, where, t(STATE_LABEL[state])]
-                  .filter(Boolean)
-                  .join(', ')}
-          </p>
+            <p id={`${name}-hint`} className="sr-only">
+              {t('facade.hint')}
+            </p>
+            <p className="sr-only" aria-live="polite">
+              {pane === undefined || state === undefined
+                ? ''
+                : [
+                    row?.oz,
+                    row === undefined ? undefined : said.item(row.shortText),
+                    where,
+                    t(STATE_LABEL[state]),
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* The bank, and the house again in the river. */}
+      {/* The quay, and the house again in the sea. */}
       <div className="water" aria-hidden="true">
         <div className="mx-auto w-full max-w-[1320px] px-4 sm:px-8">
           <svg
@@ -554,9 +577,9 @@ function Elevation({
                   height={round(wall.height)}
                   className="fill-wall"
                 />
-                <path d={drawn.all} className="fill-pane-off" />
-                <path d={drawn.lit} className="fill-pane" opacity="0.85" />
-                <path d={drawn.open} className="fill-open" />
+                <path d={drawn.all} className="fill-glass-off" />
+                <path d={drawn.lit} className="fill-glass" opacity="0.85" />
+                <path d={drawn.open} className="fill-glass-open" />
               </g>
             </g>
             {/* Water never lies still: bands of it drift across the picture. */}
@@ -663,5 +686,144 @@ function Note({
         </Link>
       )}
     </div>
+  )
+}
+
+/**
+ * What stands on the roof: a storey set back from the front, the plant on
+ * top of it, a mast, and the house's name in lit letters. None of it is
+ * data; it is there so the front reads as a house.
+ */
+function Roof({
+  wall,
+  room,
+  sign,
+}: {
+  wall: FacadeLayout['wall']
+  room: number
+  sign: string
+}) {
+  const top = wall.y
+  // Everything is sized from the room above the roof edge.
+  const attic = { x: wall.x + wall.width * 0.14, width: wall.width * 0.72 }
+  const height = room * 0.36
+  const atticTop = top - height
+  const letters = room * 0.3
+  const plant = { width: wall.width * 0.07, height: room * 0.2 }
+  const mast = wall.x + wall.width * 0.93
+
+  return (
+    <g>
+      {/* The mast, on the main roof. */}
+      <path
+        d={`M${round(mast)} ${round(top)}V${round(top - room * 0.92)}M${round(mast - 5)} ${round(top - room * 0.7)}h10M${round(mast - 3.5)} ${round(top - room * 0.56)}h7`}
+        className="stroke-on-wall-2"
+        strokeWidth="1.2"
+        fill="none"
+      />
+      {/* The storey that is set back. */}
+      <rect
+        x={round(attic.x)}
+        y={round(atticTop)}
+        width={round(attic.width)}
+        height={round(height)}
+        className="fill-roof"
+      />
+      <path
+        d={`M${round(attic.x - 3)} ${round(atticTop)}h${round(attic.width + 6)}`}
+        className="stroke-slab"
+        strokeWidth="1.5"
+        fill="none"
+      />
+      {/* Plant on top of it: two housings and a pair of stacks. */}
+      <rect
+        x={round(attic.x + attic.width * 0.7)}
+        y={round(atticTop - plant.height)}
+        width={round(plant.width)}
+        height={round(plant.height)}
+        className="fill-roof"
+      />
+      <rect
+        x={round(attic.x + attic.width * 0.7 + plant.width + 6)}
+        y={round(atticTop - plant.height * 0.6)}
+        width={round(plant.width * 0.55)}
+        height={round(plant.height * 0.6)}
+        className="fill-roof"
+      />
+      <path
+        d={`M${round(attic.x + attic.width * 0.93)} ${round(atticTop)}v${round(-plant.height * 1.25)}M${round(attic.x + attic.width * 0.93 + 6)} ${round(atticTop)}v${round(-plant.height * 0.95)}`}
+        className="stroke-roof"
+        strokeWidth="3"
+        fill="none"
+      />
+      {/* The name, standing on the roof of that storey. */}
+      <text
+        x={round(attic.x + attic.width * 0.04)}
+        y={round(atticTop - 2.5)}
+        fontSize={round(letters)}
+        letterSpacing={round(letters * 0.16)}
+        className="sign"
+      >
+        {sign}
+      </text>
+    </g>
+  )
+}
+
+/** One stretch of the far shore: where it starts, how wide, how high. */
+const FAR_SHORE: ReadonlyArray<readonly [number, number, number]> = [
+  [0, 90, 16],
+  [90, 46, 30],
+  [136, 70, 20],
+  [206, 30, 44],
+  [236, 84, 24],
+  [320, 52, 34],
+  [372, 120, 17],
+  [492, 40, 27],
+  [532, 96, 20],
+  [628, 34, 38],
+  [662, 130, 22],
+  [792, 60, 30],
+  [852, 110, 18],
+  [962, 44, 40],
+  [1006, 90, 25],
+  [1096, 56, 33],
+  [1152, 120, 19],
+  [1272, 38, 46],
+  [1310, 96, 24],
+  [1406, 64, 31],
+  [1470, 130, 18],
+]
+
+/**
+ * The other side of the water: a low line of roofs along the horizon, with
+ * a few lights in it by night. It runs the full width behind the house.
+ */
+function Shore() {
+  return (
+    <svg
+      viewBox="0 0 1600 60"
+      preserveAspectRatio="xMidYMax slice"
+      className="absolute inset-x-0 bottom-0 h-[60px] w-full"
+      aria-hidden="true"
+    >
+      <path
+        d={`M0 60${FAR_SHORE.map(([x, width, height]) => `V${60 - height}H${x + width}`).join('')}V60z`}
+        className="fill-shore"
+      />
+      {FAR_SHORE.filter(([, , height]) => height > 26).map(
+        ([x, width, height]) => (
+          <rect
+            key={x}
+            x={x + width * 0.3}
+            y={60 - height * 0.62}
+            width="2.2"
+            height="2.6"
+            className="fill-shore-light"
+            opacity="0.7"
+          />
+        ),
+      )}
+    </svg>
   )
 }
