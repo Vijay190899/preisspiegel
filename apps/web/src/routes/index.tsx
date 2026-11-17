@@ -6,7 +6,7 @@ import { Shares } from '~/components/overview/Breakdown'
 import { Decisions, groupDecisions } from '~/components/overview/Decisions'
 import { Facade } from '~/components/overview/Facade'
 import { PictureKey } from '~/components/overview/PictureKey'
-import { RunLine } from '~/components/overview/RunLine'
+import { Reading, RunLine, isUnderWay } from '~/components/overview/RunLine'
 import { Scenery } from '~/components/overview/Scenery'
 import { formatMoney, formatQty } from '~/lib/format'
 import { settleCounts, settleQueue, settleStatuses } from '~/lib/decisions'
@@ -14,6 +14,7 @@ import { useT } from '~/lib/i18n'
 import { usePace } from '~/lib/pace'
 import { useTenderText } from '~/lib/tenderText'
 import { useDecisions } from '~/lib/useDecisions'
+import { useStartRun } from '~/lib/useRun'
 import {
   offers,
   reviewQueueQuery,
@@ -50,6 +51,7 @@ function Overview() {
   const { decided: mine } = useDecisions()
   const queue = settleQueue(wholeQueue, mine)
   const [pointing, setPointing] = useState<Pointing>(null)
+  const { start, asking } = useStartRun()
 
   if (tender === null) {
     return (
@@ -72,11 +74,7 @@ function Overview() {
   })
 
   const { current, done } = run
-  const underWay =
-    current !== null &&
-    (current.status === 'preparing' ||
-      current.status === 'reading' ||
-      current.status === 'deciding')
+  const underWay = current !== null && isUnderWay(current)
   const decided =
     !underWay && done !== null && done.auto !== null && done.review !== null
   const suppliers = offers(tender)
@@ -139,6 +137,8 @@ function Overview() {
                       </>
                     )}
                   </p>
+                ) : underWay ? (
+                  <Reading run={current} />
                 ) : (
                   <p className="statement">
                     {t('overview.lead', {
@@ -166,6 +166,17 @@ function Overview() {
                     <Link to="/positionen" className="action">
                       {t('overview.open')}
                     </Link>
+                  )}
+                  {done !== null && !underWay && (
+                    <button
+                      type="button"
+                      className="quiet-action"
+                      title={t('run.again.hint')}
+                      disabled={asking}
+                      onClick={() => void start()}
+                    >
+                      {t('run.again')}
+                    </button>
                   )}
                 </div>
               </motion.div>

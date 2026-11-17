@@ -93,14 +93,31 @@ const de = {
 
   'run.done':
     'Lauf vom {date} mit {model}: {calls} Fragen gelesen, {cached} Antworten lagen schon vor, {usd}\u00a0$.',
+  'run.done.replay':
+    'Lauf vom {date}: {cached} gespeicherte Antworten von {model} wiedergegeben und jede neu geprüft. Kein Modell wurde gerufen.',
   'run.reading.before': 'Ein Lauf liest gerade die Angebote:',
+  'run.replaying.before': 'Die gespeicherten Antworten werden geprüft:',
   'run.reading.after': 'von {total} Positionen.',
+  'run.again': 'Noch einmal lesen',
+  'run.again.hint':
+    'Gibt die gespeicherten Antworten wieder und prüft und entscheidet jede Position neu. Ruft kein Modell.',
+  'run.live.summary': 'Das Modell neu lesen lassen',
+  'run.live.body':
+    'Ein Lauf, in dem das Modell liest, braucht den Zugangscode dieser Demo. Er kostet höchstens etwa 40 Cent: gerufen wird das Modell nur für Fragen, die noch niemand gestellt hat.',
+  'run.live.code': 'Zugangscode',
+  'run.live.start': 'Lauf starten',
+  'run.refused.code': 'Der Code stimmt nicht.',
+  'run.refused.locked':
+    'Zu viele falsche Codes. In zehn Minuten geht es wieder.',
+  'run.refused.closed':
+    'Hier ist kein Zugangscode gesetzt. Das Modell liest auf dieser Installation nur von der Kommandozeile.',
+  'run.refused.running': 'Es ist gerade ein Lauf unterwegs.',
   'run.deciding':
     'Alles gelesen. Die Positionen werden geprüft und entschieden.',
   'run.stopped': 'Der letzte Lauf wurde angehalten: {note}',
   'run.failed': 'Der letzte Lauf ist abgebrochen: {note}',
   'run.none':
-    'Noch kein Lauf. Ein Lauf liest die Angebote und entscheidet jede Position; er wird mit pnpm bench --start gestartet.',
+    'Noch kein Lauf. Ein Lauf liest die Angebote und entscheidet jede Position; er wird mit pnpm demo:reset gestartet.',
 
   'positions.one': 'Position',
   'positions.many': 'Positionen',
@@ -317,14 +334,30 @@ const en: Record<MessageKey, string> = {
 
   'run.done':
     'Run of {date} with {model}: {calls} questions read, {cached} answers were already there, {usd}\u00a0$.',
+  'run.done.replay':
+    'Run of {date}: {cached} stored answers by {model} read back and each checked again. No model was called.',
   'run.reading.before': 'A run is reading the offers:',
+  'run.replaying.before': 'The stored answers are being checked:',
   'run.reading.after': 'of {total} items.',
+  'run.again': 'Read it again',
+  'run.again.hint':
+    'Reads the stored answers back and checks and decides every item again. Calls no model.',
+  'run.live.summary': 'Have the model read afresh',
+  'run.live.body':
+    'A run in which the model reads needs this demo\u2019s access code. It costs about 40 cents at most: the model is called only for questions nobody has asked yet.',
+  'run.live.code': 'Access code',
+  'run.live.start': 'Start the run',
+  'run.refused.code': 'That is not the code.',
+  'run.refused.locked': 'Too many wrong codes. Try again in ten minutes.',
+  'run.refused.closed':
+    'No access code is set here. On this deployment the model reads only from the command line.',
+  'run.refused.running': 'A run is under way.',
   'run.deciding':
     'Everything is read. The items are being checked and decided.',
   'run.stopped': 'The last run was stopped: {note}',
   'run.failed': 'The last run failed: {note}',
   'run.none':
-    'No run yet. A run reads the offers and decides every item; it is started with pnpm bench --start.',
+    'No run yet. A run reads the offers and decides every item; it is started with pnpm demo:reset.',
 
   'positions.one': 'item',
   'positions.many': 'items',
