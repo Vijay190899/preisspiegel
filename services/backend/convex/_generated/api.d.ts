@@ -11,6 +11,7 @@
 import type * as agent_prompt from "../agent/prompt.js";
 import type * as agent_run from "../agent/run.js";
 import type * as agent_store from "../agent/store.js";
+import type * as decisions from "../decisions.js";
 import type * as health from "../health.js";
 import type * as llm_call from "../llm/call.js";
 import type * as llm_client from "../llm/client.js";
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   "agent/prompt": typeof agent_prompt;
   "agent/run": typeof agent_run;
   "agent/store": typeof agent_store;
+  decisions: typeof decisions;
   health: typeof health;
   "llm/call": typeof llm_call;
   "llm/client": typeof llm_client;
