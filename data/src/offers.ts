@@ -1,11 +1,16 @@
 /**
  * Builds the three supplier offers and plants the traps.
  *
- * Each supplier answers in its own way: the wholesaler line by line in
- * shorthand with prices per price unit, the specialist one line per article
- * with list price and discount, the third as a GAEB phase 84 file. Sixty
- * lines are then altered the way real offers go wrong, and every alteration
- * is recorded so a benchmark can check whether it was caught.
+ * Each supplier answers in its own way: the wholesaler in shorthand, line by
+ * line for most of the tender and by article for bulk material; the
+ * specialist one line per article with list price and discount; the third as
+ * a GAEB phase 84 file. A supplier has one price per article.
+ *
+ * Sixty lines are then altered the way real offers go wrong, and every
+ * alteration is recorded so a benchmark can check whether it was caught.
+ * Other lines get the same surface features harmlessly (a stated pack size,
+ * a quantity split over two lines, a total a cent off), so that a trap cannot
+ * be told from a clean line by its looks.
  */
 import { roundCents } from '@preisspiegel/core'
 import { ALTERNATIVE_BRAND } from './names'
@@ -28,13 +33,26 @@ export type TrapKind = (typeof TRAP_KINDS)[number]
 
 export interface Trap {
   kind: TrapKind
-  /**
-   * Whether a person has to look. False only where the line is unusual but
-   * fully determined, such as a price quoted per 1000 instead of per 100.
-   */
-  mustFlag: boolean
   note: string
 }
+
+/**
+ * What a clean line can look like without anything being wrong. Each of
+ * these shares its surface with a trap kind.
+ */
+export const ODDITY_KINDS = [
+  /** Quoted in packs or rings, with the size stated in the text. */
+  'PACK',
+  /** One position answered on two lines whose quantities add up. */
+  'SPLIT',
+  /** The quantity rounded up to a round number. */
+  'ROUNDED',
+  /** The line total a cent or two off, from rounding. */
+  'CENTS',
+  /** Priced per 1000 where the supplier usually prices per 100. */
+  'PE1000',
+] as const
+export type OddityKind = (typeof ODDITY_KINDS)[number]
 
 /** One printed line of a supplier's offer. */
 export interface OfferDraft {
@@ -58,9 +76,17 @@ export interface OfferDraft {
   listPrice: number | null
   discountPct: number | null
   total: number
-  /** True price per tender unit, whatever the line prints. */
+  /** The price for one tender unit that follows from what the line prints. */
   pricePerUnit: number
+  /**
+   * How many tender units one unit of this line holds, where the line is
+   * quoted in packs or rings. `null` where the line counts in the tender's unit.
+   */
+  packSize: number | null
+  /** Whether the pack size can be read from the line's text. */
+  packStated: boolean
   trap: Trap | null
+  oddity: OddityKind | null
 }
 
 export interface PlantedTrap extends Trap {
@@ -76,6 +102,12 @@ export interface Offers {
 }
 
 /**
+ * Quantities a supplier may round up to without anyone asking why: at most
+ * this share over what was asked for.
+ */
+export const ROUNDING_ALLOWANCE = 0.3
+
+/**
  * How many of each trap, and with which supplier. Roughly three in a hundred
  * lines of each offer are altered; the specialist's lines each answer several
  * positions, so it gets fewer.
@@ -83,12 +115,38 @@ export interface Offers {
 const TRAP_PLAN = {
   NO_OFFER: 8,
   SPEC_MISMATCH: { a: 10, b: 2 },
-  UNIT_BASIS: { determined: 4, unclear: 4 },
+  UNIT_BASIS: 8,
   PRICE_OUTLIER: { a: 4, b: 1, c: 3 },
   QTY_MISMATCH: { a: 4, c: 4 },
   ALTERNATIVE_PRODUCT: { a: 6, b: 2 },
   AMBIGUOUS: 4,
   ARITHMETIC: { a: 2, b: 1, c: 1 },
+} as const
+
+/** How many clean lines carry each harmless oddity. */
+const ODDITY_PLAN = {
+  PACK: 24,
+  SPLIT: 12,
+  ROUNDED: 20,
+  CENTS: { a: 24, b: 3, c: 10 },
+  PE1000: 10,
+} as const
+
+/** How a supplier says a line is not what was asked for. */
+const ALTERNATIVE_MARKS = ['Alternativ:', 'Alt.:', 'abweichend:'] as const
+
+/** How a wholesaler writes a pack size into the article text. */
+const PACK_WORDING = {
+  m: [
+    (size: number) => `Ring ${size}m`,
+    (size: number) => `Rg. à ${size} m`,
+    (size: number) => `(${size} m/Ring)`,
+  ],
+  St: [
+    (size: number) => `VE=${size}`,
+    (size: number) => `(VE ${size} St)`,
+    (size: number) => `${size}er-Pack`,
+  ],
 } as const
 
 /** The position the demo opens on: a 250 A site cabinet, offered one size too small. */
@@ -118,6 +176,12 @@ function family(group: ProductGroup): Family {
   }
   return 'switchgear'
 }
+
+/**
+ * Bulk material the wholesaler quotes by article, with the quantities of all
+ * positions added up and no reference to any of them.
+ */
+const COLLECTIVE: ReadonlyArray<Family> = ['routing', 'device']
 
 /** Where each supplier is cheap or dear, relative to the reference price. */
 const PRICE_LEVEL: Record<SupplierKey, Record<Family, number>> = {
@@ -201,10 +265,35 @@ export function buildOffers(
     (position) => productOf(position.productId).group !== 'own_work',
   )
 
-  const price = (supplier: SupplierKey, product: Product, draw: Rng) =>
-    product.price *
-    PRICE_LEVEL[supplier][family(product.group)] *
-    (0.95 + draw.next() * 0.1)
+  // A supplier has one price per article, a little above or below its usual
+  // level for that kind of product.
+  const priceBook = (supplier: SupplierKey) => {
+    const draw = rng.fork(`prices-${supplier}`)
+    return new Map(
+      catalog.map((product) => [
+        product.id,
+        product.price *
+          PRICE_LEVEL[supplier][family(product.group)] *
+          (0.9 + draw.next() * 0.22),
+      ]),
+    )
+  }
+  const prices = { a: priceBook('a'), b: priceBook('b'), c: priceBook('c') }
+  const price = (supplier: SupplierKey, product: Product): number => {
+    const value = prices[supplier].get(product.id)
+    if (value === undefined) throw new Error(`no price for ${product.id}`)
+    return value
+  }
+
+  // The position the demo opens on. The undersized cabinet has to be the
+  // cheaper offer there, or there is nothing for anyone to decide.
+  prices.a.set(
+    FEATURED.offered,
+    Math.min(
+      price('a', productOf(FEATURED.offered)),
+      price('c', productOf(FEATURED.productId)) * 0.92,
+    ),
+  )
 
   // --- Positions nobody quotes -------------------------------------------
   const trapRng = rng.fork('traps')
@@ -220,27 +309,42 @@ export function buildOffers(
     for (const position of chosen) taken.add(position.oz)
     return chosen
   }
+  // A line that names no position offers its article to every position that
+  // asks for it. So a position nobody quotes has to be one whose suppliers
+  // all answer position by position.
+  const byArticleA = (product: Product) =>
+    COLLECTIVE.includes(family(product.group))
+  const byArticle = (product: Product) =>
+    byArticleA(product) || SPECIALIST_HEADINGS[product.group] !== undefined
   const unquoted = new Set(
-    takePositions(supplied, TRAP_PLAN.NO_OFFER).map((position) => position.oz),
+    takePositions(
+      supplied.filter((position) => !byArticle(productOf(position.productId))),
+      TRAP_PLAN.NO_OFFER,
+    ).map((position) => position.oz),
   )
 
-  // --- The wholesaler: one line per position ------------------------------
+  // --- The wholesaler -----------------------------------------------------
+  // One line per position, naming it, for most of the tender. Bulk material
+  // comes after that, one line per article, with nothing to say which
+  // positions it is for.
   const a: Array<OfferDraft> = []
   const drawA = rng.fork('supplier-a')
   for (const position of supplied) {
+    const product = productOf(position.productId)
     const covered = drawA.chance(0.88)
-    const withRef = drawA.chance(0.94)
-    const level = price('a', productOf(position.productId), drawA)
-    if (unquoted.has(position.oz)) continue
+    if (byArticleA(product) || unquoted.has(position.oz)) continue
     if (!covered && position.oz !== featured.oz) continue
-    a.push(
-      wholesalerLine(
-        productOf(position.productId),
-        position,
-        level,
-        withRef || position.oz === featured.oz,
-      ),
+    a.push(wholesalerLine(product, [position], price('a', product), true))
+  }
+  const drawCollective = rng.fork('supplier-a-collective')
+  for (const product of catalog) {
+    if (!byArticleA(product)) continue
+    const answered = supplied.filter(
+      (position) => position.productId === product.id,
     )
+    const covered = drawCollective.chance(0.9)
+    if (answered.length === 0 || !covered) continue
+    a.push(wholesalerLine(product, answered, price('a', product), false))
   }
 
   // --- The specialist: one line per article -------------------------------
@@ -250,11 +354,10 @@ export function buildOffers(
     const heading = SPECIALIST_HEADINGS[product.group]
     if (heading === undefined) continue
     const answered = supplied.filter(
-      (position) =>
-        position.productId === product.id && !unquoted.has(position.oz),
+      (position) => position.productId === product.id,
     )
     const covered = drawB.chance(0.92)
-    const level = price('b', product, drawB)
+    const level = price('b', product)
     const discount = drawB.pick([30, 35, 38, 40, 42])
     if (answered.length === 0 || !covered) continue
     b.push(specialistLine(product, answered, level, discount, heading))
@@ -265,8 +368,9 @@ export function buildOffers(
   const drawC = rng.fork('supplier-c')
   for (const position of supplied) {
     const covered = drawC.chance(0.72)
-    const level = price('c', productOf(position.productId), drawC)
-    if (unquoted.has(position.oz) || !covered) continue
+    const level = price('c', productOf(position.productId))
+    if (unquoted.has(position.oz)) continue
+    if (!covered && position.oz !== featured.oz) continue
     const unitPrice = roundCents(level)
     c.push({
       supplier: 'c',
@@ -285,7 +389,10 @@ export function buildOffers(
       discountPct: null,
       total: roundCents(position.qty * unitPrice),
       pricePerUnit: unitPrice,
+      packSize: null,
+      packStated: false,
       trap: null,
+      oddity: null,
     })
   }
 
@@ -304,6 +411,7 @@ export function buildOffers(
     const free = lines.filter(
       (line) =>
         line.trap === null &&
+        line.oddity === null &&
         line.positions.every((oz) => !taken.has(oz)) &&
         accept(line),
     )
@@ -344,12 +452,11 @@ export function buildOffers(
   const substitute = (line: OfferDraft, other: Product, note: string) => {
     const position = positions.find((entry) => entry.oz === line.positions[0])
     if (position === undefined) throw new Error('line without a position')
-    const level =
-      (line.pricePerUnit / productOf(line.productId).price) * other.price
+    const level = price('a', other)
     Object.assign(
       line,
-      wholesalerLine(other, position, level, line.posRef !== null),
-      { trap: { kind: 'SPEC_MISMATCH', mustFlag: true, note } },
+      wholesalerLine(other, [position], level, line.posRef !== null),
+      { trap: { kind: 'SPEC_MISMATCH', note } },
     )
   }
   const featuredLine = lineFor(a, featured.oz)
@@ -362,102 +469,71 @@ export function buildOffers(
   for (const line of takeLines(
     a,
     TRAP_PLAN.SPEC_MISMATCH.a - 1,
-    (candidate) => mismatches(productOf(candidate.productId)).length > 0,
+    (candidate) =>
+      candidate.positions.length === 1 &&
+      mismatches(productOf(candidate.productId)).length > 0,
   )) {
     const product = productOf(line.productId)
     const { other, attr } = trapRng.pick(mismatches(product))
     substitute(line, other, describe(product, other, attr))
   }
 
-  // SPEC_MISMATCH, specialist: one article quoted in place of another. If the
-  // specialist also quotes that other article, the two become one line, which
-  // then answers both articles' positions.
+  // SPEC_MISMATCH, specialist: one article quoted in place of another, which
+  // the specialist does not quote anywhere else.
   for (let planted = 0; planted < TRAP_PLAN.SPEC_MISMATCH.b; planted++) {
-    const untouched = (line: OfferDraft | undefined) =>
-      line === undefined ||
-      (line.trap === null && line.positions.every((oz) => !taken.has(oz)))
     const options = (line: OfferDraft) =>
       mismatches(productOf(line.productId)).filter(({ other }) =>
-        untouched(b.find((entry) => entry.productId === other.id)),
+        b.every((entry) => entry.productId !== other.id),
       )
-
     const [line] = takeLines(b, 1, (candidate) => options(candidate).length > 0)
     if (line === undefined) throw new Error('no specialist line to substitute')
     const product = productOf(line.productId)
     const { other, attr } = trapRng.pick(options(line))
-    const existing = b.find((entry) => entry.productId === other.id)
-
-    if (existing === undefined) {
-      const answered = positions.filter((position) =>
-        line.positions.includes(position.oz),
-      )
-      Object.assign(
-        line,
-        specialistLine(
-          other,
-          answered,
-          (line.pricePerUnit / product.price) * other.price,
-          line.discountPct ?? 35,
-          line.heading ?? '',
-        ),
-      )
-      line.trap = {
-        kind: 'SPEC_MISMATCH',
-        mustFlag: true,
-        note: describe(product, other, attr),
-      }
-    } else {
-      for (const oz of existing.positions) taken.add(oz)
-      existing.positions.push(...line.positions)
-      existing.qty += line.qty
-      existing.total = roundCents(existing.qty * existing.unitPrice)
-      existing.trap = {
-        kind: 'SPEC_MISMATCH',
-        mustFlag: true,
-        note: `${describe(product, other, attr)}; quoted on one line with the positions that do ask for it`,
-      }
-      b.splice(b.indexOf(line), 1)
-    }
+    const answered = positions.filter((position) =>
+      line.positions.includes(position.oz),
+    )
+    Object.assign(
+      line,
+      specialistLine(
+        other,
+        answered,
+        price('b', other),
+        line.discountPct ?? 35,
+        line.heading ?? '',
+      ),
+      { trap: { kind: 'SPEC_MISMATCH', note: describe(product, other, attr) } },
+    )
   }
 
-  // UNIT_BASIS, determined: the usual price unit times ten. Still exact.
-  for (const line of takeLines(
-    a,
-    TRAP_PLAN.UNIT_BASIS.determined,
-    (candidate) => candidate.priceBasis === 100,
-  )) {
-    line.priceBasis = 1000
-    line.unitPrice = roundCents(line.unitPrice * 10)
-    line.total = roundCents((line.qty * line.unitPrice) / 1000)
-    line.pricePerUnit = line.unitPrice / 1000
-    line.trap = {
-      kind: 'UNIT_BASIS',
-      mustFlag: false,
-      note: 'priced per 1000 where this supplier prices per 100',
-    }
-  }
-
-  // UNIT_BASIS, unclear: quoted in rings or packs, not in the tender's unit.
-  for (const line of takeLines(
-    a,
-    TRAP_PLAN.UNIT_BASIS.unclear,
-    (candidate) =>
-      candidate.qty >= 40 &&
-      (candidate.unit === 'M' || candidate.pricePerUnit < 15),
-  )) {
+  // UNIT_BASIS: quoted in rings or packs, with nothing to say how much one
+  // of them holds.
+  const packable = (candidate: OfferDraft) =>
+    candidate.positions.length === 1 &&
+    candidate.qty >= 40 &&
+    (candidate.unit === 'M' || candidate.pricePerUnit < 15)
+  const quoteInPacks = (line: OfferDraft, stated: boolean, draw: Rng) => {
     const product = productOf(line.productId)
-    const pack = product.unit === 'm' ? trapRng.pick([50, 100]) : 10
+    const size = product.unit === 'm' ? draw.pick([50, 100]) : 10
     const perUnit = line.pricePerUnit
     line.unit = product.unit === 'm' ? 'RG' : 'VE'
-    line.qty = Math.ceil(line.qty / pack)
+    line.qty = Math.ceil(line.qty / size)
     line.priceBasis = 1
-    line.unitPrice = roundCents(perUnit * pack)
+    line.unitPrice = roundCents(perUnit * size)
     line.total = roundCents(line.qty * line.unitPrice)
-    line.pricePerUnit = line.unitPrice / pack
+    line.pricePerUnit = line.unitPrice / size
+    line.packSize = size
+    line.packStated = stated
+    if (stated) {
+      const wording = draw.pick(PACK_WORDING[product.unit === 'm' ? 'm' : 'St'])
+      line.text = `${line.text} ${wording(size)}`
+    }
+    return { size, unit: line.unit, tenderUnit: product.unit }
+  }
+  for (const line of takeLines(a, TRAP_PLAN.UNIT_BASIS, packable)) {
+    const { size, unit, tenderUnit } = quoteInPacks(line, false, trapRng)
     line.trap = {
       kind: 'UNIT_BASIS',
-      mustFlag: true,
-      note: `quoted per ${line.unit} of ${pack}, the tender counts in ${product.unit}`,
+      note: `quoted per ${unit} without saying how much one holds (${size} ${tenderUnit}); the tender counts in ${tenderUnit}`,
     }
   }
 
@@ -473,49 +549,51 @@ export function buildOffers(
     line.pricePerUnit = line.unitPrice / line.priceBasis
     line.trap = {
       kind: 'PRICE_OUTLIER',
-      mustFlag: true,
       note: `price ${up ? 'ten times' : 'a tenth of'} what was meant`,
     }
   }
   const compared = (line: OfferDraft) =>
     line.positions.every((oz) => quotedBy(oz) >= 2) && line.unitPrice >= 1
   for (const line of [
-    ...takeLines(a, TRAP_PLAN.PRICE_OUTLIER.a, compared),
+    ...takeLines(
+      a,
+      TRAP_PLAN.PRICE_OUTLIER.a,
+      (candidate) => candidate.positions.length === 1 && compared(candidate),
+    ),
     ...takeLines(b, TRAP_PLAN.PRICE_OUTLIER.b, compared),
     ...takeLines(c, TRAP_PLAN.PRICE_OUTLIER.c, compared),
   ]) {
     outlier(line)
   }
 
-  // QTY_MISMATCH: the supplier priced a different quantity than was asked.
+  // QTY_MISMATCH: the supplier priced a different quantity than was asked,
+  // by more than rounding up would explain.
+  const countable = (candidate: OfferDraft) =>
+    candidate.positions.length === 1 && candidate.qty >= 20
   for (const line of [
-    ...takeLines(
-      a,
-      TRAP_PLAN.QTY_MISMATCH.a,
-      (candidate) => candidate.qty >= 20,
-    ),
-    ...takeLines(
-      c,
-      TRAP_PLAN.QTY_MISMATCH.c,
-      (candidate) => candidate.qty >= 20,
-    ),
+    ...takeLines(a, TRAP_PLAN.QTY_MISMATCH.a, countable),
+    ...takeLines(c, TRAP_PLAN.QTY_MISMATCH.c, countable),
   ]) {
     const asked = line.qty
-    line.qty = asked % 10 === 0 ? asked / 10 : asked * 10
+    const factor = trapRng.pick([0.1, 0.5, 3, 10])
+    line.qty = Math.max(1, Math.round(asked * factor))
     line.total = roundCents((line.qty * line.unitPrice) / line.priceBasis)
     line.trap = {
       kind: 'QTY_MISMATCH',
-      mustFlag: true,
       note: `tender asks for ${asked}, offer is for ${line.qty}`,
     }
   }
 
   // ALTERNATIVE_PRODUCT: another make, marked as such, a little cheaper.
   for (const line of [
-    ...takeLines(a, TRAP_PLAN.ALTERNATIVE_PRODUCT.a),
+    ...takeLines(
+      a,
+      TRAP_PLAN.ALTERNATIVE_PRODUCT.a,
+      (candidate) => candidate.positions.length === 1,
+    ),
     ...takeLines(b, TRAP_PLAN.ALTERNATIVE_PRODUCT.b),
   ]) {
-    line.text = `Alternativ: ${ALTERNATIVE_BRAND} ${line.text.replace(/^(Trennox|Lumfeld|Tastwerk|Quorix) /, '')}`
+    line.text = `${trapRng.pick(ALTERNATIVE_MARKS)} ${ALTERNATIVE_BRAND} ${line.text.replace(/^(Trennox|Lumfeld|Tastwerk|Quorix) /, '')}`
     line.articleNo =
       line.supplier === 'a'
         ? String(Number(line.articleNo) + 13)
@@ -523,7 +601,6 @@ export function buildOffers(
     cheapen(line, 0.9)
     line.trap = {
       kind: 'ALTERNATIVE_PRODUCT',
-      mustFlag: true,
       note: `offered as an alternative make (${ALTERNATIVE_BRAND})`,
     }
   }
@@ -534,8 +611,9 @@ export function buildOffers(
     TRAP_PLAN.AMBIGUOUS,
     (candidate) => candidate.posRef !== null,
   )) {
+    // Both lines name the position, so a reader finds both.
     const note = 'two lines answer this position at different prices'
-    line.trap = { kind: 'AMBIGUOUS', mustFlag: true, note }
+    line.trap = { kind: 'AMBIGUOUS', note }
     const twin: OfferDraft = {
       ...line,
       positions: [...line.positions],
@@ -568,16 +646,109 @@ export function buildOffers(
     line.total = roundCents(right * trapRng.pick([1.1, 0.9, 1.25]))
     line.trap = {
       kind: 'ARITHMETIC',
-      mustFlag: true,
       note: `quantity times price is ${right.toFixed(2)}, the line total says ${line.total.toFixed(2)}`,
     }
   }
+
+  // --- Harmless oddities ---------------------------------------------------
+  // The same surface as a trap, with nothing wrong underneath. They go on
+  // lines no trap touched; the position may still carry a trap elsewhere.
+  const oddRng = rng.fork('oddities')
+  const cleanLines = (
+    lines: Array<OfferDraft>,
+    count: number,
+    accept: (line: OfferDraft) => boolean,
+  ): Array<OfferDraft> =>
+    oddRng.sample(
+      lines.filter(
+        (line) => line.trap === null && line.oddity === null && accept(line),
+      ),
+      count,
+    )
+
+  // PACK: rings and packs, with the size in the text.
+  for (const line of cleanLines(a, ODDITY_PLAN.PACK, packable)) {
+    quoteInPacks(line, true, oddRng)
+    line.oddity = 'PACK'
+  }
+
+  // PE1000: the usual price unit times ten. Still exact.
+  for (const line of cleanLines(
+    a,
+    ODDITY_PLAN.PE1000,
+    (candidate) => candidate.priceBasis === 100,
+  )) {
+    line.priceBasis = 1000
+    line.unitPrice = roundCents(line.unitPrice * 10)
+    line.total = roundCents((line.qty * line.unitPrice) / 1000)
+    line.pricePerUnit = line.unitPrice / 1000
+    line.oddity = 'PE1000'
+  }
+
+  // ROUNDED: a few more than asked for, up to a round number.
+  const roundedUp = (line: OfferDraft): number | null => {
+    for (const step of line.unit === 'M' ? [50, 25, 10] : [10, 5]) {
+      const up = Math.ceil(line.qty / step) * step
+      if (up > line.qty && up <= line.qty * (1 + ROUNDING_ALLOWANCE)) return up
+    }
+    return null
+  }
+  for (const line of cleanLines(
+    a,
+    ODDITY_PLAN.ROUNDED,
+    (candidate) =>
+      candidate.positions.length === 1 && roundedUp(candidate) !== null,
+  )) {
+    line.qty = roundedUp(line) ?? line.qty
+    line.total = roundCents((line.qty * line.unitPrice) / line.priceBasis)
+    line.oddity = 'ROUNDED'
+  }
+
+  // SPLIT: one position on two lines, same article, same price.
+  for (const line of cleanLines(
+    a,
+    ODDITY_PLAN.SPLIT,
+    (candidate) =>
+      candidate.positions.length === 1 &&
+      candidate.posRef !== null &&
+      candidate.qty >= 10,
+  )) {
+    const first = Math.round(line.qty * oddRng.pick([0.4, 0.5, 0.6]))
+    const rest: OfferDraft = {
+      ...line,
+      positions: [...line.positions],
+      qty: line.qty - first,
+      oddity: 'SPLIT',
+    }
+    line.qty = first
+    line.oddity = 'SPLIT'
+    for (const part of [line, rest]) {
+      part.total = roundCents((part.qty * part.unitPrice) / part.priceBasis)
+    }
+    a.splice(a.indexOf(line) + 1, 0, rest)
+  }
+
+  // CENTS: the total a cent or two off what quantity times price gives.
+  const offByCents = (lines: Array<OfferDraft>, count: number) => {
+    for (const line of cleanLines(
+      lines,
+      count,
+      (candidate) => candidate.total >= 5,
+    )) {
+      line.total = roundCents(
+        line.total + oddRng.pick([-0.02, -0.01, 0.01, 0.02]),
+      )
+      line.oddity = 'CENTS'
+    }
+  }
+  offByCents(a, ODDITY_PLAN.CENTS.a)
+  offByCents(b, ODDITY_PLAN.CENTS.b)
+  offByCents(c, ODDITY_PLAN.CENTS.c)
 
   // --- Collect -------------------------------------------------------------
   const lines = { a, b, c }
   const traps: Array<PlantedTrap> = [...unquoted].sort().map((oz) => ({
     kind: 'NO_OFFER',
-    mustFlag: true,
     note: 'no supplier quoted this position',
     supplier: null,
     seq: null,
@@ -625,30 +796,35 @@ function cheapen(line: OfferDraft, factor: number): void {
 
 function wholesalerLine(
   product: Product,
-  position: TenderPosition,
+  answered: Array<TenderPosition>,
   pricePerUnit: number,
   withRef: boolean,
 ): OfferDraft {
   const basis = wholesalerBasis(product)
   const unitPrice = roundCents(pricePerUnit * basis)
+  const qty = answered.reduce((sum, position) => sum + position.qty, 0)
+  const [only] = answered
   return {
     supplier: 'a',
-    positions: [position.oz],
+    positions: answered.map((position) => position.oz),
     productId: product.id,
-    posRef: withRef ? position.oz : null,
+    posRef: withRef && answered.length === 1 && only ? only.oz : null,
     articleNo: product.articleA,
     text: product.a,
     detail: null,
     heading: null,
-    qty: position.qty,
+    qty,
     unit: WHOLESALER_UNIT[product.unit] ?? product.unit,
     unitPrice,
     priceBasis: basis,
     listPrice: null,
     discountPct: null,
-    total: roundCents((position.qty * unitPrice) / basis),
+    total: roundCents((qty * unitPrice) / basis),
     pricePerUnit: unitPrice / basis,
+    packSize: null,
+    packStated: false,
     trap: null,
+    oddity: null,
   }
 }
 
@@ -679,6 +855,9 @@ function specialistLine(
     discountPct,
     total: roundCents(qty * unitPrice),
     pricePerUnit: unitPrice,
+    packSize: null,
+    packStated: false,
     trap: null,
+    oddity: null,
   }
 }

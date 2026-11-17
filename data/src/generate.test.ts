@@ -12,7 +12,7 @@ import {
 import { beforeAll, describe, expect, it } from 'vitest'
 import { extractPdfText } from './extractPdf'
 import { FILES, SEED, generate } from './generate'
-import { TRAP_KINDS } from './offers'
+import { ODDITY_KINDS, ROUNDING_ALLOWANCE, TRAP_KINDS } from './offers'
 import { POSITION_COUNT } from './tender'
 import type { OfferLine, PdfTextItem } from '@preisspiegel/core'
 import type { ExtractedPdf } from './extractPdf'
@@ -115,15 +115,121 @@ describe('the planted traps', () => {
     const { summary, positions } = generated.truth
     expect(summary.expectedAuto + summary.expectedReview).toBe(POSITION_COUNT)
     for (const position of positions) {
-      const mustFlag = position.offers.some((offer) => offer.mustFlag)
-      const expectReview = mustFlag || position.offers.length === 0
-      expect(position.expected.decision, position.oz).toBe(
+      const { expected, offers } = position
+      const clean = offers
+        .filter((offer) => offer.valid && offer.trap === null)
+        .map((offer) => offer.unitPrice!)
+      const cheapestClean = Math.min(...clean)
+      // A person looks exactly when the cheapest offer is not a clean one.
+      const decisive = offers.filter(
+        (offer) =>
+          offer.trap !== null &&
+          (offer.unitPrice === null || offer.unitPrice < cheapestClean),
+      )
+      const expectReview = offers.length === 0 || decisive.length > 0
+      expect(expected.decision, position.oz).toBe(
         expectReview ? 'review' : 'auto',
       )
-      if (position.expected.decision === 'auto') {
-        expect(position.expected.bestUnitPrice, position.oz).toBeGreaterThan(0)
+      if (expected.decision === 'auto') {
+        expect(expected.bestUnitPrice, position.oz).toBe(cheapestClean)
+        expect(expected.reasons, position.oz).toEqual([])
+      } else {
+        expect(expected.reasons.length, position.oz).toBeGreaterThan(0)
       }
     }
+  })
+
+  it('put every review on a reason and count the ones only noted', () => {
+    const { summary, positions } = generated.truth
+    const reviewed = positions.filter((p) => p.expected.decision === 'review')
+    expect(reviewed).toHaveLength(summary.expectedReview)
+    expect(summary.notedOnly).toBe(
+      positions.filter(
+        (p) => p.expected.decision === 'auto' && p.expected.noted.length > 0,
+      ).length,
+    )
+  })
+})
+
+describe('the offers', () => {
+  const all = () => [
+    ...generated.offers.lines.a,
+    ...generated.offers.lines.b,
+    ...generated.offers.lines.c,
+  ]
+
+  it('give one price per article within a supplier, traps aside', () => {
+    for (const supplier of ['a', 'b', 'c'] as const) {
+      const seen = new Map<string, number>()
+      for (const line of generated.offers.lines[supplier]) {
+        if (line.trap !== null) continue
+        const price = Number(line.pricePerUnit.toFixed(2))
+        const before = seen.get(line.productId)
+        // A pack price is rounded to cents per pack, so allow a cent per unit.
+        if (before !== undefined) {
+          expect(
+            Math.abs(before - price),
+            `${supplier}: ${line.productId}`,
+          ).toBeLessThanOrEqual(0.011)
+        }
+        seen.set(line.productId, price)
+      }
+    }
+  })
+
+  it('carry every harmless oddity on lines without a trap', () => {
+    const { oddities } = generated.truth.summary
+    for (const kind of ODDITY_KINDS)
+      expect(oddities[kind], kind).toBeGreaterThan(0)
+    for (const line of all()) {
+      if (line.oddity !== null) expect(line.trap, line.text).toBeNull()
+    }
+  })
+
+  it('state the pack size on a clean line and not on a trapped one', () => {
+    const packed = all().filter((line) => line.packSize !== null)
+    expect(packed.length).toBeGreaterThan(0)
+    for (const line of packed) {
+      const stated = new RegExp(
+        `\\b${line.packSize}\\s?(m|er|St)|=${line.packSize}\\b`,
+      )
+      expect(line.packStated, line.text).toBe(line.oddity === 'PACK')
+      expect(stated.test(line.text), line.text).toBe(line.packStated)
+      expect(line.trap?.kind ?? 'PACK').toBe(
+        line.packStated ? 'PACK' : 'UNIT_BASIS',
+      )
+    }
+  })
+
+  it('split a quantity over two lines that add up to what was asked', () => {
+    const asked = new Map(generated.positions.map((p) => [p.oz, p.qty]))
+    const parts = generated.offers.lines.a.filter(
+      (line) => line.oddity === 'SPLIT',
+    )
+    expect(parts.length % 2).toBe(0)
+    for (let index = 0; index < parts.length; index += 2) {
+      const [first, second] = [parts[index]!, parts[index + 1]!]
+      expect(first.posRef).toBe(second.posRef)
+      expect(first.unitPrice).toBe(second.unitPrice)
+      expect(first.qty + second.qty).toBe(asked.get(first.posRef!))
+    }
+  })
+
+  it('round a quantity up by no more than the allowance', () => {
+    const asked = new Map(generated.positions.map((p) => [p.oz, p.qty]))
+    for (const line of all().filter((entry) => entry.oddity === 'ROUNDED')) {
+      const wanted = asked.get(line.positions[0]!)!
+      expect(line.qty).toBeGreaterThan(wanted)
+      expect(line.qty).toBeLessThanOrEqual(wanted * (1 + ROUNDING_ALLOWANCE))
+    }
+  })
+
+  it('answer bulk material by article, with no position named', () => {
+    const collective = generated.offers.lines.a.filter(
+      (line) => line.positions.length > 1,
+    )
+    expect(collective.length).toBeGreaterThan(20)
+    for (const line of collective) expect(line.posRef).toBeNull()
   })
 })
 
