@@ -8,15 +8,20 @@ function spread(index: number, salt: number): number {
   return ((mixed ^ (mixed >>> 16)) >>> 0) / 4294967296
 }
 
-// Most stars stand high in the sky, clear of what is written below them.
-const STARS = Array.from({ length: 120 }, (_, index) => ({
-  x: spread(index, 1) * 1600,
-  y: 4 + spread(index, 2) ** 3.2 * 520,
-  r: 0.45 + spread(index, 3) * 0.75,
-  twinkle: index % 7 === 0,
-  period: 3.5 + spread(index, 4) * 4,
-  at: spread(index, 5) * 5,
-}))
+// The stars stand in the strip of sky above what is written, and down the
+// two edges of the page beside it. None is behind a word.
+const STARS = Array.from({ length: 120 }, (_, index) => {
+  const edge = index % 4 === 0
+  const side = spread(index, 6) < 0.5 ? 0 : 1
+  return {
+    x: edge ? side * 1548 + spread(index, 1) * 52 : spread(index, 1) * 1600,
+    y: edge ? 60 + spread(index, 2) * 430 : 3 + spread(index, 2) ** 2 * 40,
+    r: 0.45 + spread(index, 3) * 0.75,
+    twinkle: index % 7 === 0,
+    period: 3.5 + spread(index, 4) * 4,
+    at: spread(index, 5) * 5,
+  }
+})
 
 const CLOUDS: ReadonlyArray<{
   x: number
@@ -24,9 +29,9 @@ const CLOUDS: ReadonlyArray<{
   scale: number
   period: number
 }> = [
-  { x: 110, y: 46, scale: 1.1, period: 150 },
-  { x: 800, y: 58, scale: 0.8, period: 110 },
-  { x: 1540, y: 330, scale: 1, period: 180 },
+  { x: 96, y: 26, scale: 0.75, period: 150 },
+  { x: 800, y: 22, scale: 0.6, period: 110 },
+  { x: 1560, y: 420, scale: 0.9, period: 180 },
 ]
 
 /**
@@ -49,7 +54,6 @@ export function Scenery() {
             cy={Math.round(star.y * 10) / 10}
             r={Math.round(star.r * 100) / 100}
             className="star"
-            opacity={star.y > 110 ? 0.45 : undefined}
             data-twinkle={star.twinkle ? '' : undefined}
             style={
               star.twinkle

@@ -140,14 +140,21 @@ function Elevation({
   const layout = useMemo(() => layoutFacade(input, shape), [input, shape])
   const placed = useMemo(() => place(input), [input])
   const drawn = useMemo(() => {
-    const lit = layout.panes.filter((pane) => states[pane.index] === 'priced')
-    const open = layout.panes.filter((pane) => states[pane.index] === 'open')
+    // The water shows what the house shows: while windows are picked out,
+    // only those.
+    const shown = (pane: Pane) => pointing === null || pointing.has(pane.index)
+    const lit = layout.panes.filter(
+      (pane) => states[pane.index] === 'priced' && shown(pane),
+    )
+    const open = layout.panes.filter(
+      (pane) => states[pane.index] === 'open' && shown(pane),
+    )
     return {
       all: outline(layout.panes),
       lit: outline(lit),
       open: outline(open),
     }
-  }, [layout, states])
+  }, [layout, states, pointing])
 
   // How many windows on each storey need a person, top storey first.
   const openByStorey = useMemo(() => {

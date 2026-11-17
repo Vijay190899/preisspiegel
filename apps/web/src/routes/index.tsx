@@ -91,102 +91,109 @@ function Overview() {
 
   return (
     <div>
-      <section className="scene">
-        <Scenery />
-        <div className="mx-auto w-full max-w-[1320px] px-4 pt-12 sm:px-8 sm:pt-16 lg:pt-20">
-          <div className="grid gap-x-16 gap-y-9 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-end">
-            <div>
-              <motion.h1
-                {...arrive(0)}
-                className="display text-[clamp(2.4rem,4.9vw,4.4rem)]"
-              >
-                {said.project(tender.project)}
-              </motion.h1>
-              <motion.p {...arrive(1)} className="mt-5 text-ink-3">
-                {t('overview.project', {
-                  lot: said.project(tender.lot),
-                  no: tender.projectNo,
-                })}
-              </motion.p>
-            </div>
-
-            <motion.div {...arrive(2)}>
-              {decided ? (
-                <p className="statement">
-                  <b>{formatQty(counts?.auto ?? 0)}</b>{' '}
-                  {t('overview.priced', { total: formatQty(done.positions) })}{' '}
-                  {open > 0 && (
-                    <>
-                      <b>{formatQty(open)}</b>{' '}
-                      {t(
-                        open === 1 ? 'overview.wait.one' : 'overview.wait.many',
-                      )}
-                      {counts !== null &&
-                        counts.atRisk !== null &&
-                        counts.atRisk > 0 && (
-                          <>
-                            {' '}
-                            {t('overview.stake.before')}{' '}
-                            <b className="whitespace-nowrap">
-                              {formatMoney(counts.atRisk)} €
-                            </b>
-                            {t('overview.stake.after')}
-                          </>
-                        )}
-                    </>
-                  )}
-                </p>
-              ) : (
-                <p className="statement">
-                  {t('overview.lead', {
-                    bidder: tender.contractor,
-                    client: tender.client,
-                    n: suppliers.length,
+      <div>
+        <section className="scene">
+          <Scenery />
+          <div className="mx-auto w-full max-w-[1320px] px-4 pt-12 sm:px-8 sm:pt-16 lg:pt-20">
+            <div className="grid gap-x-16 gap-y-9 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-end">
+              <div>
+                <motion.h1
+                  {...arrive(0)}
+                  className="display text-[clamp(2.4rem,4.9vw,4.4rem)]"
+                >
+                  {said.project(tender.project)}
+                </motion.h1>
+                <motion.p {...arrive(1)} className="mt-5 text-ink-3">
+                  {t('overview.project', {
+                    lot: said.project(tender.lot),
+                    no: tender.projectNo,
                   })}
-                </p>
-              )}
-              <div className="mt-7 flex flex-wrap items-center gap-2">
-                {decided && open > 0 ? (
-                  <>
-                    <Link
-                      to="/positionen"
-                      search={{ offen: true }}
-                      className="action"
-                    >
-                      {t('overview.decide')}
-                    </Link>
-                    <Link to="/positionen" className="quiet-action">
-                      {t('overview.all')}
-                    </Link>
-                  </>
-                ) : (
-                  <Link to="/positionen" className="action">
-                    {t('overview.open')}
-                  </Link>
-                )}
+                </motion.p>
               </div>
-            </motion.div>
+
+              <motion.div {...arrive(2)}>
+                {decided ? (
+                  <p className="statement">
+                    <b>{formatQty(counts?.auto ?? 0)}</b>{' '}
+                    {t('overview.priced', { total: formatQty(done.positions) })}{' '}
+                    {open > 0 && (
+                      <>
+                        <b>{formatQty(open)}</b>{' '}
+                        {t(
+                          open === 1
+                            ? 'overview.wait.one'
+                            : 'overview.wait.many',
+                        )}
+                        {counts !== null &&
+                          counts.atRisk !== null &&
+                          counts.atRisk > 0 && (
+                            <>
+                              {' '}
+                              {t('overview.stake.before')}{' '}
+                              <b className="whitespace-nowrap">
+                                {formatMoney(counts.atRisk)} €
+                              </b>
+                              {t('overview.stake.after')}
+                            </>
+                          )}
+                      </>
+                    )}
+                  </p>
+                ) : (
+                  <p className="statement">
+                    {t('overview.lead', {
+                      bidder: tender.contractor,
+                      client: tender.client,
+                      n: suppliers.length,
+                    })}
+                  </p>
+                )}
+                <div className="mt-7 flex flex-wrap items-center gap-2">
+                  {decided && open > 0 ? (
+                    <>
+                      <Link
+                        to="/positionen"
+                        search={{ offen: true }}
+                        className="action"
+                      >
+                        {t('overview.decide')}
+                      </Link>
+                      <Link to="/positionen" className="quiet-action">
+                        {t('overview.all')}
+                      </Link>
+                    </>
+                  ) : (
+                    <Link to="/positionen" className="action">
+                      {t('overview.open')}
+                    </Link>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          </div>
+
+          <div className="mt-12 sm:mt-16 lg:mt-20">
+            <Facade
+              tender={tender}
+              statuses={settleStatuses(statuses, mine)}
+              reading={underWay ? current.read : null}
+              pointing={pointing}
+            />
+          </div>
+        </section>
+        <div className="key-bar">
+          <div className="mx-auto w-full max-w-[1320px] px-4 py-3 sm:px-8 xl:py-5">
+            <PictureKey
+              tender={tender}
+              queue={decided ? queue : []}
+              unread={statuses === null}
+              onPoint={setPointing}
+            />
           </div>
         </div>
-
-        <div className="mt-12 sm:mt-16 lg:mt-20">
-          <Facade
-            tender={tender}
-            statuses={settleStatuses(statuses, mine)}
-            reading={underWay ? current.read : null}
-            pointing={pointing}
-          />
-        </div>
-      </section>
+      </div>
 
       <div className="mx-auto w-full max-w-[1320px] px-4 pb-20 sm:px-8">
-        <PictureKey
-          tender={tender}
-          queue={decided ? queue : []}
-          unread={statuses === null}
-          onPoint={setPointing}
-        />
-
         {decided && queue.length > 0 && (
           <div className="mt-20 grid gap-x-20 gap-y-16 lg:mt-28 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
             <section aria-labelledby="costly" className="min-w-0">

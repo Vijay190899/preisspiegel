@@ -61,9 +61,9 @@ export function PictureKey({
   const release = () => onPoint(heldWindows)
 
   return (
-    <div className="grid gap-4 text-[0.9rem]">
-      <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-ink-2">
-        <li className="text-ink-3">{t('facade.caption')}</li>
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5 text-[0.9rem] xl:gap-4">
+      <ul className="key-row text-ink-2">
+        <li className="text-ink-3 max-sm:hidden">{t('facade.caption')}</li>
         <li className="flex items-center gap-2">
           <Swatch glass="var(--t-glass)" />
           {t('facade.state.priced')}
@@ -113,7 +113,7 @@ export function PictureKey({
 
       {/* What the numbers under the roof stand for: the tender's titles. */}
       <nav aria-label={t('facade.titles')}>
-        <ul className="flex flex-wrap gap-x-5 gap-y-1.5">
+        <ul className="key-row">
           {byTitle.map((title) => (
             <li key={title.rno}>
               <Link
