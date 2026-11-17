@@ -19,7 +19,11 @@ export interface OfflineRuns {
 }
 
 export async function offlineRuns(): Promise<OfflineRuns> {
-  const seed = await loadSeed()
+  return offlineRunsOf(await loadSeed())
+}
+
+/** The same two runs for a tender that is already read in. */
+export async function offlineRunsOf(seed: SeedData): Promise<OfflineRuns> {
   const { positions, lines, truth } = seed
   const questions = buildQuestions(positions, lines)
   const run = (reader: (question: Question) => Array<Judgement>) =>

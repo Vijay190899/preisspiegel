@@ -107,6 +107,112 @@ describe('buildQuestions', () => {
   })
 })
 
+describe('buildQuestions, by quantity', () => {
+  // Blind buttons on three floors, 6 + 9 + 12 = 27 of them.
+  const buttons = [6, 9, 12].map((qty, floor) =>
+    position({
+      oz: `06.0${floor + 1}.0090`,
+      shortText: 'Jalousietaster, Unterputz',
+      longText: 'Jalousietaster für Rohrmotor, Unterputz, liefern.',
+      qty,
+      unit: 'St',
+    }),
+  )
+  const sockets = position({
+    oz: '06.01.0010',
+    shortText: 'SCHUKO-Steckdose 16 A, Unterputz',
+    longText: 'SCHUKO-Steckdose 16 A, 250 V, Unterputz, liefern.',
+    qty: 40,
+    unit: 'St',
+  })
+  // The supplier quotes a two-way switch where blind buttons were asked
+  // for. Nothing in its text leads to them; its quantity does.
+  const inPlace = (over: Partial<OfferLine> = {}) =>
+    line({
+      supplierKey: 'b',
+      seq: 5,
+      posRef: null,
+      text: 'Wippschalter Aus/Wechsel 10 AX reinweiß',
+      articleNo: null,
+      qty: 27,
+      unit: 'St',
+      ...over,
+    })
+  const idsFor = (
+    all: Array<Position>,
+    lines: Array<OfferLine>,
+    oz: string,
+  ): Array<string> =>
+    buildQuestions(all, lines)
+      .find((asked) => asked.oz === oz)!
+      .candidates.map((candidate) => candidate.id)
+
+  it('asks about a line for the positions whose quantities add up to its own', () => {
+    const all = [sockets, ...buttons]
+    for (const button of buttons) {
+      expect(idsFor(all, [inPlace()], button.oz)).toEqual(['b.5'])
+    }
+    expect(idsFor(all, [inPlace()], sockets.oz)).toEqual([])
+  })
+
+  it('does not when the quantity is not the total of a kind', () => {
+    const all = [sockets, ...buttons]
+    expect(idsFor(all, [inPlace({ qty: 26 })], buttons[0]!.oz)).toEqual([])
+  })
+
+  it('does not when the unit is another', () => {
+    const all = [sockets, ...buttons]
+    expect(idsFor(all, [inPlace({ unit: 'm' })], buttons[0]!.oz)).toEqual([])
+  })
+
+  it('does not when the quantity fits too many kinds to say anything', () => {
+    // Three more kinds that also come to 27.
+    const others = ['Taster', 'Dimmer', 'Abdeckrahmen'].map((name, at) =>
+      position({
+        oz: `06.09.00${at + 1}0`,
+        shortText: `${name}, Unterputz`,
+        longText: `${name}, Unterputz, liefern.`,
+        qty: 27,
+        unit: 'St',
+      }),
+    )
+    const all = [sockets, ...buttons, ...others]
+    expect(idsFor(all, [inPlace()], buttons[0]!.oz)).toEqual([])
+  })
+
+  it('keeps the kinds a line reads most like when its quantity fits many', () => {
+    // Four kinds come to 27. The line reads like none of the buttons'
+    // rivals, a little like the buttons: both are operated by a rocker.
+    const others = ['Bewegungsmelder', 'Dimmer', 'Abdeckrahmen'].map(
+      (name, at) =>
+        position({
+          oz: `06.09.00${at + 1}0`,
+          shortText: `${name}, Unterputz`,
+          longText: `${name}, Unterputz, liefern.`,
+          qty: 27,
+          unit: 'St',
+        }),
+    )
+    const rocker = buttons.map((button) => ({
+      ...button,
+      longText: 'Jalousietaster mit Wippe für Rohrmotor, Unterputz, liefern.',
+    }))
+    const all = [sockets, ...rocker, ...others]
+    const line27 = inPlace({ text: 'Schalter mit Wippe 10 AX reinweiß' })
+    expect(idsFor(all, [line27], rocker[0]!.oz)).toEqual(['b.5'])
+    expect(idsFor(all, [line27], others[0]!.oz)).toEqual([])
+  })
+
+  it('leaves a line alone that the text search already led to its kind', () => {
+    const right = inPlace({ text: 'Jalousietaster Unterputz reinweiß' })
+    const all = [sockets, ...buttons]
+    // Found by its text for every button, and once only.
+    for (const button of buttons) {
+      expect(idsFor(all, [right], button.oz)).toEqual(['b.5'])
+    }
+  })
+})
+
 describe('verifyAnswer', () => {
   const asked = question([line()])
   const raw = (over: Partial<RawJudgement> = {}): RawJudgement => ({
@@ -407,6 +513,87 @@ describe('attribute', () => {
       verdict === 'mismatch' ? [{ code: 'SPEC_MISMATCH', detail: {} }] : [],
   })
 
+  /** Another line of the same supplier. */
+  const other = (
+    id: string,
+    verdict: Offer['verdict'],
+    quantity: number,
+  ): Offer => ({ ...offer(verdict, quantity), id, seq: Number(id.slice(2)) })
+  /** The same downlight in two ratings: one short text, two things. */
+  const downlight = (oz: string, qty: number, rating: string) =>
+    position({
+      oz,
+      qty,
+      shortText: 'LED-Downlight, 26 W',
+      longText: `LED-Downlight, Systemleistung 26 W, Schutzart ${rating}, liefern.`,
+    })
+
+  it('accepts the quantity of some of the positions that ask for the article', () => {
+    // The supplier quoted two of the three floors: 20 + 30 of 62.
+    const result = attribute([
+      { position: lamp34('07.01.0010', 20), offers: [offer('confirmed', 50)] },
+      { position: lamp34('07.02.0010', 30), offers: [offer('confirmed', 50)] },
+      { position: lamp34('07.03.0010', 12), offers: [offer('confirmed', 50)] },
+    ])
+    expect(result.flatMap((entry) => entry.offers[0]?.findings)).toEqual([])
+  })
+
+  it('still says so when no choice of positions comes to the quantity', () => {
+    const result = attribute([
+      { position: lamp34('07.01.0010', 20), offers: [offer('confirmed', 90)] },
+      { position: lamp34('07.02.0010', 30), offers: [offer('confirmed', 90)] },
+    ])
+    expect(
+      result.map((entry) => entry.offers[0]?.findings.map((f) => f.code)),
+    ).toEqual([['QTY_MISMATCH'], ['QTY_MISMATCH']])
+  })
+
+  it('tells apart two ratings that share a short text', () => {
+    // 50 pieces of the IP 44 light: what the IP 20 positions add up to.
+    const result = attribute([
+      {
+        position: downlight('07.01.0010', 20, 'IP 20'),
+        offers: [offer('mismatch', 50)],
+      },
+      {
+        position: downlight('07.02.0010', 30, 'IP20'),
+        offers: [offer('mismatch', 50)],
+      },
+      {
+        position: downlight('07.01.0020', 14, 'IP 44'),
+        offers: [offer('confirmed', 50)],
+      },
+    ])
+    // An offer of the wrong product for the IP 20 positions, and still a
+    // price for the position that does ask for IP 44.
+    expect(result.map((entry) => entry.offers.length)).toEqual([1, 1, 1])
+    expect(result[0]?.offers[0]?.findings.map((f) => f.code)).toEqual([
+      'SPEC_MISMATCH',
+    ])
+    expect(result[2]?.offers[0]?.findings).toEqual([])
+  })
+
+  it("does not take a line for a position's answer when its quantity is for others", () => {
+    // b.3 is the 28 W light with the quantity of the 34 W positions; b.4 is
+    // the 34 W light, but with a quantity that belongs elsewhere. So b.4
+    // does not settle what was quoted for the 34 W positions, and b.3 is
+    // seen as quoted in their place.
+    const result = attribute([
+      {
+        position: lamp34('07.01.0010', 20),
+        offers: [offer('mismatch', 50), other('b.4', 'confirmed', 77)],
+      },
+      {
+        position: lamp34('07.02.0010', 30),
+        offers: [offer('mismatch', 50), other('b.4', 'confirmed', 77)],
+      },
+      { position: lamp28('07.01.0020', 12), offers: [offer('confirmed', 50)] },
+    ])
+    expect(
+      result[0]?.offers.find((entry) => entry.id === 'b.3')?.findings[0]?.code,
+    ).toBe('SPEC_MISMATCH')
+  })
+
   it('drops a near match whose quantity is accounted for by exact matches', () => {
     const result = attribute([
       { position: lamp34('07.01.0010', 20), offers: [offer('confirmed', 50)] },
@@ -657,6 +844,15 @@ describe('markOutliers', () => {
 
   it('leaves an ordinary spread alone', () => {
     const offers = [priced('a.0', 10), priced('c.0', 13)]
+    markOutliers(offers)
+    expect(offers.flatMap((offer) => offer.findings)).toEqual([])
+  })
+
+  it('does not measure a price against the price of another product', () => {
+    // A three-pole breaker where a one-pole one was asked for costs four
+    // times as much. That says nothing about the one-pole price.
+    const wrong: Offer = { ...priced('a.0', 40), verdict: 'mismatch' }
+    const offers = [wrong, priced('c.0', 10)]
     markOutliers(offers)
     expect(offers.flatMap((offer) => offer.findings)).toEqual([])
   })

@@ -664,13 +664,14 @@ export function buildOffers(
     lines: Array<OfferDraft>,
     count: number,
     accept: (line: OfferDraft) => boolean,
-  ): Array<OfferDraft> =>
-    oddRng.sample(
-      lines.filter(
-        (line) => line.trap === null && line.oddity === null && accept(line),
-      ),
-      count,
+  ): Array<OfferDraft> => {
+    const pool = lines.filter(
+      (line) => line.trap === null && line.oddity === null && accept(line),
     )
+    // On some seeds fewer lines qualify than the plan asks for. Those get
+    // as many as there are; the truth counts what was planted.
+    return oddRng.sample(pool, Math.min(count, pool.length))
+  }
 
   // PACK: rings and packs, with the size in the text.
   for (const line of cleanLines(a, ODDITY_PLAN.PACK, packable)) {

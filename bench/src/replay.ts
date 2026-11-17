@@ -11,6 +11,7 @@ import {
   questionKey,
   withLineIds,
 } from '../../services/backend/convex/agent/prompt'
+import { roleModels } from '../../services/backend/convex/llm/registry'
 import { convexRun } from './convex'
 import { score } from './score'
 import { loadSeed } from './seedData'
@@ -68,7 +69,10 @@ export async function replay(model: string): Promise<Replay> {
 }
 
 if (process.argv[1]?.endsWith('replay.ts') === true) {
-  const model = process.argv[2] ?? 'claude-haiku-5-5'
+  // The model whose stored answers are replayed: the one named, or the
+  // matcher's configured one. The registry is the only place that names it.
+  const model = process.argv[2] ?? roleModels(process.env).match
+  if (model === null) throw new Error('No model is configured for the matcher.')
   const { score: scored, asked, answered } = await replay(model)
   const percent = (share: number) => `${(share * 100).toFixed(1)}%`
   console.log(`Prompt ${PROMPT_VERSION}, model ${model}: ${answered} of ${asked} questions have a stored answer.

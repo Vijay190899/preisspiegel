@@ -1,0 +1,28 @@
+{
+  "benchmark": "B3",
+  "question": "Is every number shown for an offer at the place it says it came from?",
+  "generatedAt": "2026-11-17T03:00:34.096Z",
+  "gitSha": "cafccb7-dirty",
+  "seed": 501,
+  "n": 1170,
+  "offerLines": 1737,
+  "provider": "openrouter",
+  "models": {
+    "match": "claude-haiku-5-5",
+    "escalation": null
+  },
+  "run": {
+    "id": "kh7ck4stdsyyd26g1fvpfqetfh8jdf7b",
+    "calls": 642,
+    "answeredFromCache": 480,
+    "failed": 0,
+    "usd": 0.2933,
+    "seconds": 367
+  },
+  "result": {
+    "checked": 6676,
+    "found": 6676,
+    "share": 1,
+    "misses": []
+  }
+}

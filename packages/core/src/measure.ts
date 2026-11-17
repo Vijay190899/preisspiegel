@@ -145,6 +145,40 @@ export function canonicalText(text: string): string {
     .replace(/\s+/g, '')
 }
 
+/**
+ * The measures and codes a text states, as one string: `26 W`, `IP 44`,
+ * `3x1,5 mm²`, `B16`. Two positions with the same short text can still ask
+ * for different things, and where they do it shows here: the same downlight
+ * in IP 20 and in IP 44. Spacing does not matter, and a number that stands
+ * alone is left out, so the storey a thing is installed on does not count.
+ */
+export function specSignature(text: string): string {
+  const stated = new Set<string>()
+  const pattern =
+    /(?:(?<![\p{L}\d])[\p{L}Ø]{1,3}\.?\s?)?\d+(?:[.,]\d+)*(?:\s?x\s?\d+(?:[.,]\d+)*)*(?:\s?-?[\p{L}²³%°]+)?/gu
+  for (const [found] of text.matchAll(pattern)) {
+    const token = canonicalText(found)
+    if (/[\p{L}%°]/u.test(token)) stated.add(token)
+  }
+  return [...stated].sort().join(' ')
+}
+
+/**
+ * What a position asks for, as a key: positions with the same key ask for
+ * the same thing, wherever in the building it goes.
+ */
+export function kindKey(position: {
+  shortText: string
+  longText: string
+  unit: string
+}): string {
+  return [
+    canonicalText(position.shortText),
+    specSignature(position.longText),
+    canonicalUnit(position.unit).unit,
+  ].join('|')
+}
+
 export function sameText(a: string, b: string): boolean {
   return canonicalText(a) === canonicalText(b)
 }

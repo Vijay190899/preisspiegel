@@ -6,7 +6,8 @@
  *   pnpm bench --start    start a full run first, and wait for it
  *
  * Needs `pnpm dev` running with the seed loaded. Starting a run calls the
- * model and costs money, about a quarter of a dollar on the default model.
+ * model and costs money, about 40 cents on the default model with an
+ * empty answer cache.
  *
  * B1  how much is priced without a person, and whether that part is right
  * B2  whether each planted trap was found, and what the review queue holds

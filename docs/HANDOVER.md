@@ -2,26 +2,36 @@
 
 ## 1. Where we are
 
-**M0, M1 and M2 are built. M2 is at its gate, waiting for its audit and a "go".** Updated 2026-11-17.
+**M0, M1 and M2 are built. M2 has been audited three more times since its gate; what the audits rated high is changed, and the last audit confirmed the change on 597 tenders of its own and rated nothing high. Waiting for a "go" for M3.** Updated 2026-11-17.
+
+The third interface direction and the fixes for the audits' findings came to `main` through pull requests 1 and 2, merged on 2026-11-17 at the owner's word. Work from here goes on a new branch (ADR-44).
 
 Built and verified:
 
 - **M0:** workspace, task runner, CI, model layer with cost meter. The provider probe passed on OpenRouter with `claude-haiku-5-5` (`bench/results/provider_probe.json`).
 - **M1:** GAEB and PDF readers in `packages/core`; a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; `pnpm seed`. See [DATA](DATA.md).
-- **M2, pipeline:** search for the lines that could answer a position, the matcher on `claude-haiku-5-5`, quote verification, comparison of values by arithmetic, per-line checks, attribution of by-article lines by quantity, and the decision ([ARCHITECTURE §4](ARCHITECTURE.md#4-pipeline-built-in-packagescoresrcpipelinets)). The agent runtime runs it in batches with an event log, budgets and an answer cache ([§3](ARCHITECTURE.md#3-backend-servicesbackend)).
-- **M2, benchmarks:** `pnpm bench` (B1 to B3), `pnpm bench:replay`, `pnpm bench:heldout`. On a tender the pipeline had not seen: 99.4% of what it prices by itself is right, with a euro error of zero; 57 of 60 traps found; 93.3% of expected reviews found; 85.7% of raised reviews belong; every shown number is at its source. One full run costs about 40 cents. [DATA](DATA.md#what-the-benchmarks-show) has the table, the first run, and the failure written up.
-- **Interface, "Weidenufer" (ADR-42), the third direction:** the overview is the front of the building at night with one window per position, lit when priced and red when it needs a person, mirrored in the river; it says how many positions are priced, how many wait for a decision and how many euros rest on them, and lists the costliest decisions. A window says what it is and opens its position. A position shows what was decided as a sentence, the suppliers side by side with their prices on one scale, findings in words with the arithmetic and, for a measure, a drawing to scale, and where its window is in the building. A traced number opens its document beside the position at the place it was read.
-- `pnpm check` green: lint, formatting, typecheck of six projects, 298 tests. `pnpm build` green. `pnpm shots` green on six routes at four widths in both themes. `pnpm probe:ui` green: 34 behaviour checks.
+- **M2, pipeline:** the lines that could answer a position, found by reference, by text and by quantity; the matcher on `claude-haiku-5-5`; quote verification; comparison of values by arithmetic; per-line checks; attribution of by-article lines by quantity, per kind of position; the decision ([ARCHITECTURE §4](ARCHITECTURE.md#4-pipeline-built-in-packagescoresrcpipelinets)). The agent runtime runs it in batches with an event log, budgets and an answer cache ([§3](ARCHITECTURE.md#3-backend-servicesbackend)).
+- **M2, benchmarks:** `pnpm bench` (B1 to B3), `pnpm bench:replay`, `pnpm bench:heldout`, `pnpm bench:seeds`. On the newest tender the pipeline had not seen (seed 502, one run): everything it prices by itself is rightly priced without a person; 96 of 96 expected reviews are found; 98.0% of raised reviews belong; 60 of 60 traps; one position is priced 170 € too high. With flawless reading and no model, the checks agree with the ground truth on every position of 780 of 797 further unseen tenders (97.9%); they price a position that needed a person on 2.0% and miss a planted trap on 4.3%. One full run costs about 40 cents on an empty cache. [DATA](DATA.md#what-the-benchmarks-show) has the table, the first run, all three unseen runs, the sweep and the failures written up.
+- **Interface, "Weidenufer" (ADR-42), the third direction:** the overview is the front of the building at night with one window per position, lit when priced and red when it needs a person, mirrored in the river; it says how many positions are priced, how many wait for a decision and how many euros rest on them, names the tender's titles, and lists the costliest decisions, one line per article. A window says what it is and opens its position. A position shows what was decided as a sentence, the suppliers side by side with their prices on one scale, findings in words with the arithmetic and, for a measure, a drawing to scale, and where its window is in the building. A traced number opens its document beside the position at the place it was read.
+- `pnpm check` green: lint, formatting, typecheck of six projects, 315 tests. `pnpm build` green. `pnpm shots` green on six routes (`/`, `/positionen`, `/positionen?offen=true`, `/positionen/01.01.0020`, and that position with `?quelle=a.0.unitPrice` and `?quelle=lv.qty`) at four widths in both themes. `pnpm probe:ui` green: 37 behaviour checks.
 
-**Audits so far.** The first (M0 and M1) and the second (the first interface and the fixes to the first audit) both said "on plan, with gaps". Their findings are closed, each with a test or a probe check, except the ones listed under open items below. The audit of M2 is the next thing to run.
+**Audits so far.** Five, each by an agent with no part in the work, and each with the verdict "on plan, with gaps".
+
+- The third, of M2: "The gate passes on re-run and every table figure recounts, but the write-up of the unseen-tender failures is wrong in its cause, and the deterministic part is fitted to seed 118: a perfect reader fails on 6 of 9 other seeds."
+- The fourth, of the third interface and of the fix for that: "The gate re-runs green and every table figure recounts, but the high finding is narrowed, not closed: on 136 seeds nobody had named the search still loses true offers on 21, and a perfect reader prices positions that needed a person on 20." It also judged the interface: the lights coming on work, the reflection appeared too early, the front could not be read without hovering, and the lower half of the overview and the positions list still read as ordinary.
+- The fifth, of the changes made after the fourth: "Every figure the builder reported reproduces and the rules were not fitted to seeds 3000 to 3149, but on 597 tenders of my own the quoted '198 of 200' is the best of five ranges (97.5% agree; a position that needed a person is priced on 2.3% of tenders, not 1%). The remaining failures share one cause that the write-up does not name." It rated nothing high. The pooled rate is now what the docs quote, the cause is named (a tie between two totals), and a claim that the model's errors on the unseen tender were not misreadings is withdrawn (ADR-51).
+- All three were right. Their medium and low findings that are not fixed are open items below.
 
 **What an honest reader should know about the numbers:**
 
-- The demo tender now agrees with its ground truth on every position. That was reached by changing the prompt and the checks while looking at that tender, so it is not the headline. The first run and the unseen tender are ([ADR-37, 38](DECISIONS.md)).
-- Every miss on the unseen tender has one cause: luminaires quoted by article in variants that share a short text. A perfect reader misses some of them too.
-- The unseen tender comes from the same generator, so it is unseen in its numbers, not in its language.
+- The demo tender agrees with its ground truth on every position. That was reached by changing the prompt and the checks while looking at that tender, so it is not the headline ([ADR-37, 38, 46, 49](DECISIONS.md)).
+- Twice a fix was reported as done on the strength of a handful of tenders, and twice an audit showed it did not hold on others. The third time the figures held, but the range quoted was the most favourable of five. The figure to trust is the pooled sweep: 780 of 797 with flawless reading, a position that needed a person priced on 16 of them, a trap missed on 34.
+- That sweep uses a perfect reader. With the model there is one run on the current checks, on one tender, and all three of its errors start in the model's answer.
+- Each unseen run took part of its answers from earlier tenders through the cache.
+- The unseen tenders come from the same generator, so they are unseen in their numbers, not in their language.
+- The order of "first run, changes, unseen run" in M2 rests on file times; git does not show it.
 
-Next, after the gate: M3 (labor and the copper surcharge, run replay and the access code, starting a run from the interface, the `/bench` page).
+Next, after a "go": M3 (labor and the copper surcharge, run replay and the access code, starting a run from the interface, the `/bench` page, and deciding a position), starting with the audits' runtime findings, because labor matching will run on the same runtime.
 
 ## 2. Setup
 
@@ -67,14 +77,41 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 
 ## 5. Open items
 
-- **Lighting variants that share a short text** defeat the attribution by quantity (ADR-33). Group positions by their compared attributes instead. This is the one known cause of wrong decisions.
+- **Nothing can be decided.** A red window opens a position that can be read but not settled; the PRD has the estimator decide from the keyboard. It is in M3.
+- **A tie between two totals.** Where a line's quantity is at once the total of the positions asking for its own article and of those it was quoted in place of, the wrong-product offer is dropped unseen and the position is priced without a person. It is most of what a perfect reader still gets wrong (30 of 36 missed traps). Keep the line as a flagged offer for the other kind on a tie, and measure what that costs in needless reviews.
+- **The model answers "unsure" for a by-article line for a single position** (a bollard luminaire, on seeds 501 and 502): the position is priced with the next valid offer. Confirming such a line when its quantity is exactly that of one position nobody else answers would remove it. Whether a larger model reads it correctly has not been tried; it would cost a few cents.
+- **The model leaves a plain line open now and then** (two earthing conductors on seed 502), which raises a review nobody needs.
+- **Seeds that are spent.** Read: 118 to 123, 2026, 7, 1, 999, 431 to 438, 501, 502, 3000 to 3149, and 5047, 5143, 7344, 20019, 20052, 20066. Scored: 5000 to 5199, 7300 to 7499, 20000 to 20149, 41000 to 41149, 88000 to 88099. The audits also ran 1 to 99, 200, 600 to 603, 777 to 999, 9001 to 9005, 31337 and 65536. Measure the next change on a range that is in none of these.
+- **From the fifth audit, not fixed:**
+  - What a kind is (`specSignature`) is fitted to the generator's wording: it splits on `im 3. OG` against `im 4. OG` and on `3.000 K` against `3000 K`, and merges `Polzahl: 1` with `Polzahl: 3`. Compare parsed measures and drop storey tokens instead. Labor matching would reuse it.
+  - Accepting the total of some positions lets most wrong totals through on a line for many positions, and no benchmark plants a quantity trap there. Plant them, then bound the rule.
+  - The costliest list groups by short text, so two variants under one short text become one row; a grouped row opens only its costliest position.
+  - The generator still fails on 3 seeds in 600 (trap sampling).
+  - With a document open at 1920 px the three columns are 245 px wide and the arithmetic breaks before its unit; from 1024 to 1279 px the tower is 416 px wide on a page of that width.
+  - `storeyOf` reads `KG-Rohr` as a basement, `OG 2` as the first upper storey and `1.-3. OG` as the third.
+  - How far down a search is looked at when a quantity points the way (12) is a constant nobody measured.
+- **From the fourth audit, not fixed:**
+  - The drawing of a measure (250 A, 199 A, "51 A less") shows values that come from the model's strings, with no link to a source, behind a quote check that is by substring.
+  - The lower half of the overview is a ranked list beside two bar lists, and the positions list is a standard list. The plinth's groups do not stand under their bays. In the day theme a priced window is dark, so the picture of a lit house is gone.
+  - Both shapes of the building are mounted (2,340 window elements); the pulse and the water never stop, about 290 ms of main-thread time in 5 s on an idle page.
+  - On a phone the traced quantity is 14 by 26 px, text links are 16 px high and a tower window about 5 px.
+  - The front is sized for this tender: more positions mean windows under 4 px.
+  - Results can still be written from a tree with uncommitted changes.
+- **From the M2 audit, medium:**
+  - Quotes and values are checked by substring: "10" passes with "(100 m/Ring)", "50 A" with "250 A", and a "same" answer that leaves out the one attribute that differs confirms the wrong product. Match on word boundaries and require the attributes the long text states with a unit.
+  - The attribution leans on how the generator writes by-article quantities (exact totals; rounding only on single-position lines; the same 30% allowance in both). Plant rounded by-article lines.
+  - Ledger rows are written when a batch is stored, so up to 30 billed calls are on no ledger if the action dies between the calls and the write. A step that dies leaves the run in its state for good: there is no watchdog. `prepare` is not safe to run twice, and two runs of one tender can run at once. Nothing tests `run.ts`, `store.ts` or `prompt.ts`.
+  - The answer cache is keyed by a prompt version kept by hand. Hash the instructions and the answer schema into the key.
+  - `decide` and the ground truth differ at the edges: an only offer with an unreadable price is priced at nothing, and a price is called an outlier against offers of other products.
+- **From the M2 audit, low:** a review counts as found whatever its reason, and the euro error of a wrongly automatic position is only the price difference; `score.ts` and `judges.ts` have no test; the review queue is cut at 300 without saying so; one document title for every route. A price far off the only other one is a review in the ground truth but invisible to the pipeline when the other offer is not for the same product. A near match with no exact total is dropped without a note. The search field's focus is a 1 px border colour. Reloading the seed can race a run that is under way.
+- **A model call that fails** leaves its lines unconfirmed; the position is still priced if another supplier answers it cleanly, and nothing on it says a line went unread.
 - **Labor is not priced** (ADR-40). The labor time table is loaded and unused.
 - **A trial run over part of the tender** (`limit`) decides by-article lines wrongly, because their quantities cover the whole tender. Trial runs are for checking that the steps work, not for scores.
 - **The model is not perfectly even:** the same article is occasionally read differently for two positions, and once in several hundred answers it compares an attribute with a brand name. The quantity rules absorb most of it; they should not be the only defence.
 - **The list query sends every position** (about 280 kB). Status comes from its own small query, so a run does not re-send the list, but the first load is heavy.
 - **The GAEB source downloads the whole file** to show one item. The excerpt should come from Convex.
 - **The palette does not lock the page behind it.**
-- **B3 says a number is where the interface points, not that it is right.**
+- **B3 says a number the readers took is where the interface points, not that it is right,** and it does not cover figures worked out from those numbers or the values the model compared.
 - Convex cloud deployment and Vercel project: needed at M4, both need the owner's accounts.
 
 ## 6. Update protocol
