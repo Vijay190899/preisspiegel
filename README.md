@@ -8,17 +8,17 @@
 
 > An independent portfolio project. The contractor, the suppliers and the tender are fictional, and all data is synthetic ([docs/DATA.md](docs/DATA.md)).
 
-**Status: in progress.** Built so far: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; a GAEB reader and a PDF table reader that keep the source of every number; the matching pipeline with its agent runtime; the benchmarks below; and an interface that shows the tender as the building it is for, one window per position, lit when it is priced and red when it needs a decision; lists what needs a decision by the euros at stake; sets the suppliers side by side; and opens the supplier's PDF at the place a price was read. A position that needs a person can be decided by key; a costing page moves the bid with the copper notation; and the overview can read the tender again in view from the stored answers, without calling a model. The benchmark results are a page of their own, read from the committed files. Labor pricing and the public demo follow in M3 and M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
+**Status: in progress.** Built so far: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; a GAEB reader and a PDF table reader that keep the source of every number; the matching pipeline with its agent runtime; the benchmarks below; and an interface that shows the tender as the building it is for, one window per position, lit when it is priced and red when it needs a decision; lists what needs a decision by the euros at stake; sets the suppliers side by side; and opens the supplier's PDF at the place a price was read. A position that needs a person can be decided by key; every position is tied to an entry of the contractor's labor time table; a costing page adds labor and moves the bid with the copper notation; and the overview can read the tender again in view from the stored answers, without calling a model. The benchmark results are a page of their own, read from the committed files. The public demo follows in M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
 
 ## What it will demonstrate
 
-| Problem                        | How Preisspiegel does it                                                                                                                                                    |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AI an estimator can trust      | The model proposes, code decides. Every extracted attribute carries a verbatim quote that code checks against the source; accept or flag is decided by deterministic checks |
-| Catching the expensive mistake | Unit-normalised checks: a cabinet offered as 138 kVA is compared in amps (199 A at 400 V) against the 250 A the tender specifies, and flagged with the arithmetic shown     |
-| Every number traceable         | Prices, quantities and labor times are parsed by code, never written by a model, and each one opens the source document at the region it came from                          |
-| Attention where it matters     | Routine positions are priced automatically; the rest form a review queue sorted by euros at risk                                                                            |
-| Unit economics                 | The cheapest current model does the bulk work, every model role is an environment variable, and every call is metered against a budget                                      |
+| Problem                        | How Preisspiegel does it                                                                                                                                                                                                     |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI an estimator can trust      | The model proposes, code decides. Every extracted attribute carries a verbatim quote that code checks against the source; accept or flag is decided by deterministic checks                                                  |
+| Catching the expensive mistake | Unit-normalised checks: a cabinet offered as 138 kVA is compared in amps (199 A at 400 V) against the 250 A the tender specifies, and flagged with the arithmetic shown                                                      |
+| Every number traceable         | Prices and quantities are parsed by code, never written by a model, and each one opens the source document at the region it came from; a labor time is the entry of the contractor's table it was read from, named beside it |
+| Attention where it matters     | Routine positions are priced automatically; the rest form a review queue sorted by euros at risk                                                                                                                             |
+| Unit economics                 | The cheapest current model does the bulk work, every model role is an environment variable, and every call is metered against a budget                                                                                       |
 
 ## Benchmarks
 
@@ -35,11 +35,15 @@ The prompt and the checks were worked on while looking at the demo tender, so th
 | B2  | Expected reviews found                                     | 72.8%     | 98.0%          | **100%**               |
 | B2  | Reviews raised that belong in the queue                    | 37.9%     | 58.9%          | **98.0%**              |
 | B3  | Numbers the readers took from a file, found at their place | —         | 6,567 of 6,577 | **6,559 of 6,559**     |
+| B5  | Positions tied to a labor time without a person            | —         | 1,166 of 1,170 | **1,169 of 1,170**     |
+| B5  | of those, the right entry of the labor time table          | —         | 97.8%          | **99.6%**              |
+| B5  | Hours wrong, against all hours                             | —         | 1.0%           | **0.4%**               |
 
 - **No reader** reads no text and trusts every position reference: what a few plain rules amount to. **First run** is the first full run, kept in `bench/results/baseline/` before anything was changed in response to it.
 - On the demo tender itself the pipeline now agrees with the ground truth on every position, which is what tuning on a tender buys and not a result.
 - What went wrong on the unseen tender: two needless reviews, where the model left open a line that names its position, and one luminaire priced at the second-cheapest valid offer.
 - One run is one tender. With flawless reading and no model (`pnpm bench:seeds`), the checks agree with the ground truth on every position of **780 of 797** further unseen tenders (97.9%), price a position that needed a person on 2.0% of them and miss a planted trap on 4.3%. Those figures pool one range run here with four an independent audit chose; the range run here alone gave 198 of 200, the best of the five.
+- **B5, labor,** has its own runs: the first and unseen column are the demo tender's first labor pass and seed 504, read once after the one change to the labor instructions; seed 503, read before that change, came to 97.6%. A labor pass costs about 5 to 7 cents. [DATA](docs/DATA.md#labor) has them.
 - [docs/DATA.md](docs/DATA.md#what-the-benchmarks-show) has the full table, all three unseen runs, what the two audits found, and the failures written up.
 - B4 (matcher alone against matcher plus a larger model) is not run. All three errors on the unseen tender start in the model's answer, so a larger model might fix them; trying it on those positions would cost a few cents and has not been done.
 

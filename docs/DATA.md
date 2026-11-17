@@ -157,7 +157,26 @@ On seed 501, run before the second fix, seven positions were priced at a valid o
 - **Quotes and values are checked by substring** (audit, D3). A pack size "10" is accepted with the quote "(100 m/Ring)", and "50 A" with the quote "250 A". The planted cases are caught by other checks; the path is open.
 - **A review counts as found whatever its reason,** and a position priced where a person should have looked adds only the price difference to the euro error (audit, D7).
 - **B3 covers what the readers took from the files:** quantity, price, price unit, list price, discount and total of every offer line, and every position's quantity. A rectangle has to hold the number and nothing else. It is the same for any run. Figures worked out from those (a price per metre from a price per 100 m, a total for the tender's quantity, the euros at stake) are not covered, and neither are the values the model compared.
-- **Labor is not priced yet.** The run prices material. The labor time table is loaded and waits for M3.
+- **Labor is a pass of its own** (B5, below): a run prices material, and the labor pass ties each position to an entry of the labor time table.
+
+## Labor
+
+Every position is tied to one entry of the contractor's labor time table (`zeitwerte.json`, 44 entries in minutes per unit, invented), or to none where the work is not timed by the table (hourly work, site setup, documentation). The model proposes the entry and quotes the position; code checks that the entry exists, that the quote stands in the position at word boundaries, that the units agree, and, where the entry's label states a size or a count ("bis 2,5 mm²", "über 250 A", "1-polig"), that the position states one that fits. The size is read by code, from the words the model quoted or, if it quoted none, from the position's short text and then its long text. The minutes come from the table; hours and money are worked out from them at an hourly rate of 62 EUR, also invented. The ground truth has the entry each catalogue item takes (`laborKey`). `pnpm bench:labor` scores a pass and writes `bench/results/b5_labor.json`.
+
+| Measure                               | Demo, first pass     | Unseen, seed 503    | Demo, now           | Unseen, seed 504 (newest) |
+| ------------------------------------- | -------------------- | ------------------- | ------------------- | ------------------------- |
+| Instructions                          | first version        | first version       | after the change    | after the change          |
+| Tied to an entry without a person     | 1,166 of 1,170       | 1,168 of 1,170      | 1,168 of 1,170      | **1,169 of 1,170**        |
+| of those, the right entry (or "none") | 1,140 (97.8%)        | 1,140 (97.6%)       | 1,161 (99.4%)       | **1,164 (99.6%)**         |
+| Hours wrong, against all hours        | 104 of 10,924 (1.0%) | 91 of 11,177 (0.8%) | 46 of 10,933 (0.4%) | **42 of 11,324 (0.4%)**   |
+| Model calls, cost                     | 832, $0.07           | 546, $0.05          | replayed            | 524, $0.05                |
+
+- **What went wrong first.** On both tenders read with the first instructions, every error was one of two confusions: a socket (`SCHUKO-Steckdose`, `Herdanschlussdose`) timed as setting an empty box, because its name contains `Dose`, and a cable manager (`Kabelrangierpanel`) timed as a patch panel. Code cannot see either: its checks know units and sizes, not what a thing is. Offered every wrong entry in a position's unit with the position's own words, the checks let 79% through on 50 tenders; the size check stops the rest. So the kind of work is the model's call, and these figures measure it.
+- **What changed, once.** Two sentences in the instructions: name the work by what is installed, not by a word inside its name; and "auflegen" is for a part cables are terminated on. The socket confusion went away; the cable manager stayed (five positions on seed 504, seven on the demo). At the same time the size check learned to read the size from the position itself when the model quoted none, because with the new instructions the model often left out the quote for `1-polig` and 16 right answers went to a person. With a reader that knows the answer and quotes no size, the checks settle every position rightly on 200 tenders nobody had read (seeds 12200 to 12399), and they stop as many wrong sizes as when the size is quoted.
+- **Seed 504 is the column to judge by.** It was generated after the change and read once. Seed 503 was read before it, so it is the honest figure for the first instructions. The demo was looked at for the change.
+- **What reaches a person** is what the size check stops: a 400 A breaker proposed as "bis 250 A", a 5x10 mm² cable proposed as "4 bis 6 mm²". On seed 504 the one position sent to a person had a quote that was not in its text.
+- **Answers are shared across tenders.** A question that reads the same is asked once, so 646 of seed 504's answers came from earlier passes.
+- **Not measured:** how the labor time table of a real contractor reads, and positions whose work no entry fits that a reader would time anyway.
 
 ## The copper surcharge
 

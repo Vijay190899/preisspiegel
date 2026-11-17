@@ -46,7 +46,7 @@ _Accepted when:_ a decision updates the overview without a reload, and every rea
 **F3 Position detail.** The LV text with the extracted attributes highlighted, the supplier comparison (the Preisspiegel), and the source viewer.
 _Accepted when:_ clicking a price, quantity or labor time opens the source at the right page with the right region outlined.
 
-**F4 Kalkulation.** Unit price as material plus labor plus surcharge. A control for the copper notation shows what the surcharge does to the total.
+**F4 Kalkulation.** Unit price as material plus labor plus surcharge. A control for the copper notation shows what the surcharge does to the total. Labor is the contractor's labor time table: each position takes one entry, its minutes times the quantity at an hourly rate.
 _Accepted when:_ every component is clickable to its source and the total is the sum of its parts.
 
 **F5 Run.** Processing is visible as it happens, position by position, with the cost so far.
