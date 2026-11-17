@@ -16,6 +16,7 @@ import { usePace } from '~/lib/pace'
 import { offers } from '~/lib/queries'
 import { offerSource, tenderSource } from '~/lib/sources'
 import { useTenderText } from '~/lib/tenderText'
+import { Labor } from './Labor'
 import { Locator } from './Locator'
 import type { ReactNode } from 'react'
 import type { Decided } from '~/lib/decisions'
@@ -24,6 +25,7 @@ import type {
   Match,
   MatchOffer,
   PositionDetail,
+  PositionLabor,
   ReferringLine,
   Tender,
   TenderDocument,
@@ -90,6 +92,7 @@ export function PositionView({
   tender,
   detail,
   match,
+  labor,
   source,
   previous,
   next,
@@ -101,6 +104,8 @@ export function PositionView({
   detail: PositionDetail
   /** The decision of the last run, if there has been one. */
   match: Match | null
+  /** The labor of the position, if a labor pass has reached it. */
+  labor: PositionLabor | null
   /** What the estimator decided about it, if anything. */
   decision: Decided | undefined
   onDecide: (offerId: string | null, unitPrice?: number) => void
@@ -381,6 +386,15 @@ export function PositionView({
           })}
         </div>
       </motion.section>
+
+      {labor !== null && (
+        <motion.section {...arrive(3)} className="mt-12">
+          <h2 className="heading text-[1.3rem]">{t('labor.title')}</h2>
+          <div className="mt-3">
+            <Labor labor={labor} unit={position.unit} />
+          </div>
+        </motion.section>
+      )}
 
       <motion.section {...arrive(3)} className="mt-12">
         <h2 className="heading text-[1.3rem]">{t('pos.asked')}</h2>

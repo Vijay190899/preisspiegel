@@ -24,6 +24,11 @@ export const reviewQueueQuery = convexQuery(api.runs.reviewQueue, {
 export const matchQuery = (oz: string) =>
   convexQuery(api.runs.match, { slug: TENDER_SLUG, oz })
 
+/** Labor across the tender, and the labor of one position. */
+export const laborQuery = convexQuery(api.labor.summary, { slug: TENDER_SLUG })
+export const positionLaborQuery = (oz: string) =>
+  convexQuery(api.labor.forPosition, { slug: TENDER_SLUG, oz })
+
 export type Tender = NonNullable<FunctionReturnType<typeof api.tenders.get>>
 export type TenderDocument = Tender['documents'][number]
 export type PositionRow = FunctionReturnType<typeof api.positions.list>[number]
@@ -51,3 +56,9 @@ export function offers(tender: Tender): Array<TenderDocument> {
 export function tenderDocument(tender: Tender): TenderDocument | undefined {
   return tender.documents.find((document) => document.kind === 'tender')
 }
+export type LaborSummary = NonNullable<
+  FunctionReturnType<typeof api.labor.summary>
+>
+export type PositionLabor = NonNullable<
+  FunctionReturnType<typeof api.labor.forPosition>
+>

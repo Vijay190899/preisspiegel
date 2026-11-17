@@ -411,7 +411,11 @@ async function main(): Promise<void> {
       const figures = [...text.matchAll(/([\d.]+,\d\d) €/g)].map((found) =>
         Number((found[1] ?? '').replaceAll('.', '').replace(',', '.')),
       )
-      return { text, surcharge: figures[1] ?? 0, total: figures[2] ?? 0 }
+      return {
+        text,
+        surcharge: figures.at(-2) ?? 0,
+        total: figures.at(-1) ?? 0,
+      }
     }
     const atFirst = await sum()
     await page.locator('input[type="range"]').focus()
@@ -430,6 +434,68 @@ async function main(): Promise<void> {
           atMost.total - atMost.surcharge - (atFirst.total - atFirst.surcharge),
         ) < 0.02,
       { atFirst, atMost, atLeast },
+    )
+
+    console.log('Labor')
+    // The bid holds the labor: material plus labor plus copper is the total.
+    const costing = (await sum()).text
+    const bidAmounts = [...costing.matchAll(/([\d.]+,\d\d) €/g)].map((found) =>
+      Number((found[1] ?? '').replaceAll('.', '').replace(',', '.')),
+    )
+    const [materialSum = 0, laborSum = 0, copperSum = 0, bidSum = 0] =
+      bidAmounts
+    check(
+      'the bid is material, labor and copper, and adds up',
+      bidAmounts.length === 4 &&
+        laborSum > 0 &&
+        Math.abs(materialSum + laborSum + copperSum - bidSum) < 0.02 &&
+        /Montage braucht/.test(costing),
+      { costing },
+    )
+    // A position's labor: minutes from the table, hours and money from them.
+    const openLabor = page
+      .getByRole('heading', { name: /Wo eine Person die Montagezeit/ })
+      .locator('xpath=following-sibling::ol[1]//a')
+      .first()
+    const openOz = (await openLabor.innerText()).match(/\d\d\.\d\d\.\d{4}/)?.[0]
+    await page.goto(`${base}/positionen/04.04.0100`, {
+      waitUntil: 'networkidle',
+    })
+    await settle(page, 600)
+    const laborText = (
+      await page
+        .getByRole('heading', { name: 'Montage', exact: true })
+        .locator('xpath=following-sibling::div[1]')
+        .innerText()
+    ).replace(/\s+/g, ' ')
+    const readGerman = (text: string | undefined) =>
+      Number((text ?? '').replaceAll('.', '').replace(',', '.'))
+    const minutes = readGerman(/([\d,]+) min je/.exec(laborText)?.[1])
+    const quantity = readGerman(/\. ([\d.,]+) m sind/.exec(laborText)?.[1])
+    const hours = readGerman(/sind ([\d.,]+) Stunden/.exec(laborText)?.[1])
+    const rate = readGerman(/zu ([\d.,]+) € die Stunde/.exec(laborText)?.[1])
+    const cost = readGerman(/([\d.]+,\d\d) €/.exec(laborText)?.[1])
+    check(
+      "a position's labor is its table minutes times its quantity, at the hourly rate",
+      minutes > 0 &&
+        Math.abs((minutes * quantity) / 60 - hours) < 0.06 &&
+        Math.abs(((minutes * quantity) / 60) * rate - cost) < 0.02 &&
+        (await page.locator('[lang="de"]', { hasText: 'verlegen' }).count()) >
+          0,
+      { laborText, minutes, quantity, hours, rate, cost },
+    )
+    await page.goto(`${base}/positionen/${openOz ?? 'none'}`, {
+      waitUntil: 'networkidle',
+    })
+    await settle(page, 600)
+    check(
+      'a position whose labor a person decides says so, and why',
+      openOz !== undefined &&
+        (await page
+          .getByText('Die Montagezeit entscheidet eine Person.')
+          .count()) === 1 &&
+        (await page.getByText(/Vorgeschlagen war/).count()) === 1,
+      { openOz },
     )
 
     console.log('Measured')
@@ -464,7 +530,11 @@ async function main(): Promise<void> {
         ) &&
         leads.includes(`${german(pricing.euroError ?? -1, 2)} €`) &&
         /Seed 502/.test(firstColumn) &&
-        (await page.locator('table.measure tbody tr').count()) === 9 &&
+        (await page
+          .locator('table.measure')
+          .first()
+          .locator('tbody tr')
+          .count()) === 9 &&
         (await page
           .getByRole('link', { name: 'Messung' })
           .getAttribute('aria-current')) === 'page',
