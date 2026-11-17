@@ -56,6 +56,8 @@ export async function generate(seed: number = SEED): Promise<Generated> {
       json({
         note: `Labor time table of ${TENDER.contractor}. Invented for the demo.`,
         unit: 'minutes per unit',
+        hourlyRate: TENDER.laborRate,
+        hourlyRateUnit: 'EUR per hour of labor',
         entries: ZEITWERTE,
       }),
     ],

@@ -9,12 +9,15 @@
  */
 
 import type * as agent_gate from "../agent/gate.js";
+import type * as agent_labor from "../agent/labor.js";
+import type * as agent_laborPrompt from "../agent/laborPrompt.js";
 import type * as agent_prompt from "../agent/prompt.js";
 import type * as agent_run from "../agent/run.js";
 import type * as agent_store from "../agent/store.js";
 import type * as decisions from "../decisions.js";
 import type * as demo from "../demo.js";
 import type * as health from "../health.js";
+import type * as labor from "../labor.js";
 import type * as llm_call from "../llm/call.js";
 import type * as llm_client from "../llm/client.js";
 import type * as llm_ledger from "../llm/ledger.js";
@@ -32,12 +35,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "agent/gate": typeof agent_gate;
+  "agent/labor": typeof agent_labor;
+  "agent/laborPrompt": typeof agent_laborPrompt;
   "agent/prompt": typeof agent_prompt;
   "agent/run": typeof agent_run;
   "agent/store": typeof agent_store;
   decisions: typeof decisions;
   demo: typeof demo;
   health: typeof health;
+  labor: typeof labor;
   "llm/call": typeof llm_call;
   "llm/client": typeof llm_client;
   "llm/ledger": typeof llm_ledger;

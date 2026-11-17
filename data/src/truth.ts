@@ -48,6 +48,8 @@ export interface TruthPosition {
   productId: string
   /** The contractor's own work: no supplier is expected to quote it. */
   ownWork: boolean
+  /** The entry of the labor time table the work takes; `null` for own work. */
+  laborKey: string | null
   /** Minutes of labor per unit, from the labor time table. */
   laborMinutes: number | null
   offers: Array<TruthOffer>
@@ -166,6 +168,7 @@ export function buildTruth(
       oz: position.oz,
       productId: position.productId,
       ownWork,
+      laborKey: ownWork ? null : product.zeitwert,
       laborMinutes: ownWork ? null : (minutes.get(product.zeitwert) ?? null),
       offers: found,
       expected: {

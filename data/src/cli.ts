@@ -124,6 +124,18 @@ async function load(prod: boolean): Promise<void> {
   const storeys = storeyPlan(
     positions.map((position) => position.path[1]?.label),
   )
+  // The contractor's labor time table, as the file has it.
+  const labor = JSON.parse(
+    readFileSync(resolve(seedDir, FILES.zeitwerte), 'utf8'),
+  ) as {
+    hourlyRate: number
+    entries: Array<{
+      key: string
+      label: string
+      unit: string
+      minutes: number
+    }>
+  }
   const tables: Record<string, Array<object>> = {
     tenders: [
       {
@@ -139,8 +151,10 @@ async function load(prod: boolean): Promise<void> {
         titles,
         storeys: storeys.storeys,
         storeyByPosition: storeys.byPosition,
+        laborRate: labor.hourlyRate,
       },
     ],
+    laborTimes: labor.entries.map((entry) => ({ tenderSlug: slug, ...entry })),
     documents: [
       {
         tenderSlug: slug,
@@ -210,6 +224,18 @@ async function load(prod: boolean): Promise<void> {
       'run',
       ...(prod ? ['--prod'] : []),
       'agent/store:reset',
+      JSON.stringify({ slug }),
+    ],
+    { cwd: resolve(repoRoot, 'services/backend'), stdio: 'ignore' },
+  )
+  execFileSync(
+    'pnpm',
+    [
+      'exec',
+      'convex',
+      'run',
+      ...(prod ? ['--prod'] : []),
+      'agent/labor:clear',
       JSON.stringify({ slug }),
     ],
     { cwd: resolve(repoRoot, 'services/backend'), stdio: 'ignore' },
