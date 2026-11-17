@@ -4,7 +4,7 @@
 
 **M0, M1 and M2 are built. M2 has been audited three more times since its gate; what the audits rated high is changed, and the last audit confirmed the change on 597 tenders of its own and rated nothing high. Waiting for a "go" for M3.** Updated 2026-11-17.
 
-Two pull requests are open and neither is merged: the third interface direction (`design/third-direction`) and, stacked on it, the fixes for the audits' findings (`fix/m2-audit-search`). `main` is still at the M2 commit.
+The third interface direction and the fixes for the audits' findings came to `main` through pull requests 1 and 2, merged on 2026-11-17 at the owner's word. Work from here goes on a new branch (ADR-44).
 
 Built and verified:
 
