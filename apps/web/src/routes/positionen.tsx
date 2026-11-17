@@ -4,16 +4,19 @@ import {
   createFileRoute,
   useNavigate,
   useParams,
+  useSearch,
 } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef } from 'react'
 import { PositionList } from '~/components/positions/PositionList'
 import { positionsQuery, tenderQuery } from '~/lib/queries'
+import { searchText } from '~/lib/searchParams'
 import type { PositionRow } from '~/lib/queries'
 
 export const Route = createFileRoute('/positionen')({
   /** `titel` shows one title of the Leistungsverzeichnis only. */
-  validateSearch: (search: Record<string, unknown>): { titel?: string } =>
-    typeof search.titel === 'string' ? { titel: search.titel } : {},
+  validateSearch: (search: Record<string, unknown>): { titel?: string } => ({
+    titel: searchText(search.titel),
+  }),
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(tenderQuery),
@@ -26,6 +29,11 @@ export const Route = createFileRoute('/positionen')({
 function Positions() {
   const { titel } = Route.useSearch()
   const { oz } = useParams({ strict: false })
+  // Set by the position route while one of its numbers has its source open.
+  const sourceOpen = useSearch({
+    strict: false,
+    select: (search) => search.quelle !== undefined,
+  })
   const { data: rows } = useSuspenseQuery(positionsQuery)
   const navigate = useNavigate()
 
@@ -66,11 +74,11 @@ function Positions() {
   }, [oz, navigate])
 
   return (
-    <div className="grid min-h-0 flex-1 lg:h-[calc(100dvh-53px)] lg:flex-none lg:grid-cols-[minmax(300px,348px)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+    <div className="workspace" data-focused={oz !== undefined && sourceOpen}>
       <aside
         data-position-list
-        className={`min-h-0 flex-col border-r border-line-strong bg-surface max-lg:h-[calc(100dvh-53px)] ${
-          oz === undefined ? 'flex' : 'hidden lg:flex'
+        className={`workspace-list min-h-0 bg-surface max-lg:h-[calc(100dvh-57px)] ${
+          oz === undefined ? '' : 'max-lg:hidden'
         }`}
       >
         <PositionList

@@ -1,20 +1,35 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useT } from '~/lib/i18n'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { filterPositions } from '~/lib/positionSearch'
+import { positionsQuery } from '~/lib/queries'
 
 export const Route = createFileRoute('/positionen/')({
-  component: PickPosition,
+  component: FirstPosition,
 })
 
-function PickPosition() {
-  const t = useT()
-  return (
-    <div className="hidden h-full place-items-center p-8 text-center lg:grid">
-      <div className="max-w-[34ch]">
-        <h1 className="text-[1.2rem] font-semibold">{t('list.pick.title')}</h1>
-        <p className="mt-2 text-[0.93rem] leading-relaxed text-ink-3">
-          {t('list.pick.body')}
-        </p>
-      </div>
-    </div>
-  )
+/** Where there is room for the list and a position side by side. */
+const WIDE = '(min-width: 1024px)'
+
+/**
+ * No position is named. A wide screen opens the first one of the list, so the
+ * place beside the list is never empty; a narrow screen shows the list alone.
+ */
+function FirstPosition() {
+  const { titel } = Route.useSearch()
+  const navigate = useNavigate()
+  const { data: rows } = useSuspenseQuery(positionsQuery)
+  const first = filterPositions(rows, '', titel)[0]?.oz
+
+  useEffect(() => {
+    if (first === undefined || !window.matchMedia(WIDE).matches) return
+    void navigate({
+      to: '/positionen/$oz',
+      params: { oz: first },
+      search: (previous) => ({ titel: previous.titel }),
+      replace: true,
+    })
+  }, [first, navigate])
+
+  return null
 }

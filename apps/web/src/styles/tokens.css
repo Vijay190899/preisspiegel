@@ -1,12 +1,13 @@
 /*
- * Design tokens: "Planblatt". The single source of colour, type and shape.
- * Prefixed `--t-` so they never collide with a component library's variables.
+ * Design tokens: "Schaltplan". The single source of colour, type and shape.
+ * Prefixed `--t-` so they never collide with a library's variables.
  *
- * The app is a drawing sheet on a drafting table. Light is plan paper, dark
- * is a blueprint. Ink does the work; copper is the one accent, the colour of
- * what an electrician actually pulls through the building. Checks are marked
- * the way a plan checker marks a sheet: red for what needs a decision, green
- * for what a person has signed off, blue for what was read and settled.
+ * The interface takes its look from the trade it is for. The light theme is
+ * the light grey every switch cabinet is painted in, with graphite for text.
+ * Copper is the conductor: it appears only where something is energised or is
+ * the thing to do next. Status is shown the way a panel shows it, with pilot
+ * lamps: green for what a person has signed off, blue for what the system
+ * settled, red for what needs a decision, amber for a caution.
  *
  * Components never use raw hex. They use these tokens through the Tailwind
  * names mapped in app.css.
@@ -15,125 +16,141 @@
 :root {
   color-scheme: light;
 
-  /* The table and the sheets on it */
-  --t-bg: #efece4;
-  --t-surface: #fbfaf6;
+  /* The cabinet and the modules in it */
+  --t-bg: #e6e8e5;
+  --t-surface: #f8f9f8;
   --t-surface-raised: #ffffff;
-  --t-surface-sunken: #f1eee6;
+  --t-surface-sunken: #dadeda;
 
-  /* Drafting grid */
-  --t-grid-minor: rgb(38 66 112 / 0.045);
-  --t-grid-major: rgb(38 66 112 / 0.085);
+  --t-line: #d0d4d0;
+  --t-line-strong: #aeb4af;
 
-  /* Lines: hairlines for structure, a frame line for sheets */
-  --t-line: #dcd7ca;
-  --t-line-strong: #b8b2a3;
-  --t-frame: #1a1d21;
+  /* Graphite */
+  --t-ink: #171a1d;
+  --t-ink-2: #454c52;
+  --t-ink-3: #565e64;
 
-  /* Ink */
-  --t-ink: #15181c;
-  --t-ink-2: #464c54;
-  --t-ink-3: #666c74;
-
-  /* Accent: copper. `-ink` is the step that passes as body text. */
-  --t-accent: #b85c1e;
-  --t-accent-ink: #984812;
-  --t-accent-soft: #f6e6d8;
-  --t-on-accent: #ffffff;
+  /* The conductor */
+  --t-copper: #b4622b;
+  --t-copper-bright: #d98a4e;
+  --t-copper-ink: #8a4517;
+  --t-copper-soft: #f1e2d6;
+  --t-on-copper: #ffffff;
+  /* The primary action: copper dark enough to carry white text */
+  --t-action-from: #b05e28;
+  --t-action-to: #954f1e;
+  /* A conductor with no current on it */
+  --t-wire: #7c8382;
 
   /*
-   * Check marks. Fills pass the dataviz validator against the sheet in this
-   * order: approved, settled, open. `-ink` steps are for text, `-soft` for
-   * washes behind it.
+   * Pilot lamps. The fills pass the dataviz validator against both module
+   * colours in this order: approved, settled, open. `-ink` is for text.
    */
   --t-approved: #178a5c;
   --t-approved-ink: #0f6b47;
-  --t-approved-soft: #e2f2ea;
+  --t-approved-soft: #dff0e8;
   --t-settled: #2a5db0;
   --t-settled-ink: #1f4e9e;
-  --t-settled-soft: #e3ebf8;
+  --t-settled-soft: #e0e9f7;
   --t-open: #cf3f2d;
   --t-open-ink: #ae2f1f;
-  --t-open-soft: #fbe6e2;
+  --t-open-soft: #fae4e0;
   --t-caution: #9a6206;
-  --t-caution-soft: #f8ecd2;
+  --t-caution-soft: #f6ead0;
+  --t-idle: #c3c8c4;
 
-  /* What is not counted yet */
-  --t-idle: #c9c4b7;
-
-  /* The marker that shows where a number was read */
+  /* The mark that shows where a number was read */
   --t-marker: #cf3f2d;
-  --t-marker-wash: rgb(207 63 45 / 0.12);
+  --t-marker-wash: rgb(207 63 45 / 0.13);
+  --t-on-marker: #ffffff;
+  /* The page of a document shown inside the interface */
+  --t-paper: #ffffff;
 
   --t-focus: #2a5db0;
 
-  /* Type */
+  /* Light on the plate: a lamp above the page, dots of a mounting plate */
+  --t-dot: rgb(23 26 29 / 0.09);
+  --t-light: rgb(255 255 255 / 0.85);
+  --t-glow: rgb(180 98 43 / 0.26);
+  --t-scrim: rgb(23 26 29 / 0.28);
+
+  --t-shadow-module:
+    0 1px 0 rgb(255 255 255 / 0.9) inset, 0 1px 2px rgb(23 26 29 / 0.05),
+    0 12px 28px -14px rgb(23 26 29 / 0.2);
+  --t-shadow-lifted:
+    0 1px 0 rgb(255 255 255 / 0.9) inset, 0 2px 6px rgb(23 26 29 / 0.08),
+    0 32px 64px -20px rgb(23 26 29 / 0.38);
+
+  /* One family; its width is the expressive axis. */
   --t-font-sans:
-    'Barlow', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --t-font-label:
-    'Barlow Condensed', 'Barlow', ui-sans-serif, system-ui, sans-serif;
+    'Archivo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
   --t-font-mono:
     'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* Shape: sheets have square corners. Controls get a hint of radius. */
-  --t-radius: 3px;
-  --t-shadow-sheet:
-    0 1px 0 rgb(255 255 255 / 0.9) inset, 0 1px 2px rgb(40 36 26 / 0.06),
-    0 10px 24px -12px rgb(40 36 26 / 0.18);
-  --t-shadow-lifted:
-    0 2px 4px rgb(40 36 26 / 0.08), 0 24px 48px -16px rgb(40 36 26 / 0.3);
+  --t-radius-control: 8px;
+  --t-radius-module: 14px;
 
-  --t-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Arriving slows down; a spring-like overshoot is kept for small things. */
+  --t-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --t-dur-fast: 140ms;
-  --t-dur: 240ms;
+  --t-dur: 260ms;
+  --t-dur-slide: 460ms;
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --t-bg: #091526;
-  --t-surface: #0e1f38;
-  --t-surface-raised: #132845;
-  --t-surface-sunken: #0b1a30;
+  --t-bg: #0f1215;
+  --t-surface: #181c20;
+  --t-surface-raised: #1f242a;
+  --t-surface-sunken: #0b0d10;
 
-  --t-grid-minor: rgb(150 195 255 / 0.045);
-  --t-grid-major: rgb(150 195 255 / 0.09);
+  --t-line: #272d33;
+  --t-line-strong: #3b434b;
 
-  --t-line: #1e3557;
-  --t-line-strong: #33507c;
-  --t-frame: #a9c4ea;
+  --t-ink: #edf0f2;
+  --t-ink-2: #a8b0b7;
+  --t-ink-3: #8b949b;
 
-  --t-ink: #e9f0fa;
-  --t-ink-2: #adbdd3;
-  --t-ink-3: #8497b1;
-
-  --t-accent: #e8935a;
-  --t-accent-ink: #f0a877;
-  --t-accent-soft: #33261f;
-  --t-on-accent: #1a0f06;
+  --t-copper: #e39a63;
+  --t-copper-bright: #f4b98c;
+  --t-copper-ink: #eeab79;
+  --t-copper-soft: #2c211a;
+  --t-on-copper: #1a0f07;
+  --t-action-from: #f4b98c;
+  --t-action-to: #e39a63;
+  --t-wire: #5f6971;
 
   --t-approved: #2fae7a;
-  --t-approved-ink: #62d3a2;
-  --t-approved-soft: #12322f;
+  --t-approved-ink: #63d4a3;
+  --t-approved-soft: #14302a;
   --t-settled: #4c8df0;
-  --t-settled-ink: #8bb6fb;
-  --t-settled-soft: #14305a;
+  --t-settled-ink: #8cb7fb;
+  --t-settled-soft: #162c4f;
   --t-open: #e55c48;
-  --t-open-ink: #ff9281;
-  --t-open-soft: #3a2029;
+  --t-open-ink: #ff9383;
+  --t-open-soft: #3a1f1d;
   --t-caution: #e6ae52;
-  --t-caution-soft: #33291d;
-
-  --t-idle: #2a4267;
+  --t-caution-soft: #33291a;
+  --t-idle: #333b43;
 
   --t-marker: #ff8a78;
-  --t-marker-wash: rgb(255 138 120 / 0.16);
+  --t-marker-wash: rgb(255 138 120 / 0.18);
+  --t-on-marker: #2a0d08;
+  --t-paper: #15181c;
 
-  --t-focus: #8bb6fb;
+  --t-focus: #8cb7fb;
 
-  --t-shadow-sheet:
-    0 1px 0 rgb(170 205 255 / 0.06) inset, 0 1px 2px rgb(0 0 0 / 0.3),
-    0 14px 28px -14px rgb(0 0 0 / 0.6);
+  --t-dot: rgb(237 240 242 / 0.07);
+  --t-light: rgb(227 154 99 / 0.07);
+  --t-glow: rgb(227 154 99 / 0.38);
+  --t-scrim: rgb(0 0 0 / 0.55);
+
+  --t-shadow-module:
+    0 1px 0 rgb(255 255 255 / 0.05) inset, 0 1px 2px rgb(0 0 0 / 0.3),
+    0 16px 32px -16px rgb(0 0 0 / 0.6);
   --t-shadow-lifted:
-    0 2px 4px rgb(0 0 0 / 0.3), 0 28px 56px -16px rgb(0 0 0 / 0.75);
+    0 1px 0 rgb(255 255 255 / 0.06) inset, 0 2px 6px rgb(0 0 0 / 0.35),
+    0 36px 72px -20px rgb(0 0 0 / 0.8);
 }

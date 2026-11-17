@@ -1,14 +1,16 @@
 import {
   HeadContent,
+  Link,
   Outlet,
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
 import { AppShell } from '~/components/shell/AppShell'
+import { useT } from '~/lib/i18n'
 import { themeBootScript } from '~/lib/theme'
 import appCss from '~/styles/app.css?url'
-import type { ReactNode } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
@@ -62,23 +64,32 @@ function RootDocument({ children }: { children: ReactNode }) {
 }
 
 function NotFound() {
+  const t = useT()
   return (
-    <div className="mx-auto w-full max-w-[1280px] px-4 py-16 sm:px-6">
-      <p className="num text-ink-3">404</p>
-      <h1 className="mt-2 text-2xl font-semibold">Seite nicht gefunden</h1>
+    <div className="mx-auto w-full max-w-[1240px] px-4 py-20 sm:px-8">
+      <p className="code text-ink-3">404</p>
+      <h1 className="display mt-3 text-[2.2rem]">{t('error.notFound')}</h1>
+      <Link to="/" className="action mt-8">
+        {t('nav.overview')}
+      </Link>
     </div>
   )
 }
 
 function RouteError({ error }: { error: unknown }) {
+  const t = useT()
   const message = error instanceof Error ? error.message : String(error)
   return (
-    <div className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6">
-      <div role="alert" className="sheet border-open px-5 py-4">
-        <h1 className="font-semibold text-open-ink">
-          Etwas ist schiefgelaufen
+    <div className="mx-auto w-full max-w-[1240px] px-4 py-12 sm:px-8">
+      <div role="alert" className="module max-w-[70ch] px-5 py-4">
+        <h1 className="flex items-center gap-2.5 font-semibold">
+          <span
+            className="lamp"
+            style={{ '--lamp': 'var(--t-open)' } as React.CSSProperties}
+          />
+          {t('error.title')}
         </h1>
-        <p className="mt-1 break-words text-[0.93rem] text-ink-2">{message}</p>
+        <p className="mt-2 break-words text-[0.93rem] text-ink-2">{message}</p>
       </div>
     </div>
   )

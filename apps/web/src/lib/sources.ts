@@ -69,16 +69,18 @@ export function resolveSource(
 
   if (key === 'lv') {
     const document = tenderDocument(tender)
-    if (document === undefined) return null
+    if (document === undefined || third !== undefined) return null
+    if (second !== 'qty' && second !== 'text') return null
     const isQty = second === 'qty'
     return {
       document,
       ref: {
         kind: 'gaeb',
         itemId: detail.position.gaebId,
-        element: isQty ? 'Qty' : 'OutlineText',
+        // The short and the long text sit together in <Description>.
+        element: isQty ? 'Qty' : 'Description',
       },
-      label: isQty ? 'field.qty' : 'field.text',
+      label: isQty ? 'field.qty' : 'field.description',
     }
   }
 

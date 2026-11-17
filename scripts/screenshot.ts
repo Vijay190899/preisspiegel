@@ -15,10 +15,17 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = resolve(repoRoot, 'var/shots')
 const baseUrl = process.env.SHOTS_BASE_URL ?? 'http://localhost:3000'
 
-const viewports = [
+const allViewports = [
   { name: '390', width: 390, height: 844 },
+  { name: '1024', width: 1024, height: 768 },
+  { name: '1280', width: 1280, height: 800 },
   { name: '1440', width: 1440, height: 900 },
 ] as const
+// SHOTS_WIDTHS=390,1440 narrows a run; a gate runs all four.
+const wanted = process.env.SHOTS_WIDTHS?.split(',')
+const viewports = allViewports.filter(
+  (viewport) => wanted === undefined || wanted.includes(viewport.name),
+)
 const themes = ['light', 'dark'] as const
 
 async function main(): Promise<void> {
@@ -36,6 +43,11 @@ async function main(): Promise<void> {
           const context = await browser.newContext({
             viewport: { width: viewport.width, height: viewport.height },
             colorScheme: theme,
+            // SHOTS_REDUCED_MOTION=1 checks that nothing depends on animation.
+            reducedMotion:
+              process.env.SHOTS_REDUCED_MOTION === '1'
+                ? 'reduce'
+                : 'no-preference',
             deviceScaleFactor: 2,
           })
           const page = await context.newPage()

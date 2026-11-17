@@ -1,8 +1,4 @@
-@import '@fontsource/barlow/latin-400.css';
-@import '@fontsource/barlow/latin-500.css';
-@import '@fontsource/barlow/latin-600.css';
-@import '@fontsource/barlow-condensed/latin-500.css';
-@import '@fontsource/barlow-condensed/latin-600.css';
+@import '@fontsource-variable/archivo/wdth.css';
 @import '@fontsource/ibm-plex-mono/latin-400.css';
 @import '@fontsource/ibm-plex-mono/latin-500.css';
 
@@ -21,16 +17,17 @@
 
   --color-line: var(--t-line);
   --color-line-strong: var(--t-line-strong);
-  --color-frame: var(--t-frame);
 
   --color-ink: var(--t-ink);
   --color-ink-2: var(--t-ink-2);
   --color-ink-3: var(--t-ink-3);
 
-  --color-accent: var(--t-accent);
-  --color-accent-ink: var(--t-accent-ink);
-  --color-accent-soft: var(--t-accent-soft);
-  --color-on-accent: var(--t-on-accent);
+  --color-copper: var(--t-copper);
+  --color-copper-bright: var(--t-copper-bright);
+  --color-copper-ink: var(--t-copper-ink);
+  --color-copper-soft: var(--t-copper-soft);
+  --color-on-copper: var(--t-on-copper);
+  --color-wire: var(--t-wire);
 
   --color-approved: var(--t-approved);
   --color-approved-ink: var(--t-approved-ink);
@@ -47,25 +44,28 @@
 
   --color-marker: var(--t-marker);
   --color-marker-wash: var(--t-marker-wash);
+  --color-on-marker: var(--t-on-marker);
+  --color-paper: var(--t-paper);
   --color-focus: var(--t-focus);
+  --color-scrim: var(--t-scrim);
 
   --font-sans: var(--t-font-sans);
-  --font-label: var(--t-font-label);
   --font-mono: var(--t-font-mono);
 
-  --radius-sm: var(--t-radius);
-  --radius-md: var(--t-radius);
+  --radius-control: var(--t-radius-control);
+  --radius-module: var(--t-radius-module);
 
-  --shadow-sheet: var(--t-shadow-sheet);
+  --shadow-module: var(--t-shadow-module);
   --shadow-lifted: var(--t-shadow-lifted);
 
-  --ease-sheet: var(--t-ease);
+  --ease-arrive: var(--t-ease);
 }
 
 @layer base {
   html {
     font-family: var(--t-font-sans);
-    font-size: 15px;
+    font-size: 16px;
+    line-height: 1.5;
     color: var(--t-ink);
     background-color: var(--t-bg);
     -webkit-font-smoothing: antialiased;
@@ -73,33 +73,33 @@
   }
 
   /*
-   * The drafting table: a fine grid with a heavier line every fifth square,
-   * fixed so sheets move over it.
+   * The mounting plate: a field of fine dots, lit from above. Both layers are
+   * fixed, so content moves over the plate.
    */
   body {
     min-height: 100dvh;
     background-color: var(--t-bg);
     background-image:
-      linear-gradient(var(--t-grid-major) 1px, transparent 1px),
-      linear-gradient(90deg, var(--t-grid-major) 1px, transparent 1px),
-      linear-gradient(var(--t-grid-minor) 1px, transparent 1px),
-      linear-gradient(90deg, var(--t-grid-minor) 1px, transparent 1px);
+      radial-gradient(
+        1100px 520px at 50% -140px,
+        var(--t-light),
+        transparent 70%
+      ),
+      radial-gradient(circle at 1px 1px, var(--t-dot) 1px, transparent 0);
     background-size:
-      80px 80px,
-      80px 80px,
-      16px 16px,
-      16px 16px;
-    background-position: -1px -1px;
+      100% 100%,
+      22px 22px;
     background-attachment: fixed;
   }
 
   :focus-visible {
     outline: 2px solid var(--t-focus);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 
   ::selection {
-    background: var(--t-accent-soft);
+    background: var(--t-copper-soft);
     color: var(--t-ink);
   }
 
@@ -115,102 +115,348 @@
 }
 
 @layer components {
-  /* A field label, as lettered on a drawing: small, condensed, capitals. */
-  .label {
-    font-family: var(--t-font-label);
-    font-size: 0.733rem;
+  /* The headline: the family at its widest, set tight. */
+  .display {
+    font-stretch: 118%;
+    font-weight: 620;
+    letter-spacing: -0.028em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+
+  /* A heading inside the workspace. */
+  .heading {
+    font-stretch: 108%;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    line-height: 1.14;
+    text-wrap: balance;
+  }
+
+  /* A quiet name for a field: narrower, smaller, never capitals. */
+  .caption {
+    font-stretch: 94%;
+    font-size: 0.8125rem;
     font-weight: 500;
-    line-height: 1;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
+    line-height: 1.3;
     color: var(--t-ink-3);
   }
 
-  /* Figures in columns line up. Big standalone figures stay proportional. */
+  /* Figures that sit in columns line up. */
   .num {
+    font-variant-numeric: tabular-nums;
+    font-stretch: 96%;
+    letter-spacing: -0.01em;
+  }
+
+  /* Ordinal numbers, article numbers and file contents are codes. */
+  .code {
     font-family: var(--t-font-mono);
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
   }
 
-  /*
-   * A sheet: square corners, a hairline frame, and crop marks just outside
-   * two corners, as on a plotted drawing.
-   */
-  .sheet {
-    position: relative;
+  /* A module: one unit on the plate, softly raised. */
+  .module {
     min-width: 0;
     background: var(--t-surface);
-    border: 1px solid var(--t-line-strong);
-    box-shadow: var(--t-shadow-sheet);
+    border: 1px solid var(--t-line);
+    border-radius: var(--t-radius-module);
+    box-shadow: var(--t-shadow-module);
   }
 
-  .sheet-marked::before,
-  .sheet-marked::after {
-    content: '';
-    position: absolute;
-    width: 9px;
-    height: 9px;
-    pointer-events: none;
-    border-color: var(--t-ink-3);
-    border-style: solid;
-  }
-
-  .sheet-marked::before {
-    top: -5px;
-    left: -5px;
-    border-width: 1px 0 0 1px;
-  }
-
-  .sheet-marked::after {
-    right: -5px;
-    bottom: -5px;
-    border-width: 0 1px 1px 0;
+  /* A pilot lamp. Set `--lamp` to a status colour. */
+  .lamp {
+    --lamp: var(--t-idle);
+    display: inline-block;
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: radial-gradient(
+      circle at 35% 30%,
+      color-mix(in oklab, var(--lamp) 55%, white),
+      var(--lamp) 62%
+    );
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--lamp) 50%, transparent),
+      0 0 10px 1px color-mix(in oklab, var(--lamp) 55%, transparent);
   }
 
   /* A number that can be traced: a dotted rule that turns into the marker. */
   .traceable {
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: 3px;
     text-decoration: underline dotted var(--t-line-strong);
     text-decoration-thickness: 1px;
-    text-underline-offset: 4px;
+    text-underline-offset: 0.22em;
     transition:
       background-color var(--t-dur-fast) var(--t-ease),
       text-decoration-color var(--t-dur-fast) var(--t-ease);
   }
 
   .traceable:hover,
-  .traceable[aria-pressed='true'] {
+  .traceable[aria-current] {
     background: var(--t-marker-wash);
     text-decoration: underline solid var(--t-marker);
     text-decoration-thickness: 1.5px;
   }
 
-  /* One-off entrance: content settles onto the sheet. */
-  .enter {
-    animation: enter var(--t-dur) var(--t-ease) both;
-    animation-delay: var(--enter-delay, 0ms);
+  /* The one thing to do next: copper, lit from above. */
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    padding: 0 1.15rem;
+    border-radius: var(--t-radius-control);
+    font-weight: 560;
+    color: var(--t-on-copper);
+    background: linear-gradient(
+      180deg,
+      var(--t-action-from),
+      var(--t-action-to)
+    );
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.35) inset,
+      0 8px 20px -8px var(--t-glow);
+    transition:
+      transform var(--t-dur-fast) var(--t-ease),
+      box-shadow var(--t-dur) var(--t-ease);
   }
 
-  /* A stroke that draws itself, for markers and dimension lines. */
+  .action:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.35) inset,
+      0 14px 28px -8px var(--t-glow);
+  }
+
+  .action:active {
+    transform: translateY(0);
+  }
+
+  /* A second choice: no fill until it is pointed at. */
+  .quiet-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    padding: 0 0.9rem;
+    border-radius: var(--t-radius-control);
+    font-weight: 500;
+    color: var(--t-ink-2);
+    transition:
+      background-color var(--t-dur-fast) var(--t-ease),
+      color var(--t-dur-fast) var(--t-ease);
+  }
+
+  .quiet-action:hover {
+    background: color-mix(in oklab, var(--t-ink) 7%, transparent);
+    color: var(--t-ink);
+  }
+
+  /*
+   * The positions workspace: the list, and the open position beside it. While
+   * a source is open the list gives its room to the document, and comes back
+   * when the source closes. Very wide screens have room for all three.
+   */
+  .workspace {
+    display: grid;
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+
+  .workspace-list {
+    min-width: 0;
+    overflow: hidden;
+    border-right: 1px solid var(--t-line);
+  }
+
+  /* The position, and the document a number was read from. */
+  .reader {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .reader-source {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 30;
+    height: 84dvh;
+    overflow: hidden;
+    visibility: hidden;
+    background: var(--t-surface);
+    border-top: 1px solid var(--t-line);
+    border-radius: var(--t-radius-module) var(--t-radius-module) 0 0;
+    box-shadow: var(--t-shadow-lifted);
+    transform: translateY(104%);
+    transition:
+      transform var(--t-dur-slide) var(--t-ease),
+      visibility 0s var(--t-dur-slide);
+  }
+
+  .reader[data-open='true'] .reader-source {
+    visibility: visible;
+    transform: none;
+    transition:
+      transform var(--t-dur-slide) var(--t-ease),
+      visibility 0s;
+  }
+
+  .reader-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: var(--t-scrim);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--t-dur-slide) var(--t-ease);
+  }
+
+  .reader[data-open='true'] .reader-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (min-width: 1024px) {
+    .workspace {
+      flex: none;
+      height: calc(100dvh - 57px);
+      grid-template-columns: 320px minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
+      transition: grid-template-columns var(--t-dur-slide) var(--t-ease);
+    }
+
+    .workspace[data-focused='true'] {
+      grid-template-columns: 0px minmax(0, 1fr);
+    }
+
+    .workspace-list > * {
+      width: 320px;
+    }
+
+    .workspace[data-focused='true'] .workspace-list {
+      visibility: hidden;
+      border-right-width: 0;
+      transition: visibility 0s var(--t-dur-slide);
+    }
+
+    .reader {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 0fr;
+      grid-template-rows: minmax(0, 1fr);
+      transition: grid-template-columns var(--t-dur-slide) var(--t-ease);
+    }
+
+    .reader[data-open='true'] {
+      grid-template-columns: minmax(0, 1fr) 1fr;
+    }
+
+    .reader-source,
+    .reader[data-open='true'] .reader-source {
+      position: static;
+      height: auto;
+      min-width: 0;
+      border-top: 0;
+      border-radius: 0;
+      box-shadow: none;
+      transform: none;
+      transition: visibility 0s var(--t-dur-slide);
+    }
+
+    .reader[data-open='true'] .reader-source {
+      transition: visibility 0s;
+    }
+
+    /* A fixed width, so the document does not re-flow while its room opens. */
+    .reader-source > * {
+      width: 50vw;
+      border-left: 1px solid var(--t-line);
+    }
+
+    .reader-scrim {
+      display: none;
+    }
+  }
+
+  @media (min-width: 1800px) {
+    .workspace[data-focused='true'] {
+      grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    .workspace[data-focused='true'] .workspace-list {
+      visibility: visible;
+      border-right-width: 1px;
+    }
+
+    .reader-source > * {
+      width: calc((100vw - 320px) / 2);
+    }
+  }
+
+  /* A stroke that draws itself. The shape sets pathLength="1". */
   .draw {
-    /* Shapes using this set pathLength="1", so one dash is the whole outline. */
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
-    animation: draw 520ms var(--t-ease) 80ms forwards;
+    animation: draw 520ms var(--t-ease) 120ms forwards;
   }
-}
 
-@keyframes enter {
-  from {
+  /* A light that passes down a page once, as it is read. */
+  .scan {
+    background: linear-gradient(
+      180deg,
+      transparent,
+      color-mix(in oklab, var(--t-copper-bright) 30%, transparent)
+    );
+    border-bottom: 2px solid var(--t-copper-bright);
+    box-shadow: 0 8px 22px var(--t-glow);
+    animation: scan 900ms cubic-bezier(0.4, 0, 0.2, 1) 60ms both;
+  }
+
+  /* The parts of a checker's mark that follow the drawn box. */
+  .mark-wash {
     opacity: 0;
-    transform: translateY(6px);
+    animation: appear 320ms var(--t-ease) forwards;
+  }
+
+  .mark-line {
+    animation: line 700ms var(--t-ease) both;
   }
 }
 
 @keyframes draw {
   to {
     stroke-dashoffset: 0;
+  }
+}
+
+@keyframes appear {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes line {
+  from {
+    background-color: color-mix(in oklab, var(--t-marker) 38%, transparent);
+  }
+}
+
+@keyframes scan {
+  from {
+    transform: translateY(-12%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(1100%);
+    opacity: 0;
   }
 }

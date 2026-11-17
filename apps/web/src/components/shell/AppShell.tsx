@@ -1,43 +1,77 @@
-import { Link } from '@tanstack/react-router'
-import { Search } from 'lucide-react'
-import { useT } from '~/lib/i18n'
+import { Link, useRouterState } from '@tanstack/react-router'
+import { Moon, Search, Sun } from 'lucide-react'
+import { motion } from 'motion/react'
+import { useEffect } from 'react'
+import { setLocale, useLocale, useT } from '~/lib/i18n'
+import { setTheme, useTheme } from '~/lib/theme'
 import { CommandPalette, openPalette } from './CommandPalette'
-import { LocaleToggle, ThemeToggle } from './Toggles'
-import { Wordmark } from './Wordmark'
 import type { ReactNode } from 'react'
+import type { MessageKey } from '~/lib/i18n'
 
-const tab =
-  'label relative grid h-full place-items-center px-2 !text-[0.8rem] !tracking-[0.06em] sm:px-3 sm:!text-[0.87rem] text-ink-3 transition-colors duration-150 hover:text-ink data-[status=active]:text-ink data-[status=active]:after:absolute data-[status=active]:after:inset-x-2 sm:data-[status=active]:after:inset-x-3 data-[status=active]:after:bottom-0 data-[status=active]:after:h-[2px] data-[status=active]:after:bg-accent'
+const TABS: Array<{ to: '/' | '/positionen'; label: MessageKey }> = [
+  { to: '/', label: 'nav.overview' },
+  { to: '/positionen', label: 'nav.positions' },
+]
+
+const iconButton =
+  'flex h-9 items-center justify-center rounded-control text-ink-2 transition-colors duration-150 hover:bg-ink/[0.07] hover:text-ink'
 
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useT()
+  const locale = useLocale()
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+
+  // The server renders German; a stored choice of English arrives on the client.
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
+  const active = pathname.startsWith('/positionen') ? '/positionen' : '/'
 
   return (
     <div className="flex min-h-dvh flex-col">
       <a
         href="#content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:bg-surface-raised focus:px-3 focus:py-2 focus:text-sm focus:shadow-lifted"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-surface-raised focus:px-3 focus:py-2 focus:shadow-lifted"
       >
         {t('app.skipToContent')}
       </a>
 
-      <header className="sticky top-0 z-40 border-b border-line-strong bg-surface/92 backdrop-blur-md">
-        <div className="flex h-[52px] items-stretch gap-1 px-3 sm:gap-2 sm:px-6">
+      <header className="sticky top-0 z-40 border-b border-line bg-bg/75 backdrop-blur-xl backdrop-saturate-150">
+        <div className="flex h-14 items-center gap-1 px-3 sm:gap-2 sm:px-6">
           <Link
             to="/"
             aria-label="Preisspiegel"
-            className="flex items-center pr-2 sm:pr-4"
+            className="mr-1 flex items-center gap-2.5 sm:mr-4"
           >
-            <Wordmark />
+            <Mark />
+            <span className="hidden text-[1.02rem] font-semibold tracking-[-0.02em] sm:inline [font-stretch:108%]">
+              Preisspiegel
+            </span>
           </Link>
 
-          <nav className="flex items-stretch" aria-label="Hauptnavigation">
-            <Link to="/" activeOptions={{ exact: true }} className={tab}>
-              {t('nav.overview')}
-            </Link>
-            <Link to="/positionen" className={tab}>
-              {t('nav.positions')}
-            </Link>
+          <nav aria-label={t('nav.main')} className="flex items-center gap-0.5">
+            {TABS.map((tab) => (
+              <Link
+                key={tab.to}
+                to={tab.to}
+                aria-current={active === tab.to ? 'page' : undefined}
+                className={`relative rounded-control px-3 py-1.5 text-[0.94rem] font-medium transition-colors duration-150 ${
+                  active === tab.to ? 'text-ink' : 'text-ink-3 hover:text-ink'
+                }`}
+              >
+                {active === tab.to && (
+                  // One pill that travels between the tabs.
+                  <motion.span
+                    layoutId="nav-active"
+                    className="absolute inset-0 rounded-control bg-surface-raised shadow-module"
+                    transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+                  />
+                )}
+                <span className="relative">{t(tab.label)}</span>
+              </Link>
+            ))}
           </nav>
 
           <div className="ml-auto flex items-center gap-1">
@@ -45,11 +79,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               type="button"
               onClick={openPalette}
               aria-label={t('nav.jump')}
-              className="flex h-8 items-center gap-2 rounded-sm border border-line bg-surface-raised px-2 text-[0.87rem] text-ink-3 transition-colors duration-150 hover:border-line-strong hover:text-ink sm:mr-1 sm:pl-2.5 sm:pr-1.5"
+              className="flex h-9 items-center gap-2 rounded-control border border-line bg-surface/70 px-2.5 text-[0.9rem] text-ink-3 transition-colors duration-150 hover:border-line-strong hover:text-ink sm:mr-1"
             >
-              <Search size={14} aria-hidden />
-              <span className="hidden sm:inline">{t('nav.jump')}</span>
-              <kbd className="num ml-2 hidden rounded-[2px] border border-line px-1 py-px text-[0.73rem] text-ink-3 sm:inline">
+              <Search size={15} aria-hidden />
+              <span className="hidden md:inline">{t('nav.jump')}</span>
+              <kbd className="ml-1 hidden rounded-[5px] border border-line bg-bg px-1.5 text-[0.75rem] font-medium text-ink-3 md:inline">
                 ⌘K
               </kbd>
             </button>
@@ -65,5 +99,75 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <CommandPalette />
     </div>
+  )
+}
+
+/**
+ * Three bars of unequal height: three supplier prices side by side, the
+ * chosen one in copper. That comparison is a Preisspiegel.
+ */
+function Mark() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+      <rect x="1" y="7" width="5" height="14" rx="1.5" className="fill-ink" />
+      <rect
+        x="8.5"
+        y="11"
+        width="5"
+        height="10"
+        rx="1.5"
+        className="fill-copper"
+      />
+      <rect x="16" y="1" width="5" height="20" rx="1.5" className="fill-ink" />
+    </svg>
+  )
+}
+
+function ThemeToggle() {
+  const theme = useTheme()
+  const t = useT()
+  const next = theme === 'dark' ? 'light' : 'dark'
+  const label = t(next === 'light' ? 'theme.toLight' : 'theme.toDark')
+
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(next)}
+      aria-label={label}
+      title={label}
+      className={`${iconButton} w-9`}
+    >
+      {/* Both icons render; CSS shows the one for the active theme, so the
+          server-rendered markup is right before React hydrates. */}
+      <Moon size={17} strokeWidth={1.75} className="dark:hidden" aria-hidden />
+      <Sun
+        size={17}
+        strokeWidth={1.75}
+        className="hidden dark:block"
+        aria-hidden
+      />
+    </button>
+  )
+}
+
+function LocaleToggle() {
+  const locale = useLocale()
+  const t = useT()
+  const next = locale === 'de' ? 'en' : 'de'
+
+  return (
+    <button
+      type="button"
+      onClick={() => setLocale(next)}
+      aria-label={t('locale.switch')}
+      title={t('locale.switch')}
+      className={`${iconButton} gap-1 px-2 text-[0.82rem] font-medium`}
+    >
+      <span className={locale === 'de' ? 'text-ink' : 'text-ink-3'}>DE</span>
+      <span aria-hidden="true" className="text-line-strong">
+        /
+      </span>
+      <span className={locale === 'en' ? 'text-ink' : 'text-ink-3'}>EN</span>
+    </button>
   )
 }

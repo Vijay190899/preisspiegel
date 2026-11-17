@@ -18,7 +18,8 @@
     "seed": "tsx data/src/cli.ts",
     "env:push": "tsx scripts/pushEnv.ts",
     "probe:llm": "tsx bench/src/probe.ts",
-    "shots": "tsx scripts/screenshot.ts"
+    "shots": "tsx scripts/screenshot.ts",
+    "probe:ui": "tsx scripts/uiProbe.ts"
   },
   "devDependencies": {
     "@convex-dev/eslint-plugin": "^5.0.1",

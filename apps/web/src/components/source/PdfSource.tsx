@@ -1,3 +1,4 @@
+import { useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '~/lib/i18n'
 import type * as PdfJs from 'pdfjs-dist'
@@ -9,6 +10,13 @@ interface Box {
   y: number
   w: number
   h: number
+}
+
+interface Drawn {
+  /** Which page of which file is on the canvas. */
+  key: string
+  scale: number
+  height: number
 }
 
 // pdf.js is large and browser-only: load it on first use, once.
@@ -35,9 +43,20 @@ function loadDocument(url: string): Promise<PDFDocumentProxy> {
   return pending
 }
 
+/** Room around the page inside the panel. */
+const INSET = 16
+/** How long the reading light takes to pass down the page. */
+const SCAN_MS = 900
 /**
- * One page of a PDF with the place a value was read from marked on it, the
- * way a checker marks a drawing: a ruled box, a leader, and a note.
+ * The narrowest a page is drawn. A panel narrower than this, on a phone,
+ * shows the page at this width and opens on the marked place.
+ */
+const MIN_PAGE_WIDTH = 640
+
+/**
+ * One page of a PDF with the place a value was read from marked on it. A
+ * light passes down the page as it is read; where it reaches the value, a
+ * checker's box draws itself around it, with a note saying what it is.
  */
 export function PdfSource({
   url,
@@ -49,19 +68,25 @@ export function PdfSource({
   caption: string
 }) {
   const t = useT()
+  const still = useReducedMotion() === true
   const frame = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [width, setWidth] = useState(0)
-  const [page, setPage] = useState<{ scale: number; height: number } | null>(
-    null,
-  )
+  const [drawn, setDrawn] = useState<Drawn | null>(null)
   const [failed, setFailed] = useState(false)
 
-  // Fit the page to the pane, and again when the pane changes width.
+  const key = `${url}#${box.page}`
+  // A mark belongs to the page it was measured on, never to the one before.
+  const page = drawn?.key === key ? drawn : null
+
+  // Fit the page to the panel, and again when the panel changes width.
   useEffect(() => {
     const element = frame.current
     if (element === null) return
-    const measure = () => setWidth(Math.floor(element.clientWidth))
+    const measure = () =>
+      setWidth(
+        Math.max(MIN_PAGE_WIDTH, Math.floor(element.clientWidth) - 2 * INSET),
+      )
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(element)
@@ -97,7 +122,7 @@ export function PdfSource({
         if (cancelled()) return
 
         setFailed(false)
-        setPage({ scale, height: natural.height * scale })
+        setDrawn({ key, scale, height: natural.height * scale })
       } catch (error) {
         // A newer render replacing this one is not a failure.
         const name = error instanceof Error ? error.name : ''
@@ -111,92 +136,102 @@ export function PdfSource({
       run.cancelled = true
       run.task?.cancel()
     }
-  }, [url, box.page, width])
+  }, [url, box.page, width, key])
 
   // Bring the marked place into view once the page is drawn.
   useEffect(() => {
     const element = frame.current
     if (element === null || page === null) return
-    const top = box.y * page.scale - element.clientHeight * 0.32
-    element.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
-  }, [page, box.y, box.page])
+    const top = box.y * page.scale - element.clientHeight * 0.34
+    const left =
+      (box.x + box.w / 2) * page.scale + INSET - element.clientWidth / 2
+    element.scrollTo({
+      top: Math.max(0, top),
+      left: Math.max(0, left),
+      behavior: still ? 'auto' : 'smooth',
+    })
+  }, [page, box.x, box.y, box.w, still])
 
   const mark =
     page === null
       ? null
       : {
-          x: box.x * page.scale - 4,
-          y: box.y * page.scale - 3,
-          w: box.w * page.scale + 8,
-          h: box.h * page.scale + 6,
+          x: box.x * page.scale - 5,
+          y: box.y * page.scale - 4,
+          w: box.w * page.scale + 10,
+          h: box.h * page.scale + 8,
         }
+  // The box is drawn when the light gets to it.
+  const reached =
+    still || page === null || mark === null
+      ? 0
+      : 140 + SCAN_MS * 0.72 * (mark.y / page.height)
 
   return (
     <div ref={frame} className="relative h-full overflow-auto">
       {failed && (
-        <p role="alert" className="p-5 text-[0.93rem] text-open-ink">
+        <p role="alert" className="p-5 text-open-ink">
           {t('source.failed')}
         </p>
       )}
       {page === null && !failed && (
-        <p className="label p-5" aria-live="polite">
+        <p className="caption p-5" aria-live="polite">
           {t('source.loading')} …
         </p>
       )}
 
       <div
-        className="relative bg-white shadow-sheet dark:brightness-[0.94]"
-        style={{ height: page?.height }}
+        className="relative overflow-hidden rounded-[6px] bg-paper shadow-module transition-opacity duration-300"
+        style={{
+          margin: INSET,
+          width,
+          height: page?.height,
+          opacity: page === null ? 0 : 1,
+        }}
       >
+        {/* On a dark screen the page is shown as dark paper, hues kept. */}
         <canvas
           ref={canvas}
           aria-label={caption}
           role="img"
-          className="block w-full"
+          className="block w-full dark:[filter:invert(0.9)_hue-rotate(180deg)]"
         />
 
-        {mark !== null && (
-          <svg
-            key={`${box.page}-${box.x}-${box.y}`}
-            className="pointer-events-none absolute inset-0 size-full overflow-visible"
-            aria-hidden="true"
-          >
-            <rect
-              x={mark.x}
-              y={mark.y}
-              width={mark.w}
-              height={mark.h}
-              className="fill-marker-wash"
+        {page !== null && mark !== null && (
+          <>
+            <div
+              key={`scan-${key}-${box.y}-${box.x}`}
+              aria-hidden="true"
+              className="scan pointer-events-none absolute inset-x-0 top-0 h-[9%]"
             />
-            <rect
-              x={mark.x}
-              y={mark.y}
-              width={mark.w}
-              height={mark.h}
-              pathLength={1}
-              fill="none"
-              strokeWidth={1.75}
-              className="draw stroke-marker"
-            />
-            {/* Leader up to the note. */}
-            <path
-              d={`M ${mark.x + mark.w} ${mark.y} l 14 -16 h 10`}
-              pathLength={1}
-              fill="none"
-              strokeWidth={1.25}
-              className="draw stroke-marker"
-            />
-            <foreignObject
-              x={Math.min(mark.x + mark.w + 26, width - 150)}
-              y={mark.y - 28}
-              width={150}
-              height={24}
+            <svg
+              key={`mark-${key}-${box.y}-${box.x}`}
+              className="pointer-events-none absolute inset-0 size-full overflow-visible"
+              aria-hidden="true"
             >
-              <span className="label enter inline-block whitespace-nowrap bg-marker px-1.5 py-1 !text-white">
-                {caption}
-              </span>
-            </foreignObject>
-          </svg>
+              <rect
+                x={mark.x}
+                y={mark.y}
+                width={mark.w}
+                height={mark.h}
+                rx={3}
+                className="mark-wash fill-marker-wash"
+                style={{ animationDelay: `${reached + 180}ms` }}
+              />
+              <rect
+                x={mark.x}
+                y={mark.y}
+                width={mark.w}
+                height={mark.h}
+                rx={3}
+                pathLength={1}
+                fill="none"
+                strokeWidth={2}
+                className="draw stroke-marker"
+                style={{ animationDelay: `${reached}ms` }}
+              />
+            </svg>
+          </>
         )}
       </div>
     </div>

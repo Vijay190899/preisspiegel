@@ -1,10 +1,12 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { DocumentRegister } from '~/components/overview/DocumentRegister'
-import { PositionsFigure, TitleMeters } from '~/components/overview/Figures'
-import { TitleBlock } from '~/components/overview/TitleBlock'
+import { Link, createFileRoute } from '@tanstack/react-router'
+import { motion } from 'motion/react'
+import { Schematic } from '~/components/overview/Schematic'
 import { useT } from '~/lib/i18n'
-import { tenderQuery } from '~/lib/queries'
+import { usePace } from '~/lib/pace'
+import { offers, tenderQuery } from '~/lib/queries'
+
+const EASE = [0.22, 1, 0.36, 1] as const
 
 export const Route = createFileRoute('/')({
   loader: ({ context }) => context.queryClient.ensureQueryData(tenderQuery),
@@ -13,37 +15,62 @@ export const Route = createFileRoute('/')({
 
 function Overview() {
   const t = useT()
+  const { pace } = usePace()
   const { data: tender } = useSuspenseQuery(tenderQuery)
 
   if (tender === null) {
     return (
-      <div className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6">
-        <section className="sheet sheet-marked px-5 py-8 sm:px-8">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t('overview.empty.title')}
-          </h1>
-          <p className="mt-3 max-w-[60ch] text-ink-2">
-            {t('overview.empty.body')}
-          </p>
-        </section>
+      <div className="mx-auto w-full max-w-[1240px] px-4 py-20 sm:px-8">
+        <h1 className="display text-[2.2rem]">{t('overview.empty.title')}</h1>
+        <p className="mt-4 max-w-[60ch] text-[1.05rem] text-ink-2">
+          {t('overview.empty.body')}
+        </p>
       </div>
     )
   }
 
-  return (
-    <div className="mx-auto grid w-full max-w-[1280px] gap-5 px-4 py-6 sm:px-6 sm:py-8">
-      <TitleBlock tender={tender} />
+  // The words arrive first and settle; then the diagram switches on.
+  const arrive = (order: number) => ({
+    initial: { opacity: 0, y: 14 },
+    animate: { opacity: 1, y: 0 },
+    transition: pace({ delay: order * 0.07, duration: 0.6, ease: EASE }),
+  })
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)]">
-        <PositionsFigure tender={tender} />
-        <DocumentRegister tender={tender} />
+  return (
+    <div className="mx-auto w-full max-w-[1240px] px-4 pb-16 pt-10 sm:px-8 sm:pt-16">
+      <header className="max-w-[23ch] text-[clamp(2.3rem,5.6vw,4.4rem)]">
+        <motion.p
+          {...arrive(0)}
+          className="mb-4 text-[1rem] font-medium text-ink-3"
+        >
+          {t('overview.project', { lot: tender.lot, no: tender.projectNo })}
+        </motion.p>
+        <motion.h1 {...arrive(1)} className="display text-[1em]">
+          {tender.project}
+        </motion.h1>
+      </header>
+
+      <motion.div
+        {...arrive(2)}
+        className="mt-7 flex flex-wrap items-center gap-x-10 gap-y-6"
+      >
+        <p className="max-w-[46ch] text-[1.1rem] leading-relaxed text-ink-2">
+          {t('overview.lead', {
+            bidder: tender.contractor,
+            client: tender.client,
+            n: offers(tender).length,
+          })}
+        </p>
+        <Link to="/positionen" className="action">
+          {t('overview.open')}
+        </Link>
+      </motion.div>
+
+      <div className="mt-12 sm:mt-20">
+        <Schematic tender={tender} />
       </div>
 
-      <TitleMeters tender={tender} />
-
-      <p className="label !normal-case !tracking-normal">
-        {t('app.synthetic')}
-      </p>
+      <p className="caption mt-14">{t('app.synthetic')}</p>
     </div>
   )
 }
