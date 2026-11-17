@@ -18,6 +18,7 @@ import { internal } from '../_generated/api'
 import { internalAction, internalMutation } from '../_generated/server'
 import { utcDay } from '../llm/call'
 import { llmCall, roleModel, spendLimits } from '../llm/client'
+import { beginRun } from './store'
 import {
   SYSTEM,
   answerSchema,
@@ -38,6 +39,11 @@ import type { LedgerEntry } from '../llm/call'
 
 /** Positions per step. Small enough to finish well inside an action's time. */
 const BATCH = 30
+/**
+ * The pause between the steps of a replay. Stored answers are read back in
+ * about two seconds, too fast to see; with this a tender takes about twenty.
+ */
+const REPLAY_PACE_MS = 450
 /** Model calls made side by side. */
 const SIDE_BY_SIDE = 8
 const PAGE = 400
@@ -59,16 +65,12 @@ export const start = internalMutation({
     const model = roleModel('match')
     if (model === null) throw new Error('The match role has no model.')
 
-    const runId: Id<'runs'> = await ctx.runMutation(
-      internal.agent.store.createRun,
-      {
-        slug,
-        positions: Math.min(limit ?? Infinity, tender.positionCount),
-        model,
-      },
-    )
-    await ctx.scheduler.runAfter(0, internal.agent.run.prepare, { runId })
-    return runId
+    return beginRun(ctx, {
+      slug,
+      positions: Math.min(limit ?? Infinity, tender.positionCount),
+      model,
+      mode: 'live',
+    })
   },
 })
 
@@ -208,11 +210,15 @@ export const read = internalAction({
         return
       }
 
+      // A replay calls no model, so it has nothing to spend.
+      const replay = plan.mode === 'replay'
+
       // The guards. Checked before a batch, so the most a run can overshoot
       // is what one batch costs.
       const limits = spendLimits()
-      const over =
-        plan.runUsd >= limits.runUsd
+      const over = replay
+        ? null
+        : plan.runUsd >= limits.runUsd
           ? `The run reached its budget of ${limits.runUsd} USD.`
           : plan.dayUsd >= limits.dailyUsd
             ? `Model spend for today reached ${limits.dailyUsd} USD.`
@@ -246,8 +252,19 @@ export const read = internalAction({
       const events: Array<RunEvent> = []
       const fresh = new Map<string, Array<RawJudgement>>()
       const failed = new Set<string>()
+      // In a replay a question nobody has answered stays unanswered: its
+      // lines are unconfirmed, as after a call that failed.
+      if (replay) {
+        for (const [key, question] of unanswered) {
+          failed.add(key)
+          events.push({
+            kind: 'read.skipped',
+            data: { oz: question.oz, reason: 'no stored answer' },
+          })
+        }
+      }
       await sideBySide(
-        [...unanswered.entries()],
+        replay ? [] : [...unanswered.entries()],
         SIDE_BY_SIDE,
         async ([key, question]) => {
           const started = Date.now()
@@ -347,7 +364,11 @@ export const read = internalAction({
         })
         await ctx.scheduler.runAfter(0, internal.agent.run.decide, { runId })
       } else {
-        await ctx.scheduler.runAfter(0, internal.agent.run.read, { runId })
+        await ctx.scheduler.runAfter(
+          replay ? REPLAY_PACE_MS : 0,
+          internal.agent.run.read,
+          { runId },
+        )
       }
     }),
 })

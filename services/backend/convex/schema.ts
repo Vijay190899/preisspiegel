@@ -241,6 +241,11 @@ export default defineSchema({
     ),
     /** Canonical ID of the model that reads, or `null` for a run without one. */
     model: v.union(v.string(), v.null()),
+    /**
+     * `replay`: stored answers are read back and no model is called. Absent
+     * on runs from before the interface could start one; those were live.
+     */
+    mode: v.optional(v.union(v.literal('live'), v.literal('replay'))),
     startedAt: v.number(),
     finishedAt: v.union(v.number(), v.null()),
     /** Positions in this run. Fewer than the tender has for a trial run. */
@@ -270,6 +275,9 @@ export default defineSchema({
     /** Why a run stopped or failed. */
     note: v.union(v.string(), v.null()),
   }).index('by_tenderSlug_and_startedAt', ['tenderSlug', 'startedAt']),
+
+  // Wrong access codes, so that guessing stops being answered.
+  codeAttempts: defineTable({ at: v.number() }).index('by_at', ['at']),
 
   // What happened in a run, in order. Append-only. The interface shows a run
   // from this log, and a replay is this log read back.

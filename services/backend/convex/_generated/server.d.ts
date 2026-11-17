@@ -32,7 +32,6 @@ type Env = {
   readonly CONVEX_SITE_URL: string;
   readonly ANTHROPIC_API_KEY: string | undefined;
   readonly DEMO_ACCESS_CODE: string | undefined;
-  readonly DEMO_MODE: string | undefined;
   readonly LLM_CAPS_OFF: string | undefined;
   readonly LLM_DAILY_BUDGET_USD: string | undefined;
   readonly LLM_ESCALATION_EFFORT: string | undefined;

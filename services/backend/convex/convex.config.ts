@@ -29,7 +29,6 @@ const app = defineApp({
     RUN_MAX_USD: v.optional(v.string()),
 
     // Demo
-    DEMO_MODE: v.optional(v.string()),
     DEMO_ACCESS_CODE: v.optional(v.string()),
   },
 })
