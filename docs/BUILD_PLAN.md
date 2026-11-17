@@ -68,11 +68,11 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 - The copper control. _Built (ADR-55):_ `/kalkulation` works out the copper surcharge from the tender's own cable and moves it with the day's notation.
 - Labor: each position tied to an entry of the labor time table, and with it the rest of the Kalkulation breakdown. _Built (ADR-59):_ a labor pass of its own; on unseen seed 504, 1,169 of 1,170 positions settled without a person and 99.6% of those right; on the costing page and each position.
 - **Deciding.** _Built (ADR-54):_ the estimator takes an offer as it stands or sets a price, by key or by button, and takes it back; the window turns from red to lit, the position leaves the queue and the sums follow. Decisions belong to the browser that made them.
-- A by-article line for a single position that is read but not taken as an offer (the bollard luminaire on seeds 501 and 502, see [DATA](DATA.md#where-it-fails-on-the-newest-unseen-tender-seed-502)). Measure on a range of seeds nobody has looked at.
-- From the M2 audit, before labor is added on the same runtime: hash the prompt and the answer schema into the cache key; write ledger rows per group of calls and add a watchdog for a step that dies; match quoted values on word boundaries and require the attributes the long text states; score the reason of a review.
+- A by-article line for a single position that is read but not taken as an offer (the bollard luminaire on seeds 501 and 502, see [DATA](DATA.md#where-it-fails-on-the-newest-unseen-tender-seed-502)). _Left, with its reason (HANDOVER §5)._ The tie between two totals: _measured and left (ADR-61)._
+- From the M2 audit, before labor is added on the same runtime: hash the prompt and the answer schema into the cache key; write ledger rows per group of calls and add a watchdog for a step that dies; match quoted values on word boundaries and require the attributes the long text states; score the reason of a review. _Done (ADR-57, 60)._
 - Run replay and the access code for live runs; `pnpm demo:reset`. _Built (ADR-57):_ "Read it again" on the overview reads the stored answers back in about 20 s without a model; a live run needs the access code; a watchdog fails a run whose step died.
 - `/bench` page. _Built (ADR-58) as `/messung`:_ the committed result files, side by side, led by the newest unseen tender.
-- The GAEB excerpt served from Convex instead of downloading the file.
+- The GAEB excerpt served from Convex instead of downloading the file. _Left:_ the files are 38 KB and 47 KB compressed and cached after the first item; whether the host compresses them is checked at M4.
 - **Gate:**
   - The [DEMO_SCRIPT](DEMO_SCRIPT.md) works end to end locally.
   - `pnpm shots` passes on every route.
