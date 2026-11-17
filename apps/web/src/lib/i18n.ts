@@ -22,6 +22,52 @@ const de = {
   'nav.positions': 'Positionen',
   'nav.jump': 'Position suchen',
   'nav.costing': 'Kalkulation',
+  'nav.measured': 'Messung',
+  'measured.title': 'Was gemessen ist',
+  'measured.s1':
+    'Auf einer Ausschreibung, die das System nie gesehen hatte, hat es',
+  'measured.s2': 'von {total} Positionen ohne Person kalkuliert,',
+  'measured.s3.all': 'alle zu Recht',
+  'measured.s3.some': '{n} davon zu Recht',
+  'measured.s4': '.',
+  'measured.s5':
+    'gelegten Fallen hat es gefunden. Der Preisfehler in dem, was es allein kalkuliert hat:',
+  'measured.s6': 'von {sum} €.',
+  'measured.of': '{part} von {whole}',
+  'measured.lead.source':
+    'Seed {seed}, ein Lauf am {date} mit {model}, gegen die Lösung des Generators gezählt. Die Dateien:',
+  'measured.runs.title': 'Fünf Läufe nebeneinander',
+  'measured.runs.body':
+    'Die ungesehenen Ausschreibungen zuerst, die neueste vorn: jede wurde erzeugt, einmal gelesen und gezählt. Dann der erste Lauf, der Stand vor jeder Änderung, und zuletzt die Demo-Ausschreibung, wie sie jetzt ist.',
+  'measured.run.first': 'Erster Lauf',
+  'measured.run.unseen': 'Ungesehen',
+  'measured.run.now': 'Demo, jetzt',
+  'measured.seed': 'Seed {seed}',
+  'measured.row.auto': 'Ohne Person kalkuliert',
+  'measured.row.rightly': 'davon zu Recht ohne Person',
+  'measured.row.price': 'davon zum richtigen Preis',
+  'measured.row.euro': 'Preisfehler darin',
+  'measured.row.traps': 'Fallen gefunden',
+  'measured.row.found': 'Nötige Entscheidungen gefunden',
+  'measured.row.belong': 'Gemeldete Entscheidungen, die nötig waren',
+  'measured.row.numbers': 'Gezeigte Zahlen an ihrer Stelle',
+  'measured.row.calls': 'Modell',
+  'measured.row.file': 'Dateien',
+  'measured.calls': '{calls} Aufrufe, {cached} aus dem Speicher, {usd} $',
+  'measured.traps.title': 'Die Fallen, Art für Art',
+  'measured.traps.body':
+    'In jede Ausschreibung legt der Generator 60 Fallen in die Angebote. So viele davon hat der Lauf auf Seed {seed} an ihrer Zeile gefunden.',
+  'measured.limits.title': 'Was die Zahlen nicht zeigen',
+  'measured.limit.tuned':
+    'Die Demo-Ausschreibung stimmt in jeder Position. Das wurde erreicht, indem Prompt und Prüfungen an ihr geändert wurden; deshalb steht sie nicht vorn.',
+  'measured.limit.generator':
+    'Die ungesehenen Ausschreibungen kommen aus demselben Generator. Ungesehen sind ihre Zahlen, nicht ihre Sprache.',
+  'measured.limit.once':
+    'Jede Spalte ist ein Lauf. Wie stark das Ergebnis von Lauf zu Lauf schwankt, ist nicht gemessen.',
+  'measured.limit.cache':
+    'Jeder ungesehene Lauf hat einen Teil seiner Antworten aus früheren Ausschreibungen übernommen, wo dieselbe Frage schon gestellt war.',
+  'measured.limit.numbers':
+    'Eine Zahl an ihrer Stelle heißt: sie steht dort, wohin die Oberfläche zeigt. Nicht, dass sie richtig ist.',
   'costing.title': 'Was das Kupfer ausmacht',
   'costing.s1': 'Das kalkulierte Material kostet',
   'costing.s2': '. Bei',
@@ -264,6 +310,51 @@ const en: Record<MessageKey, string> = {
   'nav.positions': 'Items',
   'nav.jump': 'Find an item',
   'nav.costing': 'Costing',
+  'nav.measured': 'Measured',
+  'measured.title': 'What was measured',
+  'measured.s1': 'On a tender the system had never seen, it priced',
+  'measured.s2': 'of {total} items without a person,',
+  'measured.s3.all': 'all of them rightly',
+  'measured.s3.some': '{n} of them rightly',
+  'measured.s4': '.',
+  'measured.s5':
+    'planted traps were found. The price error in what it priced by itself:',
+  'measured.s6': 'of {sum} €.',
+  'measured.of': '{part} of {whole}',
+  'measured.lead.source':
+    'Seed {seed}, one run on {date} with {model}, counted against the generator\u2019s answer key. The files:',
+  'measured.runs.title': 'Five runs side by side',
+  'measured.runs.body':
+    'The unseen tenders first, the newest in front: each was generated, read once and counted. Then the first run, the state before any change, and last the demo tender as it is now.',
+  'measured.run.first': 'First run',
+  'measured.run.unseen': 'Unseen',
+  'measured.run.now': 'Demo, now',
+  'measured.seed': 'Seed {seed}',
+  'measured.row.auto': 'Priced without a person',
+  'measured.row.rightly': 'of those, rightly without a person',
+  'measured.row.price': 'of those, at the right price',
+  'measured.row.euro': 'Price error in them',
+  'measured.row.traps': 'Traps found',
+  'measured.row.found': 'Needed decisions found',
+  'measured.row.belong': 'Raised decisions that were needed',
+  'measured.row.numbers': 'Numbers shown at their place',
+  'measured.row.calls': 'Model',
+  'measured.row.file': 'Files',
+  'measured.calls': '{calls} calls, {cached} from the store, {usd} $',
+  'measured.traps.title': 'The traps, kind by kind',
+  'measured.traps.body':
+    'The generator plants 60 traps in the offers of every tender. This is how many of them the run on seed {seed} found on their line.',
+  'measured.limits.title': 'What the figures do not show',
+  'measured.limit.tuned':
+    'The demo tender agrees on every item. That was reached by changing the prompt and the checks against it, which is why it does not lead.',
+  'measured.limit.generator':
+    'The unseen tenders come from the same generator. Their numbers are unseen, not their language.',
+  'measured.limit.once':
+    'Each column is one run. How much the result varies from run to run has not been measured.',
+  'measured.limit.cache':
+    'Each unseen run took part of its answers from earlier tenders, where the same question had been asked before.',
+  'measured.limit.numbers':
+    'A number at its place means it stands where the interface points. Not that it is right.',
   'costing.title': 'What copper does to the bid',
   'costing.s1': 'The priced material comes to',
   'costing.s2': '. With copper at',

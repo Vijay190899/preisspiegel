@@ -10,12 +10,13 @@ import type { ReactNode } from 'react'
 import type { MessageKey } from '~/lib/i18n'
 
 const TABS: Array<{
-  to: '/' | '/positionen' | '/kalkulation'
+  to: '/' | '/positionen' | '/kalkulation' | '/messung'
   label: MessageKey
 }> = [
   { to: '/', label: 'nav.overview' },
   { to: '/positionen', label: 'nav.positions' },
   { to: '/kalkulation', label: 'nav.costing' },
+  { to: '/messung', label: 'nav.measured' },
 ]
 
 const iconButton =
@@ -34,11 +35,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     // page comes from the server in this language.
     document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`
   }, [locale])
-  const active = pathname.startsWith('/positionen')
-    ? '/positionen'
-    : pathname.startsWith('/kalkulation')
-      ? '/kalkulation'
-      : '/'
+  // The tab whose address the page is under; the overview is what is left.
+  const active =
+    TABS.find((tab) => tab.to !== '/' && pathname.startsWith(tab.to))?.to ?? '/'
 
   return (
     <div className="flex min-h-dvh flex-col">

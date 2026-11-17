@@ -455,6 +455,68 @@
     transition: background-color var(--t-dur-fast) var(--t-ease);
   }
 
+  /*
+   * Runs side by side: one column each, ruled apart. On a narrow screen
+   * the table is pushed sideways inside its own frame and the row names
+   * stay where they are.
+   */
+  .measure-scroll {
+    overflow-x: auto;
+    margin: 0 -0.75rem;
+    padding: 0 0.75rem;
+  }
+
+  .measure {
+    width: 100%;
+    min-width: 58rem;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+
+  .measure th,
+  .measure td {
+    padding: 0.7rem 1rem;
+    text-align: left;
+    vertical-align: top;
+    font-weight: 400;
+  }
+
+  .measure thead th {
+    font-weight: 560;
+    color: var(--t-ink-2);
+    padding-bottom: 0.9rem;
+  }
+
+  .measure tbody tr,
+  .measure tfoot tr {
+    border-top: 1px solid var(--t-line);
+  }
+
+  .measure tr > * + * {
+    border-left: 1px solid var(--t-line);
+  }
+
+  .measure tbody td {
+    color: var(--t-ink-2);
+  }
+
+  .measure [data-lead] {
+    color: var(--t-ink);
+  }
+
+  .measure tbody td[data-lead] {
+    font-weight: 560;
+  }
+
+  .measure tr > :first-child {
+    position: sticky;
+    left: 0;
+    padding-left: 0;
+    width: 15rem;
+    color: var(--t-ink-2);
+    background: var(--t-bg);
+  }
+
   /* A cable in the list of where the copper is. */
   .cable-row {
     display: grid;
