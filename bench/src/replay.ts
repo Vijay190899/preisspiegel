@@ -80,6 +80,6 @@ B1  priced without a person   ${scored.b1.auto} of ${scored.b1.positions} (${per
     of those, rightly so      ${scored.b1.autoCorrect} (${percent(scored.b1.autoPrecision)}), ${scored.b1.autoAtRightPrice} at the right price
     euro error                ${scored.b1.euroError.toFixed(2)} of ${scored.b1.euroAuto.toFixed(2)}
 B2  traps found               ${scored.b2.trapsCaught} of ${scored.b2.trapsPlanted}
-    review queue              ${scored.b2.reviewRaised} raised, ${scored.b2.reviewFound} of ${scored.b2.reviewExpected} expected found
+    review queue              ${scored.b2.reviewRaised} raised, ${scored.b2.reviewFound} of ${scored.b2.reviewExpected} expected found, ${scored.b2.reviewFoundForReason} of them for a right reason
     queue recall, precision   ${percent(scored.b2.queueRecall)}, ${percent(scored.b2.queuePrecision)}`)
 }

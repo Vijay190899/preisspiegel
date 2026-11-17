@@ -36,6 +36,12 @@ export interface Score {
     /** Positions the truth sends to review, and how many of them the pipeline did. */
     reviewExpected: number
     reviewFound: number
+    /**
+     * Of those found, the ones raised for at least one reason the truth
+     * gives. A review raised for the wrong reason sends the estimator to the
+     * wrong offer, so `reviewFound` alone flatters.
+     */
+    reviewFoundForReason: number
     queueRecall: number
     /** Positions the pipeline sent to review, and how many of them belong there. */
     reviewRaised: number
@@ -65,6 +71,7 @@ export function score(results: ReadonlyArray<Result>, truth: Truth): Score {
   let euroError = 0
   let euroAuto = 0
   let reviewFound = 0
+  let reviewFoundForReason = 0
   let reviewRaised = 0
   let reviewRaisedRight = 0
   const disagreements: Score['disagreements'] = []
@@ -95,6 +102,11 @@ export function score(results: ReadonlyArray<Result>, truth: Truth): Score {
     }
     if (want.expected.decision === 'review' && got.status === 'review') {
       reviewFound++
+      if (
+        got.reasons.some((reason) => want.expected.reasons.includes(reason))
+      ) {
+        reviewFoundForReason++
+      }
     }
     if (want.expected.decision !== got.status) {
       disagreements.push({
@@ -150,6 +162,7 @@ export function score(results: ReadonlyArray<Result>, truth: Truth): Score {
       trapsCaught,
       reviewExpected,
       reviewFound,
+      reviewFoundForReason,
       queueRecall: share(reviewFound, reviewExpected),
       reviewRaised,
       queuePrecision: share(reviewRaisedRight, reviewRaised),
