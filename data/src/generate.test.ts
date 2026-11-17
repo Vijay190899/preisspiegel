@@ -121,10 +121,15 @@ describe('the planted traps', () => {
         .map((offer) => offer.unitPrice!)
       const cheapestClean = Math.min(...clean)
       // A person looks exactly when the cheapest offer is not a clean one.
+      const pricedSuppliers = new Set(
+        offers.filter((o) => o.unitPrice !== null).map((o) => o.supplier),
+      ).size
       const decisive = offers.filter(
         (offer) =>
           offer.trap !== null &&
-          (offer.unitPrice === null || offer.unitPrice < cheapestClean),
+          (offer.unitPrice === null ||
+            offer.unitPrice < cheapestClean ||
+            (offer.trap === 'PRICE_OUTLIER' && pricedSuppliers <= 2)),
       )
       const expectReview = offers.length === 0 || decisive.length > 0
       expect(expected.decision, position.oz).toBe(

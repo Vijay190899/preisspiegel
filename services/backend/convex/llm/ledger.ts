@@ -1,5 +1,23 @@
 import { v } from 'convex/values'
 import { internalMutation, internalQuery } from '../_generated/server'
+import type { MutationCtx } from '../_generated/server'
+import type { LedgerEntry } from './call'
+
+/** One model call as the ledger keeps it. */
+export const ledgerEntry = v.object({
+  day: v.string(),
+  at: v.number(),
+  provider: v.string(),
+  role: v.string(),
+  model: v.string(),
+  inputTokens: v.number(),
+  outputTokens: v.number(),
+  cacheReadTokens: v.number(),
+  cacheWriteTokens: v.number(),
+  usd: v.number(),
+  stopReason: v.union(v.string(), v.null()),
+  runId: v.optional(v.string()),
+})
 
 /** Model spend so far on a UTC day. The caller passes the day in. */
 export const spentOn = internalQuery({
@@ -13,41 +31,41 @@ export const spentOn = internalQuery({
   },
 })
 
-/** Appends one call to the ledger and adds it to that day's running total. */
-export const record = internalMutation({
-  args: {
-    day: v.string(),
-    at: v.number(),
-    provider: v.string(),
-    role: v.string(),
-    model: v.string(),
-    inputTokens: v.number(),
-    outputTokens: v.number(),
-    cacheReadTokens: v.number(),
-    cacheWriteTokens: v.number(),
-    usd: v.number(),
-    stopReason: v.union(v.string(), v.null()),
-    runId: v.optional(v.string()),
-  },
-  handler: async (ctx, entry) => {
+/**
+ * Appends calls to the ledger and adds them to their day's running total.
+ * The total is one document per day, so a batch of calls made side by side
+ * is recorded together, with one write to it, instead of contending for it.
+ */
+export async function recordEntries(
+  ctx: MutationCtx,
+  entries: ReadonlyArray<LedgerEntry>,
+): Promise<void> {
+  const byDay = new Map<string, { usd: number; calls: number }>()
+  for (const entry of entries) {
     await ctx.db.insert('llmLedger', entry)
-
+    const sum = byDay.get(entry.day) ?? { usd: 0, calls: 0 }
+    byDay.set(entry.day, { usd: sum.usd + entry.usd, calls: sum.calls + 1 })
+  }
+  for (const [day, sum] of byDay) {
     const total = await ctx.db
       .query('llmSpend')
-      .withIndex('by_day', (q) => q.eq('day', entry.day))
+      .withIndex('by_day', (q) => q.eq('day', day))
       .unique()
     if (total === null) {
-      await ctx.db.insert('llmSpend', {
-        day: entry.day,
-        usd: entry.usd,
-        calls: 1,
-      })
+      await ctx.db.insert('llmSpend', { day, ...sum })
     } else {
       await ctx.db.patch('llmSpend', total._id, {
-        usd: total.usd + entry.usd,
-        calls: total.calls + 1,
+        usd: total.usd + sum.usd,
+        calls: total.calls + sum.calls,
       })
     }
+  }
+}
+
+export const recordMany = internalMutation({
+  args: { entries: v.array(ledgerEntry) },
+  handler: async (ctx, { entries }) => {
+    await recordEntries(ctx, entries)
     return null
   },
 })

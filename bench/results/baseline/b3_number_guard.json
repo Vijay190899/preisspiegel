@@ -1,0 +1,89 @@
+{
+  "benchmark": "B3",
+  "question": "Is every number shown for an offer at the place it says it came from?",
+  "generatedAt": "2026-11-17T01:18:49.100Z",
+  "gitSha": "02c09ee-dirty",
+  "seed": 118,
+  "n": 1170,
+  "offerLines": 1711,
+  "provider": "openrouter",
+  "models": {
+    "match": "claude-haiku-5-5",
+    "escalation": null
+  },
+  "run": {
+    "id": "kh75ydt565d9spynnqr269qmhs8jcytk",
+    "calls": 787,
+    "answeredFromCache": 338,
+    "failed": 0,
+    "usd": 0.3699,
+    "seconds": 420
+  },
+  "result": {
+    "checked": 6577,
+    "found": 6567,
+    "share": 0.9985,
+    "misses": [
+      {
+        "where": "a.360",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      },
+      {
+        "where": "a.429",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      },
+      {
+        "where": "a.433",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      },
+      {
+        "where": "a.435",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      },
+      {
+        "where": "a.437",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      },
+      {
+        "where": "a.446",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      },
+      {
+        "where": "a.449",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      },
+      {
+        "where": "a.662",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      },
+      {
+        "where": "a.676",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      },
+      {
+        "where": "a.677",
+        "field": "priceBasis",
+        "value": 1000,
+        "saw": "1000"
+      }
+    ]
+  }
+}

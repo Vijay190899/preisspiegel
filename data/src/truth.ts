@@ -10,7 +10,8 @@
  * dearer than a clean one changes nothing about the price that goes into the
  * bid, so it is noted and nobody is asked. A trapped offer that is cheaper
  * than every clean one, or whose price per unit cannot be worked out, or
- * that is the only offer there is, is a decision.
+ * that is the only offer there is, is a decision. So is a price far off the
+ * only other one, because with two suppliers nobody can say which is wrong.
  */
 import { ZEITWERTE } from './catalog'
 import { ODDITY_KINDS, TRAP_KINDS } from './offers'
@@ -144,11 +145,19 @@ export function buildTruth(
     const best = clean[0]
 
     const trapped = found.filter((offer) => offer.trap !== null)
+    // With two suppliers, a price ten times the other's could be either
+    // one's mistake, so it is a decision whichever of them is the dearer.
+    const pricedSuppliers = new Set(
+      found
+        .filter((offer) => offer.unitPrice !== null)
+        .map((offer) => offer.supplier),
+    ).size
     const decisive = trapped.filter(
       (offer) =>
         best === undefined ||
         offer.unitPrice === null ||
-        offer.unitPrice < best.unitPrice,
+        offer.unitPrice < best.unitPrice ||
+        (offer.trap === 'PRICE_OUTLIER' && pricedSuppliers <= 2),
     )
     const reasons: Array<TrapKind> =
       found.length === 0 ? ['NO_OFFER'] : kinds(decisive)

@@ -18,6 +18,117 @@ export const sourceRef = v.union(
   }),
 )
 
+export const reasonCode = v.union(
+  v.literal('SPEC_MISMATCH'),
+  v.literal('UNIT_BASIS'),
+  v.literal('PRICE_OUTLIER'),
+  v.literal('QTY_MISMATCH'),
+  v.literal('ALTERNATIVE_PRODUCT'),
+  v.literal('NO_OFFER'),
+  v.literal('AMBIGUOUS'),
+  v.literal('ARITHMETIC'),
+)
+
+/** A line put to the model for one position. Mirrors `Candidate` in core. */
+export const candidate = v.object({
+  id: v.string(),
+  referenced: v.boolean(),
+  text: v.string(),
+  articleNo: v.union(v.string(), v.null()),
+  unit: v.union(v.string(), v.null()),
+})
+
+/** One attribute as the model compared it, before any check. Mirrors `RawPair`. */
+const rawPair = v.object({
+  attribute: v.string(),
+  tenderValue: v.string(),
+  tenderQuote: v.string(),
+  offerValue: v.string(),
+  offerQuote: v.string(),
+  agrees: v.boolean(),
+})
+
+/** What the model answered for one line. Mirrors `RawJudgement`. */
+export const rawJudgement = v.object({
+  id: v.string(),
+  verdict: v.union(
+    v.literal('same'),
+    v.literal('different'),
+    v.literal('unrelated'),
+    v.literal('unsure'),
+  ),
+  pairs: v.array(rawPair),
+  packSize: v.union(v.string(), v.null()),
+  packQuote: v.union(v.string(), v.null()),
+  alternativeQuote: v.union(v.string(), v.null()),
+})
+
+/** A compared attribute whose quotes were found in their sources. Mirrors `Pair`. */
+const pair = v.object({
+  attribute: v.string(),
+  tender: v.object({ value: v.string(), quote: v.string() }),
+  offer: v.object({ value: v.string(), quote: v.string() }),
+  agrees: v.boolean(),
+  decidedBy: v.union(v.literal('code'), v.literal('model')),
+  arithmetic: v.optional(v.string()),
+})
+
+const verdict = v.union(
+  v.literal('confirmed'),
+  v.literal('mismatch'),
+  v.literal('unrelated'),
+  v.literal('unconfirmed'),
+)
+const decidedBy = v.union(v.literal('code'), v.literal('model'))
+const pack = v.union(
+  v.object({ size: v.number(), quote: v.string() }),
+  v.null(),
+)
+
+/** A verified answer for one line. Mirrors `Judgement`. */
+export const judgement = v.object({
+  id: v.string(),
+  verdict,
+  by: decidedBy,
+  /** What the model itself called the line. `null` where code decided alone. */
+  said: v.union(
+    v.literal('same'),
+    v.literal('different'),
+    v.literal('unrelated'),
+    v.literal('unsure'),
+    v.null(),
+  ),
+  pairs: v.array(pair),
+  rejected: v.number(),
+  pack,
+  alternative: v.union(v.string(), v.null()),
+})
+
+/** One offer for a position, checked. Mirrors `Offer`. */
+export const offer = v.object({
+  id: v.string(),
+  supplierKey: v.string(),
+  seq: v.number(),
+  referenced: v.boolean(),
+  verdict,
+  by: decidedBy,
+  pairs: v.array(pair),
+  pack,
+  unitPrice: v.union(v.number(), v.null()),
+  quantity: v.union(v.number(), v.null()),
+  findings: v.array(
+    v.object({
+      code: reasonCode,
+      detail: v.record(v.string(), v.union(v.string(), v.number())),
+    }),
+  ),
+})
+
+const eventData = v.record(
+  v.string(),
+  v.union(v.string(), v.number(), v.boolean(), v.null()),
+)
+
 export default defineSchema({
   // --- The tender and its documents, loaded by `pnpm seed` ----------------
   //
@@ -102,6 +213,125 @@ export default defineSchema({
       'seq',
     ])
     .index('by_tenderSlug_and_posRef', ['tenderSlug', 'posRef']),
+
+  // --- Runs ------------------------------------------------------------------
+  //
+  // A run takes a tender from positions and offer lines to a decision per
+  // position. Its steps write here; nothing else does.
+
+  runs: defineTable({
+    tenderSlug: v.string(),
+    status: v.union(
+      v.literal('preparing'),
+      v.literal('reading'),
+      v.literal('deciding'),
+      v.literal('done'),
+      v.literal('stopped'),
+      v.literal('failed'),
+    ),
+    /** Canonical ID of the model that reads, or `null` for a run without one. */
+    model: v.union(v.string(), v.null()),
+    startedAt: v.number(),
+    finishedAt: v.union(v.number(), v.null()),
+    /** Positions in this run. Fewer than the tender has for a trial run. */
+    positions: v.number(),
+    /** Positions read so far: the next one to read has this `seq`. */
+    cursor: v.number(),
+    /** Number of the next event. */
+    nextEvent: v.number(),
+    /** Questions answered by a model call, from the cache, or not at all. */
+    calls: v.number(),
+    cached: v.number(),
+    failed: v.number(),
+    usd: v.number(),
+    /** Set when the run is done. */
+    auto: v.union(v.number(), v.null()),
+    review: v.union(v.number(), v.null()),
+    materialTotal: v.union(v.number(), v.null()),
+    atRisk: v.union(v.number(), v.null()),
+    /**
+     * The decision for every position, one letter each in document order:
+     * `a` priced without asking, `r` needs a person. Lets a list of a
+     * thousand positions show its state from one small document.
+     */
+    statuses: v.union(v.string(), v.null()),
+    /** Why a run stopped or failed. */
+    note: v.union(v.string(), v.null()),
+  }).index('by_tenderSlug_and_startedAt', ['tenderSlug', 'startedAt']),
+
+  // What happened in a run, in order. Append-only. The interface shows a run
+  // from this log, and a replay is this log read back.
+  runEvents: defineTable({
+    runId: v.id('runs'),
+    seq: v.number(),
+    at: v.number(),
+    kind: v.string(),
+    data: eventData,
+  }).index('by_runId_and_seq', ['runId', 'seq']),
+
+  // What is asked about each position: the lines that could answer it.
+  questions: defineTable({
+    runId: v.id('runs'),
+    oz: v.string(),
+    seq: v.number(),
+    shortText: v.string(),
+    longText: v.string(),
+    unit: v.string(),
+    candidates: v.array(candidate),
+    echoes: v.array(v.string()),
+    /** Hash of everything the model is shown. Equal questions share an answer. */
+    key: v.string(),
+  }).index('by_runId_and_seq', ['runId', 'seq']),
+
+  // The verified answers for one position.
+  judgements: defineTable({
+    runId: v.id('runs'),
+    oz: v.string(),
+    seq: v.number(),
+    /** Where the answer came from. */
+    source: v.union(
+      v.literal('model'),
+      v.literal('cache'),
+      v.literal('code'),
+      v.literal('failed'),
+    ),
+    judgements: v.array(judgement),
+  }).index('by_runId_and_seq', ['runId', 'seq']),
+
+  // The decision for one position, with every offer and what was found on it.
+  matches: defineTable({
+    runId: v.id('runs'),
+    oz: v.string(),
+    seq: v.number(),
+    status: v.union(v.literal('auto'), v.literal('review')),
+    reasons: v.array(reasonCode),
+    noted: v.array(reasonCode),
+    best: v.union(
+      v.object({
+        id: v.string(),
+        supplierKey: v.string(),
+        unitPrice: v.number(),
+      }),
+      v.null(),
+    ),
+    materialTotal: v.union(v.number(), v.null()),
+    atRisk: v.union(v.number(), v.null()),
+    /** For ordering the review queue: `atRisk`, or 0 where it has no figure. */
+    weight: v.number(),
+    offers: v.array(offer),
+  })
+    .index('by_runId_and_seq', ['runId', 'seq'])
+    .index('by_runId_and_oz', ['runId', 'oz'])
+    .index('by_runId_and_status_and_weight', ['runId', 'status', 'weight']),
+
+  // What a model answered to a question, kept by the question's hash. The
+  // same position text against the same lines is read once, ever.
+  matchCache: defineTable({
+    key: v.string(),
+    model: v.string(),
+    at: v.number(),
+    answer: v.array(rawJudgement),
+  }).index('by_key', ['key']),
 
   // --- The cost meter ------------------------------------------------------
 

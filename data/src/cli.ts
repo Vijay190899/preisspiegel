@@ -26,7 +26,9 @@ import type { OfferLine, Position } from '@preisspiegel/core'
 import type { SupplierKey } from './names'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const seedDir = resolve(repoRoot, 'data/seed')
+// SEED_DIR points the loader at another tender written in the same layout,
+// which is how the held-out benchmark loads one the pipeline has not seen.
+const seedDir = resolve(repoRoot, process.env.SEED_DIR ?? 'data/seed')
 const outDir = resolve(repoRoot, 'data/out')
 
 async function main(): Promise<void> {
@@ -192,9 +194,23 @@ async function load(prod: boolean): Promise<void> {
       )
     }
   }
+  // Decisions made about the old positions and lines would now point at
+  // nothing, so every run of this tender goes with them.
+  execFileSync(
+    'pnpm',
+    [
+      'exec',
+      'convex',
+      'run',
+      ...(prod ? ['--prod'] : []),
+      'agent/store:reset',
+      JSON.stringify({ slug }),
+    ],
+    { cwd: resolve(repoRoot, 'services/backend'), stdio: 'ignore' },
+  )
   console.log(
     `Loaded tender "${slug}": ${positions.length} positions, ` +
-      `${tables.offerLines?.length ?? 0} offer lines from ${suppliers.length} suppliers.`,
+      `${tables.offerLines?.length ?? 0} offer lines from ${suppliers.length} suppliers. Its earlier runs are being cleared.`,
   )
 }
 

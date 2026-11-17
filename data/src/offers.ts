@@ -125,7 +125,7 @@ const TRAP_PLAN = {
 
 /** How many clean lines carry each harmless oddity. */
 const ODDITY_PLAN = {
-  PACK: 24,
+  PACK: 16,
   SPLIT: 12,
   ROUNDED: 20,
   CENTS: { a: 24, b: 3, c: 10 },
@@ -507,9 +507,15 @@ export function buildOffers(
 
   // UNIT_BASIS: quoted in rings or packs, with nothing to say how much one
   // of them holds.
+  // An article whose name already carries a ring or drum size (`RG100`,
+  // `TR500`) says how it is packed. Quoting it in rings of another size, or
+  // in rings "of unknown size", would contradict its own name.
+  const namesItsPacking = (candidate: OfferDraft) =>
+    /\b(RG|TR)\s?\d+/.test(candidate.text)
   const packable = (candidate: OfferDraft) =>
     candidate.positions.length === 1 &&
     candidate.qty >= 40 &&
+    !namesItsPacking(candidate) &&
     (candidate.unit === 'M' || candidate.pricePerUnit < 15)
   const quoteInPacks = (line: OfferDraft, stated: boolean, draw: Rng) => {
     const product = productOf(line.productId)
