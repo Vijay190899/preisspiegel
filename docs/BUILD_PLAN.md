@@ -57,7 +57,7 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 **Moved to M3:** labor and the copper surcharge (ADR-40); starting a run from the interface (ADR-39). **Not run:** B4 (ADR-41).
 
 - **Gate:**
-  - A full run completes on the default model inside the budget. _Done: 880 calls, $0.38, limit $1.50._
+  - A full run completes on the default model inside the budget. _Done: the first full run made 787 calls for $0.37, the unseen runs 731 for $0.34 and 642 for $0.29; limit $1.50._
   - B1–B3 results are written, with the reference runs beside them. _Done: `bench/results/`._
   - The undersized cabinet is flagged with the right reason code, and the interface shows why. _Done: `SPEC_MISMATCH`, 138 kVA = 199 A < 250 A, 391.49 € at stake._
   - `pnpm shots` and `pnpm probe:ui` pass on every route.
@@ -66,7 +66,8 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 ## M3 — Product surface, completed
 
 - Labor: each position tied to an entry of the labor time table. Kalkulation breakdown and the copper control.
-- Lighting variants that share a short text: group positions by their compared attributes, not their short text (see [DATA](DATA.md#where-it-fails-on-the-unseen-tender)).
+- Luminaire variants that differ in one word: group positions by their compared attributes, not their short text (see [DATA](DATA.md#where-it-fails-on-the-newest-unseen-tender-seed-501)). Measure on seeds nobody has looked at.
+- From the M2 audit, before labor is added on the same runtime: hash the prompt and the answer schema into the cache key; write ledger rows per group of calls and add a watchdog for a step that dies; match quoted values on word boundaries and require the attributes the long text states; score the reason of a review.
 - Run replay and the access code for live runs; `pnpm demo:reset`.
 - `/bench` page.
 - The GAEB excerpt served from Convex instead of downloading the file.

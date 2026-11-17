@@ -37,7 +37,7 @@ Root `package.json` scripts are the only entry points.
 | `pnpm check`            | ESLint, Prettier, typecheck of every project, Vitest                                                   |
 | `pnpm dev`              | Convex (local deployment) and the web dev server on :3000                                              |
 | `pnpm build`            | Production build of the web app                                                                        |
-| `pnpm shots [path ...]` | Screenshots at 390 px and 1440 px, light and dark; fails on console errors or overflow                 |
+| `pnpm shots [path ...]` | Screenshots at 390, 1024, 1280 and 1440 px, night and day; fails on console errors or overflow         |
 | `pnpm probe:llm`        | One cheap call per provider capability; writes `bench/results/provider_probe.json`                     |
 | `pnpm env:push`         | Copies `.env.local` to the Convex deployment's environment                                             |
 | `pnpm seed`             | Writes `data/seed/` from the seed, parses it back and loads Convex. `generate` and `load` run one half |
@@ -62,17 +62,17 @@ Root `package.json` scripts are the only entry points.
 
 Rows refer to their tender by slug (ADR-15).
 
-**Agent runtime** (`convex/agent/run.ts`, about 330 lines, no framework). A run is three kinds of step, each scheduled by the one before it:
+**Agent runtime** (`convex/agent/run.ts`, about 410 lines, no framework). A run is three kinds of step, each scheduled by the one before it:
 
 1. **`prepare`** works out, for every position, which lines could answer it, and stores the questions.
 2. **`read`** takes the next 30 positions, has the model read the questions nobody has answered before (eight calls side by side), checks every answer against its sources, and stores answers, new cache entries, ledger rows and events in one transaction. Then it schedules itself again.
 3. **`decide`** runs the checks and the triage over everything that was read, and stores a decision per position.
 
 - A step that runs twice writes nothing the second time: storing a batch is guarded by the run's cursor.
-- A step that throws marks the run failed with the reason. A model call that fails does not: it comes back as a value, the position is left unconfirmed, and it goes to review.
+- A step that throws marks the run failed with the reason. A model call that fails does not: it comes back as a value and the lines it was about stay unconfirmed. That sends a position to review only if it leaves the position without a clean cheapest offer. A position another supplier answers cleanly is still priced, and the unread line is dropped without a note (open item: say so on the position).
 - Before each batch the run checks its own spend against `RUN_MAX_USD` and the day's against `LLM_DAILY_BUDGET_USD`, and stops itself with a note. The most a run can overshoot is one batch.
 - Calls are recorded per batch, in the transaction that stores their results, so side-by-side calls do not contend for the day's total.
-- Equal questions share an answer. The hash covers the prompt version, the model and everything shown, with lines numbered by position in the list instead of by id, so the same article asked for on seven floors is read once. The full demo tender has 1,170 positions and needs 880 calls on a cold cache, none on a warm one.
+- Equal questions share an answer. The hash covers the prompt version, the model and everything shown, with lines numbered by position in the list instead of by id, so the same article asked for on seven floors is read once. The full demo tender has 1,170 positions and about 880 distinct questions, so a run on an empty cache makes about that many calls and a run on a warm one none. The key covers a prompt version that is kept by hand, not the prompt's text (open item).
 - Runs are started from the command line (`pnpm bench --start`), never from the interface: a run costs money. The interface reads `runs:latest`, `runs:statuses`, `runs:match`, `runs:reviewQueue` and `runs:events`, all live.
 - Reloading a tender clears its runs; the answer cache stays.
 
@@ -80,7 +80,8 @@ Rows refer to their tender by slug (ADR-15).
 
 ```
 positions, offer lines
-  ─► buildQuestions   lines that name the position, plus a text search over those that name none
+  ─► buildQuestions   lines that name the position, a text search over those that name none,
+                      and lines whose quantity is the total of the position's kind (ADR-45)
   ─► the matcher      per line: same, different, unrelated or unsure, with compared attributes and a quote for each
   ─► verifyAnswer     every quote looked up in its source; values compared by arithmetic where they can be
   ─► assess           unit, arithmetic, quantity and ambiguity checks per line
@@ -95,7 +96,7 @@ Every step is a pure function, tested without a database or a model. The runtime
 - The matcher (`convex/agent/prompt.ts`) gets one position and up to about eight lines, and answers in a fixed schema. It is told never to convert or calculate.
 - `verifyAnswer` throws out any compared attribute whose quote is not in its source word for word, or whose value is not in its quote. A line called "the same" with no attribute left standing is not confirmed.
 - `compareValues` (`measure.ts`) then compares the two values itself where it can: two measures of the same kind after conversion, a current against an apparent power at 400 V three-phase, codes as text. Its result stands whatever the model said. That is how a line the model calls "the same" becomes a `SPEC_MISMATCH` with `138 kVA / (√3 × 400 V) = 199 A` attached.
-- Prices, quantities and totals are the ones the readers parsed. Nothing the model writes is shown as a number.
+- Prices, quantities and totals are the ones the readers parsed. Two things the model writes do reach the page. The values it compared are shown beside the words it read them from, and code has checked that those words are in the source. A pack size divides a price, and is accepted only with a quote that is in the line. Both checks are by substring, which is weaker than it sounds (open item in [HANDOVER](HANDOVER.md)).
 
 **Search without a model.** Lines that name no position are found by Okapi BM25 over words, numbers and the four-letter pieces of longer words (`Leitungsschutzschalter` and `LS-Schalter` share `scha`), three per supplier. A result is put to the model only if it scores at least half of what its line reaches for any position.
 
@@ -175,7 +176,7 @@ LLM_MATCH_MODEL=claude-sonnet-5-5
 
 **Cost meter.** Every call appends `{ day, at, provider, role, model, tokens by kind, usd, stopReason, runId }` to `llmLedger` and adds to that day's row in `llmSpend`. A call that fails before a response arrives has no usage to record.
 
-**Measured:** a full run of the demo tender on `claude-haiku-5-5` at effort `low` made 880 calls and cost $0.38; the unseen tender made 731 calls and cost $0.34, in seven minutes. That is about $0.0004 per call, and three positions in four need a call of their own.
+**Measured**, on `claude-haiku-5-5` at effort `low`: the first full run made 787 calls for $0.37 in seven minutes; the two unseen tenders made 731 calls for $0.34 and 642 calls for $0.29, each with some answers taken from the cache. That is about $0.0005 per call. A run on an empty cache costs about 40 cents; no file records one for the demo tender as it is now.
 
 ## 6. Frontend (apps/web)
 

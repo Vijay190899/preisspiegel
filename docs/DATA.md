@@ -67,23 +67,24 @@ That gives, for this tender:
 
 ## What the benchmarks show
 
-`pnpm bench` scores a run against this ground truth. The results are in [`bench/results/`](../bench/results), the first run ever scored is kept in `bench/results/baseline/`, and the same benchmarks on a tender the pipeline had never seen are in `bench/results/heldout-119/`.
+`pnpm bench` scores a run against this ground truth. The results are in [`bench/results/`](../bench/results). The first run ever scored is kept in `bench/results/baseline/`. The same benchmarks on two tenders the pipeline had never seen are in `bench/results/heldout-119/` and `bench/results/heldout-501/`.
 
-| Measure                                   | No reader     | First run          | Demo tender, now | Unseen tender (seed 119) | Perfect reader, unseen |
-| ----------------------------------------- | ------------- | ------------------ | ---------------- | ------------------------ | ---------------------- |
-| Priced without a person (expected)        | 84.9% (92.1%) | 85.6% (91.4%)      | 92.1% (92.1%)    | 91.6% (92.3%)            | 91.7% (92.3%)          |
-| B1 of those, rightly so                   | 97.5%         | 99.8%              | 100%             | **99.4%**                | 100%                   |
-| B1 euro error over the auto-priced part   | 53,218 €      | 196 € of 665,815 € | 0 €              | **0 €** of 786,171 €     | 0 €                    |
-| B2 planted traps found on their line      | 39 of 60      | 54 of 60           | 60 of 60         | **57 of 60**             | 59 of 60               |
-| B2 expected reviews found (recall)        | 72.8%         | 99 of 101 (98.0%)  | 92 of 92         | **84 of 90 (93.3%)**     | 100%                   |
-| B2 reviews raised that belong (precision) | 37.9%         | 99 of 168 (58.9%)  | 92 of 92         | **84 of 98 (85.7%)**     | 92.8%                  |
-| B3 shown numbers found at their source    | —             | 6,567 of 6,577     | 6,604 of 6,604   | 6,583 of 6,583           | —                      |
-| Model calls, cost, time                   | 0             | 787, $0.37, 7 min  | 880, $0.38       | 731, $0.34, 7 min        | 0                      |
+| Measure                                     | No reader     | First run          | Demo tender, now | Unseen, seed 119  | Unseen, seed 501 (newest) |
+| ------------------------------------------- | ------------- | ------------------ | ---------------- | ----------------- | ------------------------- |
+| Priced without a person (expected)          | 84.9% (92.1%) | 85.6% (91.4%)      | 92.1% (92.1%)    | 91.6% (92.3%)     | **91.9%** (92.3%)         |
+| B1 of those, rightly so                     | 97.5%         | 99.8%              | 100%             | 99.4%             | **100%**                  |
+| B1 euro error over the auto-priced part     | 53,218 €      | 196 € of 665,815 € | 0 €              | 0 € of 786,171 €  | **1,417 €** of 781,237 €  |
+| B2 planted traps found on their line        | 39 of 60      | 54 of 60           | 60 of 60         | 57 of 60          | **58 of 60**              |
+| B2 expected reviews found (recall)          | 72.8%         | 99 of 101 (98.0%)  | 92 of 92         | 84 of 90 (93.3%)  | **90 of 90**              |
+| B2 reviews raised that belong (precision)   | 37.9%         | 99 of 168 (58.9%)  | 92 of 92         | 84 of 98 (85.7%)  | **90 of 95 (94.7%)**      |
+| B3 numbers the readers took, at their place | —             | 6,567 of 6,577     | 6,604 of 6,604   | 6,583 of 6,583    | 6,676 of 6,676            |
+| Model calls, cost, time                     | 0             | 787, $0.37, 7 min  | replayed         | 731, $0.34, 7 min | 642, $0.29, 6 min         |
 
-- **No reader** reads no text: a line is for the position it names and for nothing else. That is what a few plain rules amount to, and it is the floor. **Perfect reader** answers every question from the ground truth and is the ceiling the checks and the triage can reach; it is a measuring device, never a pipeline step.
+- **No reader** reads no text: a line is for the position it names and for nothing else. That is what a few plain rules amount to, and it is the floor.
 - **First run** is the first full run on `claude-haiku-5-5`, before anything was changed in response to a result. It ran on an earlier state of the generator, which expected 1,069 and 101.
-- **Demo tender, now** is the tender in `data/seed/`, after the changes below. Its answers were bought once (880 calls) and are replayed from the answer cache.
-- **Unseen tender** is the one to judge by. See the next section.
+- **Demo tender, now** is the tender in `data/seed/`, after the changes below. Its answers were bought in earlier runs and are replayed from the answer cache, so `bench/results/b1_auto_pricing.json` shows a run with no calls. No file records what buying them cost; at the per-call cost of the recorded runs it is about 40 cents.
+- **Unseen, seed 119** was run once before the search was fixed (see below). **Unseen, seed 501** was run once after it, and is the column to judge by.
+- Both unseen runs took some answers from the cache: a question that reads the same on two tenders is asked once (382 of 1,113 answers on seed 119, 480 of 1,122 on seed 501). The same article in the same wording is the same question, so this is the cache working as designed, but it does mean the model answered fewer new questions than the tender has.
 
 ### What changed after the first run, and why the demo tender's score is not the headline
 
@@ -94,22 +95,50 @@ The first run was too cautious (168 reviews raised, 101 expected). Looking at wh
 3. **The model does not answer the same question the same way every time.** The long text of a position ends with where it is installed, so two positions for one article are two slightly different questions, and for a few of them the model left a line open, or called it a different product for a reason that made no sense (`Montageart: Aufputz` against the brand name `Tastwerk`). A line that names no position carries the quantities of all its positions added up, so its quantity can settle this: if whole groups of positions with the same short text add up to it, and only one choice of groups does, those are the line's positions. A difference found by arithmetic is never overruled this way.
 4. **The prompt** gained three sentences: lamp colour codes, near-identical variants to check before answering "same", and what counts as a pack size.
 
-With those, the demo tender agrees with its ground truth on every position. That says the pipeline _can be brought to_ agree with a tender it was worked on, not what it does unprepared. So a second tender was generated from another seed (119: other quantities, other lines trapped, other gaps in coverage), loaded, run once and scored, with nothing changed in between (`pnpm bench:heldout`). Its numbers are the bold column.
+With those, the demo tender agrees with its ground truth on every position. That says the pipeline _can be brought to_ agree with a tender it was worked on, not what it does unprepared. So a second tender was generated from another seed (119: other quantities, other lines trapped, other gaps in coverage), loaded, run once and scored (`pnpm bench:heldout`).
 
-### Where it fails on the unseen tender
+The order of these steps rests on file times, not on git: the M2 work was committed in three commits within one second, and the result files carry the id of a commit that does not contain the pipeline. The prompt file was also saved once more after the seed-119 run. The answer cache is keyed by a prompt version kept by hand, so nothing but that version number shows that the committed prompt is the one that answered.
 
-All 20 disagreements are in one title, lighting, and have one cause.
+### What the audit of M2 found in the search, and the fix
 
-- The specialist quoted one luminaire in place of another on three lines. A substituted line names no position, so it is recognised by its quantity: it has to equal what the positions it nearly matches add up to. Luminaires come in variants that share a short text (the same downlight in IP 20 and IP 44), and for these the quantities did not single out one group. Three substitutions went unnoticed, on 6 positions. Those positions are still priced at the valid offer, which is why the euro error is zero; what is lost is the question whether the cheaper, different luminaire would do.
-- The same lines then had quantities nothing accounted for, and 14 positions that ask for the article they do offer were sent to review with `QTY_MISMATCH`, needlessly.
-- A perfect reader on that tender still raises 7 needless reviews and misses one of the three. So this is a limit of attributing by quantity, not only of the model's reading. Telling such variants apart needs the long text compared attribute by attribute per position, which the answers already contain; using them for the grouping is the next thing to do here.
+The first write-up of the seed-119 run named one cause for every miss: luminaire variants that share a short text. The independent audit of M2 showed that this was wrong for the misses that matter.
+
+- **The real cause.** Where a supplier quotes one article in place of another, by article and with the quantities of all positions added up, the line's text leads to its own product and not to the positions it was quoted for. The search put only its three best lines per supplier to the model, and such a line was not among them. On seed 119 the specialist's 1500 mm pendant, quoted in place of a 625 mm panel on 7 positions, ranked seventh or eighth. No reader ever saw it, so no reader could have caught it.
+- **How general it was.** The search had been set by measuring it on the demo tender, where it happened to keep every true offer (722 of 722). On six other tenders it lost 6 to 11 of them each, and a perfect reader agreed with the ground truth on none of the six.
+- **The fix (ADR-45).** A line's quantity still says what it was quoted for: it is the total of exactly those positions. A line whose quantity is the total of one kind of position, and of at most two kinds in the whole tender, is now put to the model for that kind as well. Whether it is the right product is still read by the model and decided by the checks.
+- **What it did.** On those six tenders no true offer is lost any more, and a perfect reader agrees with the truth on every position of five. The sixth has a line quoted for part of a kind beside another line of the same supplier, which the rule that a kind stands or falls together cannot resolve.
+
+`pnpm bench:seeds` runs the two model-free readers on other tenders, without writing anything and without a model. On eight tenders nobody had looked at (seeds 431 to 438), after the fix:
+
+| Perfect reader, eight unseen tenders                            | Result                                                        |
+| --------------------------------------------------------------- | ------------------------------------------------------------- |
+| True offers the search never showed to a reader                 | 0 on all eight                                                |
+| Tenders where it agrees with the ground truth on every position | 6 of 8                                                        |
+| Seed 432                                                        | prices 7 positions that needed a person, finds 59 of 60 traps |
+| Seed 437                                                        | raises 5 needless reviews, finds 59 of 60 traps               |
+
+So the checks and the attribution still fail on some tenders even when the reading is flawless. Seeds 432 and 437 have not been looked into; whoever does should measure the next change on other seeds.
+
+Three of the audited seeds are now a test in `pnpm check` (`bench/src/seeds.test.ts`): the search must show every true offer to a reader, and a perfect reader must price nothing that needed a person.
+
+### Where it fails on the newest unseen tender (seed 501)
+
+Every position it priced by itself was one the truth also prices without a person, and every expected review was raised. What went wrong:
+
+- **Seven positions are priced at a clean offer that is not the cheapest: 1,417 € too high.** Six of them ask for a 1500 mm light-band carrier with DALI. The specialist quoted it by article; the same carrier without DALI is tendered too, with the same wording up to the last word. The line was attributed to the positions without DALI, where it counted as a second, valid offer, and the positions with DALI lost their cheapest offer and were priced with the next one. The seventh is a bollard luminaire whose by-article line was not recognised.
+- **Two traps were missed for the same reason:** the DALI carrier was planted as a substitution on two positions without DALI, and was taken for the right product there.
+- **Five needless reviews.** Two follow from the same lines (`QTY_MISMATCH`: the quantities no longer add up once a line sits with the wrong kind). Three are the model leaving a line open that names its position: two circuit breakers and a cable quoted in two part quantities.
+
+So luminaire variants that differ in one word remain the weak spot, as the first write-up said; it was just not the cause of what that write-up blamed on it. The error is on the safe side in money (a dearer clean offer, never an unclean one), but it is an error.
 
 ### Other limits of these numbers
 
-- **The unseen tender is unseen in its numbers, not in its language.** It comes from the same generator and catalogue, so the model had seen the same articles and the same ways of abbreviating them. Real offers vary far more.
+- **The unseen tenders are unseen in their numbers, not in their language.** They come from the same generator and catalogue, so the model had seen the same articles and the same ways of abbreviating them. Real offers vary far more.
 - **The benchmarks score the pipeline against the generator that wrote the data.** They share no code beyond the file readers, and the pipeline never reads `truth.json`, but the notion of what a trap is comes from one head.
-- **The search was set by measuring it here.** How many lines without a reference are put to the model per supplier (3), and the rule that drops a result scoring under half of what its line reaches elsewhere, were chosen because they kept every true offer on this tender (722 of 722) while dropping two thirds of the rest.
-- **B3 is exact match now.** A rectangle has to hold the number and nothing else, for quantity, price, price unit, list price, discount and total of every offer line, and for every position's quantity. It says the number is where the interface points; it does not say the number is right.
+- **The attribution leans on how the generator writes by-article lines** (audit, D2): their quantities are exact totals, rounded quantities are planted only on lines for a single position, and the pipeline's allowance for rounding (30%) is the generator's. A supplier who rounds a by-article total would defeat it.
+- **Quotes and values are checked by substring** (audit, D3). A pack size "10" is accepted with the quote "(100 m/Ring)", and "50 A" with the quote "250 A". The planted cases are caught by other checks; the path is open.
+- **A review counts as found whatever its reason,** and a position priced where a person should have looked adds only the price difference to the euro error (audit, D7).
+- **B3 covers what the readers took from the files:** quantity, price, price unit, list price, discount and total of every offer line, and every position's quantity. A rectangle has to hold the number and nothing else. It is the same for any run. Figures worked out from those (a price per metre from a price per 100 m, a total for the tender's quantity, the euros at stake) are not covered, and neither are the values the model compared.
 - **Labor is not priced yet.** The run prices material. The labor time table is loaded and waits for M3.
 
 ## Honesty notes
