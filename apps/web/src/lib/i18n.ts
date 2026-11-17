@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from 'react'
 import { formatQty } from './format'
+import { noteLocale } from './locale'
+import type { Locale } from './locale'
 
-export type Locale = 'de' | 'en'
+export type { Locale } from './locale'
 
 const STORAGE_KEY = 'preisspiegel:locale'
 const DEFAULT_LOCALE: Locale = 'de'
@@ -50,7 +52,6 @@ const de = {
   'ledger.quote.clean': '{supplier}: {total} €, ohne Befund.',
   'ledger.quote.flagged': '{supplier}: {total} €, mit Befund.',
   'ledger.quote.none': '{supplier}: kein Preis.',
-  'reasons.title': 'Warum eine Entscheidung nötig ist',
   'shares.title': 'Mit wem kalkuliert ist',
 
   'overview.empty.title': 'Noch keine Ausschreibung geladen',
@@ -69,6 +70,7 @@ const de = {
   'facade.open': 'Position öffnen',
   'facade.caption': 'Jedes Fenster ist eine Position.',
   'facade.openHead': 'offen',
+  'key.hold': 'Auf dem Gebäude zeigen; ein Klick hält es fest',
   'facade.titles': 'Die Titel des Leistungsverzeichnisses',
 
   'run.done':
@@ -106,6 +108,7 @@ const de = {
   'pos.source': 'Im Leistungsverzeichnis zeigen',
   'pos.quantity': 'Menge laut Leistungsverzeichnis',
   'pos.asked': 'Was verlangt ist',
+  'pos.wording': 'Im Wortlaut des Leistungsverzeichnisses.',
   'pos.where': 'Wo die Position im Gebäude liegt: {where}. Zur Übersicht.',
 
   'decision.auto': 'Ohne Rückfrage kalkuliert',
@@ -211,8 +214,8 @@ const en: Record<MessageKey, string> = {
     'Demo. The project, the companies and the numbers are invented.',
 
   'nav.overview': 'Overview',
-  'nav.positions': 'Positions',
-  'nav.jump': 'Find a position',
+  'nav.positions': 'Items',
+  'nav.jump': 'Find an item',
   'nav.main': 'Main navigation',
 
   'theme.toLight': 'Switch to the light theme',
@@ -222,10 +225,10 @@ const en: Record<MessageKey, string> = {
   'overview.project': '{lot}, project {no}',
   'overview.lead':
     '{bidder} is pricing the bid for {client}. {n} suppliers have answered.',
-  'overview.open': 'Open positions',
+  'overview.open': 'Open items',
   'overview.decide': 'Open the decisions',
-  'overview.all': 'All positions',
-  'overview.priced': 'of {total} positions are priced.',
+  'overview.all': 'All items',
+  'overview.priced': 'of {total} items are priced.',
   'overview.wait.one': 'is waiting for a decision',
   'overview.wait.many': 'are waiting for a decision',
   'overview.stake.before': 'with',
@@ -234,9 +237,9 @@ const en: Record<MessageKey, string> = {
   'ledger.title': 'The costliest decisions',
   'ledger.body':
     'What a decision is worth: the gap between the cheapest offer with something found on it and the cheapest one without. Where no offer is without a finding, the whole amount.',
-  'ledger.several': '{n} positions: {where}',
+  'ledger.several': '{n} items: {where}',
   'ledger.all': 'All {n} decisions',
-  'ledger.col.position': 'Position',
+  'ledger.col.position': 'Item',
   'ledger.col.quotes': 'The offers',
   'ledger.col.worth': 'At stake',
   'ledger.key':
@@ -244,75 +247,75 @@ const en: Record<MessageKey, string> = {
   'ledger.quote.clean': '{supplier}: {total} €, nothing found.',
   'ledger.quote.flagged': '{supplier}: {total} €, with a finding.',
   'ledger.quote.none': '{supplier}: no price.',
-  'reasons.title': 'Why a decision is needed',
   'shares.title': 'Who it is priced with',
 
   'overview.empty.title': 'No tender loaded yet',
   'overview.empty.body':
-    'pnpm seed load reads in the demo tender: the Leistungsverzeichnis and three supplier offers.',
+    'pnpm seed load reads in the demo tender: the bill of quantities and three supplier offers.',
 
   'facade.label':
-    'Front of the building with one window per position: {total} windows, {priced} priced, {open} need a decision.',
-  'facade.hint': 'The arrow keys choose a window, Enter opens the position.',
+    'Front of the building with one window per item: {total} windows, {priced} priced, {open} need a decision.',
+  'facade.hint': 'The arrow keys choose a window, Enter opens the item.',
   'facade.house': 'House',
   'facade.state.priced': 'priced',
   'facade.state.open': 'needs a decision',
   'facade.state.read': 'read, not decided yet',
   'facade.state.off': 'not read yet',
-  'facade.open': 'Open position',
-  'facade.caption': 'Every window is a position.',
+  'facade.open': 'Open item',
+  'facade.caption': 'Every window is an item.',
   'facade.openHead': 'open',
-  'facade.titles': 'The titles of the Leistungsverzeichnis',
+  'key.hold': 'Show on the building; a click holds it',
+  'facade.titles': 'The sections of the bill of quantities',
 
   'run.done':
     'Run of {date} with {model}: {calls} questions read, {cached} answers were already there, {usd}\u00a0$.',
   'run.reading.before': 'A run is reading the offers:',
-  'run.reading.after': 'of {total} positions.',
+  'run.reading.after': 'of {total} items.',
   'run.deciding':
-    'Everything is read. The positions are being checked and decided.',
+    'Everything is read. The items are being checked and decided.',
   'run.stopped': 'The last run was stopped: {note}',
   'run.failed': 'The last run failed: {note}',
   'run.none':
-    'No run yet. A run reads the offers and decides every position; it is started with pnpm bench --start.',
+    'No run yet. A run reads the offers and decides every item; it is started with pnpm bench --start.',
 
-  'positions.one': 'position',
-  'positions.many': 'positions',
+  'positions.one': 'item',
+  'positions.many': 'items',
 
-  'list.search': 'Ordnungszahl or text',
-  'list.none': 'No position matches the search.',
+  'list.search': 'Item number or text',
+  'list.none': 'No item matches the search.',
   'list.clearTitle': 'Clear filter',
   'list.all': 'All',
   'list.open': 'Open',
-  'list.show': 'Which positions to show',
-  'list.noneOpen': 'No position needs a decision.',
+  'list.show': 'Which items to show',
+  'list.noneOpen': 'No item needs a decision.',
   'list.status.a': 'priced',
   'list.status.r': 'needs a decision',
 
-  'pos.back': 'All positions',
+  'pos.back': 'All items',
   'pos.readMore': 'Read all',
   'pos.readLess': 'Less',
   'pos.offers': 'The offers',
   'pos.offersHint': 'Every underlined number leads to its source.',
-  'pos.notFound': 'There is no such position in the Leistungsverzeichnis.',
-  'pos.previous': 'Previous position',
-  'pos.next': 'Next position',
-  'pos.source': 'Show in the Leistungsverzeichnis',
-  'pos.quantity': 'Quantity in the Leistungsverzeichnis',
+  'pos.notFound': 'There is no such item in the bill of quantities.',
+  'pos.previous': 'Previous item',
+  'pos.next': 'Next item',
+  'pos.source': 'Show in the bill of quantities',
+  'pos.quantity': 'Quantity in the bill of quantities',
   'pos.asked': 'What is asked for',
-  'pos.where':
-    'Where the position is in the building: {where}. To the overview.',
+  'pos.wording': "In the tender's own words, which are German.",
+  'pos.where': 'Where the item is in the building: {where}. To the overview.',
 
   'decision.auto': 'Priced without asking',
   'decision.auto.body':
     '{supplier} offers the lowest price: {price} € per {unit}, {total} € in all.',
   'decision.review': 'Needs a decision',
   'decision.review.cheaper':
-    'The cheapest offer has a finding. With the cheapest valid one the position costs {atRisk} € more.',
+    'The cheapest offer has a finding. With the cheapest valid one the item costs {atRisk} € more.',
   'decision.review.only':
     'No offer is without a finding. {atRisk} € are at stake.',
   'decision.review.unpriced':
     'One offer cannot be converted to {unit} and so cannot be compared.',
-  'decision.review.none': 'No supplier offered this position.',
+  'decision.review.none': 'No supplier offered this item.',
   'decision.noted': 'Seen, without consequence for the price: {reasons}.',
 
   'reason.SPEC_MISMATCH': 'Not what was specified',
@@ -334,12 +337,12 @@ const en: Record<MessageKey, string> = {
   'finding.QTY_MISMATCH': '{asked} tendered, {offered} offered.',
   'finding.ALTERNATIVE_PRODUCT': 'Marked as another make.',
   'finding.AMBIGUOUS':
-    'The supplier answers the position on {lines} lines at different prices.',
+    'The supplier answers the item on {lines} lines at different prices.',
   'finding.AMBIGUOUS.unconfirmed':
-    'Whether this line is for the position could not be settled from the two texts.',
+    'Whether this line is for the item could not be settled from the two texts.',
   'finding.PRICE_OUTLIER':
     '{price} € per unit. The nearest offer is {others} €.',
-  'finding.NO_OFFER': 'No supplier offered this position.',
+  'finding.NO_OFFER': 'No supplier offered this item.',
 
   'offer.articleNo': 'Article number',
   'offer.qty': 'Quantity',
@@ -349,15 +352,15 @@ const en: Record<MessageKey, string> = {
   'offer.list': 'List price',
   'offer.discount': 'Discount',
   'offer.alternative': 'Offered as an alternative',
-  'offer.noLine': 'No line names this position.',
+  'offer.noLine': 'No line names this item.',
   'offer.noRefs':
-    'This offer gives no Ordnungszahl. Its lines are matched from the text.',
-  'offer.second': 'A second line for the same position',
+    'This offer gives no item numbers. Its lines are matched from the text.',
+  'offer.second': 'A second line for the same item',
   'offer.show': 'Show details',
   'offer.hide': 'Hide details',
   'offer.chosen': 'Cheapest valid offer',
   'offer.compared': 'Compared',
-  'offer.tenderWording': 'In the wording of the Leistungsverzeichnis',
+  'offer.tenderWording': 'In the wording of the bill of quantities',
   'offer.agrees': 'equals',
   'offer.differs': 'does not equal',
   'offer.details': 'Details',
@@ -367,7 +370,7 @@ const en: Record<MessageKey, string> = {
   'gauge.less': '{gap} {unit} less than asked for',
   'gauge.more': '{gap} {unit} more than asked for',
   'offer.byQuantity': 'Assigned by its quantity',
-  'offer.sameText': "Repeats the position's own text",
+  'offer.sameText': "Repeats the item's own text",
 
   'source.title': 'Source',
   'source.page': 'Page {page} of {pages}',
@@ -377,7 +380,7 @@ const en: Record<MessageKey, string> = {
   'source.failed': 'The document could not be loaded.',
   'source.close': 'Close source',
 
-  'field.posRef': 'Position reference',
+  'field.posRef': 'Item reference',
   'field.articleNo': 'Article number',
   'field.text': 'Wording',
   'field.description': 'Description',
@@ -389,7 +392,7 @@ const en: Record<MessageKey, string> = {
   'field.discountPct': 'Discount',
   'field.total': 'Total',
 
-  'palette.placeholder': 'Ordnungszahl or text',
+  'palette.placeholder': 'Item number or text',
   'palette.hint': 'Enter opens, Esc closes',
   'palette.empty': 'Nothing found.',
 
@@ -427,7 +430,14 @@ export function setLocale(locale: Locale): void {
 
 /** The active locale. The server always renders German; the client corrects it. */
 export function useLocale(): Locale {
-  return useSyncExternalStore(subscribe, readLocale, () => DEFAULT_LOCALE)
+  const locale = useSyncExternalStore(
+    subscribe,
+    readLocale,
+    () => DEFAULT_LOCALE,
+  )
+  // The formatters follow the language of the render they are called in.
+  noteLocale(locale)
+  return locale
 }
 
 export type Translate = (

@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { BLOCK, layoutFacade, outline, paneStates, place } from '~/lib/facade'
 import { useT } from '~/lib/i18n'
 import { statusesQuery } from '~/lib/queries'
+import { useTenderText } from '~/lib/tenderText'
 import type { Tender } from '~/lib/queries'
 
 const round = (value: number) => Math.round(value * 10) / 10
@@ -15,6 +16,7 @@ const round = (value: number) => Math.round(value * 10) / 10
  */
 export function Locator({ tender, seq }: { tender: Tender; seq: number }) {
   const t = useT()
+  const said = useTenderText()
   const { data: statuses } = useQuery(statusesQuery)
   const input = useMemo(
     () => ({
@@ -40,8 +42,10 @@ export function Locator({ tender, seq }: { tender: Tender; seq: number }) {
   const where = [
     spot === undefined || spot.storey < 0
       ? t('facade.house')
-      : tender.storeys[spot.storey],
-    spot === undefined ? undefined : tender.titles[spot.title]?.label,
+      : said.storey(tender.storeys[spot.storey] ?? ''),
+    spot === undefined
+      ? undefined
+      : said.heading(tender.titles[spot.title]?.label ?? ''),
   ]
     .filter(Boolean)
     .join(', ')
@@ -77,17 +81,17 @@ export function Locator({ tender, seq }: { tender: Tender; seq: number }) {
           height={round(wall.height)}
           className="fill-wall"
         />
-        <path d={drawn.all} className="fill-pane-off" />
+        <path d={drawn.all} className="fill-glass-off" />
         <path
           d={drawn.lit}
-          className="fill-pane opacity-35 transition-opacity duration-200 group-hover:opacity-60"
+          className="fill-glass opacity-35 transition-opacity duration-200 group-hover:opacity-60"
         />
-        <path d={drawn.open} className="fill-open opacity-60" />
+        <path d={drawn.open} className="fill-glass-open opacity-60" />
         {/* Two hairlines that cross on the window, and the window itself,
             drawn larger than life so it can be found. */}
         <path
           d={`M${round(wall.x)} ${round(y)}H${round(x - mark)}M${round(x + mark)} ${round(y)}H${round(wall.x + wall.width)}M${round(x)} ${round(wall.y)}V${round(y - mark)}M${round(x)} ${round(y + mark)}V${round(wall.y + wall.height)}`}
-          className="stroke-ink-2"
+          className="stroke-on-wall-2"
           strokeWidth="2.5"
           fill="none"
         />
@@ -96,7 +100,7 @@ export function Locator({ tender, seq }: { tender: Tender; seq: number }) {
           y={round(y - mark + 6)}
           width={round(2 * mark - 12)}
           height={round(2 * mark - 12)}
-          className="fill-ink"
+          className="fill-on-wall"
           rx="3"
         />
       </svg>

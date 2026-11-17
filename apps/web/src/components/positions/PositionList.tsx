@@ -7,6 +7,7 @@ import { reasonLabel } from '~/lib/findings'
 import { formatMoney, formatQty, unitLabel } from '~/lib/format'
 import { positionsText, useT } from '~/lib/i18n'
 import { filterPositions } from '~/lib/positionSearch'
+import { itemInEnglish, useTenderText } from '~/lib/tenderText'
 import type { PositionRow, ReviewItem } from '~/lib/queries'
 
 type Item =
@@ -84,7 +85,8 @@ export function PositionList({
     return (queue ?? [])
       .filter((item) => title === undefined || item.oz.startsWith(title))
       .filter((item) => {
-        const haystack = `${item.oz} ${item.shortText}`.toLowerCase()
+        const haystack =
+          `${item.oz} ${item.shortText} ${itemInEnglish(item.shortText)}`.toLowerCase()
         return words.every((word) => haystack.includes(word))
       })
       .map((item) => ({ kind: 'decision', key: item.oz, item }))
@@ -303,18 +305,21 @@ function ListItem({
   statuses: string | null
 }) {
   const t = useT()
+  const said = useTenderText()
   if (item.kind === 'title') {
     return (
       <div className="flex h-full items-end gap-2.5 px-4 pb-2">
         <span className="code text-[0.8rem] text-lamp-ink">{item.rno}</span>
-        <span className="heading truncate text-[1rem]">{item.label}</span>
+        <span className="heading truncate text-[1rem]">
+          {said.heading(item.label)}
+        </span>
       </div>
     )
   }
   if (item.kind === 'subtitle') {
     return (
       <div className="caption flex h-full items-center gap-2 px-4">
-        <span className="truncate">{item.label}</span>
+        <span className="truncate">{said.heading(item.label)}</span>
       </div>
     )
   }
@@ -348,7 +353,7 @@ function ListItem({
               active ? 'font-medium' : ''
             }`}
           >
-            {decision.shortText}
+            {said.item(decision.shortText)}
           </span>
           <span className="mt-1.5 flex items-center gap-1.5 text-[0.8rem] leading-none text-open-ink">
             <span
@@ -401,7 +406,7 @@ function ListItem({
             active ? 'font-medium' : ''
           }`}
         >
-          {row.shortText}
+          {said.item(row.shortText)}
         </span>
       </span>
       <span className="num relative whitespace-nowrap text-right text-[0.84rem] text-ink-2">

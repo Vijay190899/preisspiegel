@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { reasonLabel } from '~/lib/findings'
 import { formatMoney, formatQty } from '~/lib/format'
 import { useT } from '~/lib/i18n'
+import { useTenderText } from '~/lib/tenderText'
 import type { CSSProperties } from 'react'
 import type { ReviewItem, TenderDocument } from '~/lib/queries'
 
@@ -55,6 +56,7 @@ export function Decisions({
   storeyOf: (seq: number) => string | null
 }) {
   const t = useT()
+  const said = useTenderText()
   return (
     <div>
       <div className="ledger-head" aria-hidden="true">
@@ -90,7 +92,7 @@ export function Decisions({
                 </span>
                 <span className="min-w-0 [grid-area:text]">
                   <span className="line-clamp-2 text-[1.02rem] font-medium leading-snug text-ink">
-                    {lead.shortText}
+                    {said.item(lead.shortText)}
                   </span>
                   <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[0.88rem] text-ink-2">
                     <span

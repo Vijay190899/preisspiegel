@@ -18,7 +18,12 @@ export interface FindingText {
   arithmetic?: string
 }
 
-export function findingText(t: Translate, finding: Finding): FindingText {
+export function findingText(
+  t: Translate,
+  finding: Finding,
+  /** How an attribute's name is said in the page's language. */
+  attribute: (name: string) => string = (name) => name,
+): FindingText {
   const { code, detail } = finding
   const unconfirmed = detail.unconfirmed !== undefined
 
@@ -27,7 +32,7 @@ export function findingText(t: Translate, finding: Finding): FindingText {
       if (unconfirmed) return { text: t('finding.SPEC_MISMATCH.unconfirmed') }
       return {
         text: t('finding.SPEC_MISMATCH', {
-          attribute: String(detail.attribute ?? ''),
+          attribute: attribute(String(detail.attribute ?? '')),
           tender: String(detail.tender ?? ''),
           offer: String(detail.offer ?? ''),
         }),
