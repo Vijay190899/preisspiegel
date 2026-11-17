@@ -207,7 +207,14 @@ function Overview() {
               <h2 id="costly" className="heading text-[1.75rem]">
                 {t('ledger.title')}
               </h2>
-              <p className="mt-2 max-w-[52ch] text-ink-2">{t('ledger.body')}</p>
+              <p className="mt-2 max-w-[60ch] text-ink-2">{t('ledger.body')}</p>
+              <p className="caption mt-2 max-w-[70ch]">
+                {t('ledger.key', {
+                  suppliers: suppliers
+                    .map((supplier) => supplier.supplierName ?? supplier.key)
+                    .join(', '),
+                })}
+              </p>
               <div className="mt-7">
                 <Decisions
                   groups={groupDecisions(queue).slice(0, LISTED)}

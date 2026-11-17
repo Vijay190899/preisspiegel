@@ -43,7 +43,10 @@ const de = {
   'ledger.several': '{n} Positionen: {where}',
   'ledger.all': 'Alle {n} Entscheidungen',
   'ledger.col.position': 'Position',
+  'ledger.col.quotes': 'Die Angebote',
   'ledger.col.worth': 'Im Spiel',
+  'ledger.key':
+    'Die Balken zeigen, was jeder Lieferant für die ganze Menge verlangt, von oben nach unten: {suppliers}. Rot ist ein Angebot mit Befund.',
   'ledger.quote.clean': '{supplier}: {total} €, ohne Befund.',
   'ledger.quote.flagged': '{supplier}: {total} €, mit Befund.',
   'ledger.quote.none': '{supplier}: kein Preis.',
@@ -234,7 +237,10 @@ const en: Record<MessageKey, string> = {
   'ledger.several': '{n} positions: {where}',
   'ledger.all': 'All {n} decisions',
   'ledger.col.position': 'Position',
+  'ledger.col.quotes': 'The offers',
   'ledger.col.worth': 'At stake',
+  'ledger.key':
+    'The bars show what each supplier asks for the whole quantity, from top to bottom: {suppliers}. Red is an offer with a finding.',
   'ledger.quote.clean': '{supplier}: {total} €, nothing found.',
   'ledger.quote.flagged': '{supplier}: {total} €, with a finding.',
   'ledger.quote.none': '{supplier}: no price.',

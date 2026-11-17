@@ -55,16 +55,13 @@ export function Decisions({
   storeyOf: (seq: number) => string | null
 }) {
   const t = useT()
-  // The bars stand in the suppliers' order; the head says which is which.
-  const order = suppliers
-    .map((supplier) => (supplier.supplierName ?? supplier.key).split(' ')[0])
-    .join(' · ')
-
   return (
     <div>
       <div className="ledger-head" aria-hidden="true">
         <span className="[grid-area:oz]">{t('ledger.col.position')}</span>
-        <span className="hidden [grid-area:quotes] sm:block">{order}</span>
+        <span className="hidden [grid-area:quotes] sm:block">
+          {t('ledger.col.quotes')}
+        </span>
         <span className="text-right [grid-area:sum]">
           {t('ledger.col.worth')}
         </span>
