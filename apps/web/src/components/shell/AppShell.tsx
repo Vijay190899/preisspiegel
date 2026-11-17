@@ -8,9 +8,13 @@ import { CommandPalette, openPalette } from './CommandPalette'
 import type { ReactNode } from 'react'
 import type { MessageKey } from '~/lib/i18n'
 
-const TABS: Array<{ to: '/' | '/positionen'; label: MessageKey }> = [
+const TABS: Array<{
+  to: '/' | '/positionen' | '/kalkulation'
+  label: MessageKey
+}> = [
   { to: '/', label: 'nav.overview' },
   { to: '/positionen', label: 'nav.positions' },
+  { to: '/kalkulation', label: 'nav.costing' },
 ]
 
 const iconButton =
@@ -27,7 +31,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = locale
   }, [locale])
-  const active = pathname.startsWith('/positionen') ? '/positionen' : '/'
+  const active = pathname.startsWith('/positionen')
+    ? '/positionen'
+    : pathname.startsWith('/kalkulation')
+      ? '/kalkulation'
+      : '/'
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -51,13 +59,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
 
-          <nav aria-label={t('nav.main')} className="flex items-center gap-0.5">
+          {/* On a narrow screen the tabs give way, not the controls: they
+              can be pushed sideways, and what is at the right stays put. */}
+          <nav
+            aria-label={t('nav.main')}
+            className="tabs flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto sm:flex-none sm:overflow-visible"
+          >
             {TABS.map((tab) => (
               <Link
                 key={tab.to}
                 to={tab.to}
                 aria-current={active === tab.to ? 'page' : undefined}
-                className={`relative rounded-control px-3 py-1.5 text-[0.94rem] font-medium transition-colors duration-150 ${
+                className={`relative shrink-0 rounded-control px-2.5 py-1.5 text-[0.9rem] font-medium transition-colors duration-150 sm:px-3 sm:text-[0.94rem] ${
                   active === tab.to ? 'text-ink' : 'text-ink-3 hover:text-ink'
                 }`}
               >
@@ -74,12 +87,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={openPalette}
               aria-label={t('nav.jump')}
-              className="flex h-9 items-center gap-2 rounded-control border border-line bg-surface/70 px-2.5 text-[0.9rem] text-ink-3 transition-colors duration-150 hover:border-line-strong hover:text-ink sm:mr-1"
+              className="hidden h-9 items-center gap-2 rounded-control border border-line bg-surface/70 px-2.5 text-[0.9rem] text-ink-3 transition-colors duration-150 hover:border-line-strong hover:text-ink sm:mr-1 sm:flex"
             >
               <Search size={15} aria-hidden />
               <span className="hidden md:inline">{t('nav.jump')}</span>

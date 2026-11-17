@@ -29,6 +29,7 @@
   --color-lamp: var(--t-lamp);
   --color-lamp-ink: var(--t-lamp-ink);
   --color-lamp-soft: var(--t-lamp-soft);
+  --color-copper: var(--t-copper);
 
   --color-wall: var(--t-wall);
   --color-roof: var(--t-roof);
@@ -442,6 +443,51 @@
     margin: 0 -0.75rem;
     border-radius: 8px;
     transition: background-color var(--t-dur-fast) var(--t-ease);
+  }
+
+  /* A cable in the list of where the copper is. */
+  .cable-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'oz length sum'
+      'text text text';
+    align-items: center;
+    gap: 0.3rem 1.5rem;
+    padding: 0.8rem 0.75rem;
+    margin: 0 -0.75rem;
+    border-radius: 8px;
+  }
+
+  .ledger-hover {
+    transition: background-color var(--t-dur-fast) var(--t-ease);
+  }
+
+  .ledger-hover:hover {
+    background: color-mix(in oklab, var(--t-ink) 5%, transparent);
+  }
+
+  @media (min-width: 640px) {
+    .cable-row {
+      grid-template-columns: 6.25rem minmax(0, 1fr) 6rem 7rem 8rem;
+      grid-template-areas: 'oz text length copper sum';
+    }
+  }
+
+  /* The tabs can be pushed sideways on a phone; no bar is drawn for it. */
+  .tabs {
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* The control for the day's copper price: the page's one instrument. */
+  .copper-control {
+    height: 2rem;
+    accent-color: var(--t-copper);
+    cursor: ew-resize;
   }
 
   /* The names of the ledger's columns, set on the same grid as its lines. */

@@ -42,6 +42,8 @@
   --t-lamp: #e39a2e;
   --t-lamp-ink: #885100;
   --t-lamp-soft: #fbeed6;
+  /* Copper itself: the surcharge on cable. */
+  --t-copper: #a9551f;
 
   /*
    * The scene: sky from the top of the page down to the horizon, the far
@@ -147,6 +149,7 @@
   --t-lamp: #ffcf8a;
   --t-lamp-ink: #ffd59b;
   --t-lamp-soft: #2b2113;
+  --t-copper: #e08a4f;
 
   --t-sky-top: #04070d;
   --t-sky: #13233f;
