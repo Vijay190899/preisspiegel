@@ -6,15 +6,15 @@ Tender pricing for electrical contractors: a Leistungsverzeichnis and supplier o
 
 **Find the cheapest check that actually proves the change works, run it, and only then move on, including between steps of one task.**
 
-| Change                                          | Sufficient check                                                                                                                            |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pure logic (`packages/core`, `llm/registry.ts`) | targeted `pnpm exec vitest run <file>` + `pnpm lint` + `pnpm typecheck`                                                                     |
-| Convex function                                 | push to the local deployment, `pnpm -C services/backend exec convex run <module>:<fn>`, assert the result shape                             |
-| Parser or generator                             | round-trip test; same seed gives byte-identical output                                                                                      |
-| Pipeline or agent step                          | run the 120-position subset; check reason codes, ledger total and spend against `RUN_MAX_USD`                                               |
-| LLM code                                        | one real call: check `stop_reason`, tokens and $ in the ledger, `cache_read_input_tokens > 0` on the repeat call                            |
-| UI                                              | `pnpm shots <path>` (four widths, light and dark, zero console errors, no overflow), then look at the images. `pnpm probe:ui` for behaviour |
-| Docs or config                                  | links resolve, JSON and YAML parse                                                                                                          |
+| Change                                          | Sufficient check                                                                                                                                                                                    |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pure logic (`packages/core`, `llm/registry.ts`) | targeted `pnpm exec vitest run <file>` + `pnpm lint` + `pnpm typecheck`                                                                                                                             |
+| Convex function                                 | push to the local deployment, `pnpm -C services/backend exec convex run <module>:<fn>`, assert the result shape                                                                                     |
+| Parser or generator                             | round-trip test; same seed gives byte-identical output                                                                                                                                              |
+| Pipeline or agent step                          | unit test in `packages/core`, then `pnpm bench:replay` (stored answers, no model). A trial run: `convex run agent/run:start '{"slug":"demo","limit":120}'`; check reason codes and the ledger total |
+| LLM code                                        | one real call: check `stop_reason`, tokens and $ in the ledger, `cache_read_input_tokens > 0` on the repeat call                                                                                    |
+| UI                                              | `pnpm shots <path>` (four widths, light and dark, zero console errors, no overflow), then look at the images. `pnpm probe:ui` for behaviour                                                         |
+| Docs or config                                  | links resolve, JSON and YAML parse                                                                                                                                                                  |
 
 Rules:
 
@@ -39,7 +39,7 @@ Rules:
 - `services/backend`: Convex (functions in `convex/`).
 - `packages/core`: pure logic shared by backend, bench and generator. No runtime-specific imports.
 - `data`: seeded tender generator. `bench`: benchmarks and the provider probe.
-- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm seed` · `pnpm shots` · `pnpm probe:ui` · `pnpm probe:llm` · `pnpm env:push`. `pnpm bench` arrives with M2.
+- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm seed` · `pnpm shots` · `pnpm probe:ui` · `pnpm probe:llm` · `pnpm env:push` · `pnpm bench` · `pnpm bench:replay` · `pnpm bench:heldout`.
 - `pnpm seed generate` rewrites `data/seed/` and must be re-run whenever the generator changes; a test fails if the committed files are stale. `pnpm seed load` needs `pnpm dev` running.
 - Convex runs as a local deployment with no account in development. In a shell without a Convex login, set `CONVEX_AGENT_MODE=anonymous` for the first `convex dev`.
 
@@ -53,6 +53,8 @@ Rules:
 - Every LLM call goes through the ledger and the daily budget guard.
 - Secrets live in `.env.local` and the Convex deployment env. Never in prompts, logs or commits.
 - **The pipeline never reads `data/seed/truth.json`.** Only the benchmarks do.
+- **`pnpm bench --start` and `pnpm bench:heldout` call the model and cost money** (about 40 cents a full run). Try a change with `pnpm bench:replay` first. Never tune anything against the held-out tender; if it is looked at for a fix, generate a new one for the next number.
+- A change to the matcher's instructions changes `PROMPT_VERSION` in `agent/prompt.ts`, which starts a new answer cache.
 - **Fictional names only.** No real company's name, branding or copy in the UI, the README or the docs. All data is synthetic and labelled as such.
 - In Convex code, read configuration from the typed `env` export, never `process.env`.
 

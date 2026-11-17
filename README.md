@@ -8,7 +8,7 @@
 
 > An independent portfolio project. The contractor, the suppliers and the tender are fictional, and all data is synthetic ([docs/DATA.md](docs/DATA.md)).
 
-**Status: in progress.** The foundations (M0) and the data and parsers (M1) are built: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps, read back by a GAEB reader and a PDF table reader that keep the source of every number. The interface is being built alongside: the tender drawn as a single-line diagram, a searchable list of all positions, and the source of every number one click away, with the supplier's PDF opened at the page a price was read from and the value marked. The matching pipeline, the review queue and the public demo follow in M2 to M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
+**Status: in progress.** Built so far: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; a GAEB reader and a PDF table reader that keep the source of every number; the matching pipeline with its agent runtime; the benchmarks below; and an interface that draws the tender as a single-line diagram, lists what needs a decision by the euros at stake, and opens the supplier's PDF at the place a price was read. Labor pricing, the copper surcharge, run replay and the public demo follow in M3 and M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
 
 ## What it will demonstrate
 
@@ -22,14 +22,24 @@
 
 ## Benchmarks
 
-Arrive with milestone M2, measured against ground truth from the generator and committed to [`bench/results/`](bench/results) with provider, model IDs, seeds, n and git SHA.
+Measured against ground truth from the generator and committed to [`bench/results/`](bench/results) with provider, model IDs, seed, n and git SHA. The model is `claude-haiku-5-5` at effort `low`; a full run costs about 40 cents.
 
-| ID  | Measures                                                                       |
-| --- | ------------------------------------------------------------------------------ |
-| B1  | Auto-priced share, auto-accept precision, euro error in auto-accepted lines    |
-| B2  | Trap recall per trap type, review-queue precision                              |
-| B3  | Displayed numbers that resolve to a source region containing that value        |
-| B4  | Matcher alone vs matcher plus escalation: queue size, precision, cost and time |
+The prompt and the checks were worked on while looking at the demo tender, so the column to judge by is the **unseen tender**: generated from another seed, run once, scored, with nothing changed in between.
+
+| ID  | Measures                                                  | No reader | First run      | Unseen tender        |
+| --- | --------------------------------------------------------- | --------- | -------------- | -------------------- |
+| B1  | Positions priced without a person (expected)              | 84.9%     | 85.6% (91.4%)  | **91.6%** (92.3%)    |
+| B1  | of those, rightly so                                      | 97.5%     | 99.8%          | **99.4%**            |
+| B1  | Euro error over what was priced without a person          | 53,218 €  | 196 €          | **0 €** of 786,171 € |
+| B2  | Planted traps found on their line                         | 39 of 60  | 54 of 60       | **57 of 60**         |
+| B2  | Expected reviews found                                    | 72.8%     | 98.0%          | **93.3%**            |
+| B2  | Reviews raised that belong in the queue                   | 37.9%     | 58.9%          | **85.7%**            |
+| B3  | Shown numbers found at the place they are said to be from | —         | 6,567 of 6,577 | **6,583 of 6,583**   |
+
+- **No reader** reads no text and trusts every position reference: what a few plain rules amount to. **First run** is the first full run, kept in `bench/results/baseline/` before anything was changed in response to it.
+- On the demo tender itself the pipeline now agrees with the ground truth on every position, which is what tuning on a tender buys and not a result.
+- Every miss on the unseen tender is in one place: luminaires quoted by article in variants that share a short text. [docs/DATA.md](docs/DATA.md#what-the-benchmarks-show) has the full table, what changed after the first run, and the failure written up.
+- B4 (matcher alone against matcher plus a larger model) is not run: the misses are not misreadings, so a larger model has nothing to earn yet (ADR-41).
 
 ## Architecture
 
@@ -52,7 +62,7 @@ The defaults are tuned for cost. The provider and every role are environment var
 | Setting                                                   | Default                                    | Override                 |
 | --------------------------------------------------------- | ------------------------------------------ | ------------------------ |
 | Provider                                                  | OpenRouter (Anthropic-compatible endpoint) | `LLM_PROVIDER=anthropic` |
-| Matcher (one call per position)                           | `claude-haiku-5-5`                         | `LLM_MATCH_MODEL`        |
+| Matcher (one call per distinct question)                  | `claude-haiku-5-5`                         | `LLM_MATCH_MODEL`        |
 | Escalation (second read of unsettled positions)           | off                                        | `LLM_ESCALATION_MODEL`   |
 | Investigator (drafts a resolution for a flagged position) | `claude-haiku-5-5`                         | `LLM_INVESTIGATOR_MODEL` |
 

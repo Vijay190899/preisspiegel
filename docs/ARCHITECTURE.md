@@ -45,44 +45,74 @@ Root `package.json` scripts are the only entry points.
 
 ## 3. Backend (services/backend)
 
-**Built:** the model layer (§5) with `llmLedger` and `llmSpend`; typed deployment env in `convex/convex.config.ts`; `health:get`; the tender tables below, loaded by `pnpm seed`, with `tenders:get`, `positions:list` and `positions:get`.
+**Built:** the model layer (§5); typed deployment env in `convex/convex.config.ts`; the tender tables, loaded by `pnpm seed`; the agent runtime in `convex/agent/`; and the queries the interface reads in `tenders.ts`, `positions.ts` and `runs.ts`.
 
-| Table                  | Holds                                                                         |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| `tenders`, `documents` | A tender and its source files, with line counts                               |
-| `positions`            | LV positions: ordinal number, title path, short and long text, quantity, unit |
-| `offerLines`           | Supplier lines as read from the document, with the source of every field      |
+| Table                   | Holds                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `tenders`, `documents`  | A tender and its source files, with line counts                                                                |
+| `positions`             | LV positions: ordinal number, title path, short and long text, quantity, unit                                  |
+| `offerLines`            | Supplier lines as read from the document, with the source of every field                                       |
+| `runs`                  | One run: state, how far it has read, calls, cost, and at the end the totals and one status letter per position |
+| `runEvents`             | What happened in a run, in order. Append-only                                                                  |
+| `questions`             | Per run and position: the lines that could answer it, and a hash of everything the model is shown              |
+| `judgements`            | Per run and position: the verified answers                                                                     |
+| `matches`               | Per run and position: the decision, the reasons, every offer with its findings and evidence                    |
+| `matchCache`            | What a model answered to a question, by the question's hash. Outlives runs and reloads                         |
+| `llmLedger`, `llmSpend` | Every model call, and the running total per day                                                                |
 
 Rows refer to their tender by slug (ADR-15).
 
-**Planned (M2):**
+**Agent runtime** (`convex/agent/run.ts`, about 330 lines, no framework). A run is three kinds of step, each scheduled by the one before it:
 
-| Table               | Holds                                                                                         |
-| ------------------- | --------------------------------------------------------------------------------------------- |
-| `matches`           | Status, reason codes, candidates with check results, pricing breakdown, evidence, who decided |
-| `runs`, `runEvents` | The append-only event log                                                                     |
+1. **`prepare`** works out, for every position, which lines could answer it, and stores the questions.
+2. **`read`** takes the next 30 positions, has the model read the questions nobody has answered before (eight calls side by side), checks every answer against its sources, and stores answers, new cache entries, ledger rows and events in one transaction. Then it schedules itself again.
+3. **`decide`** runs the checks and the triage over everything that was read, and stores a decision per position.
 
-**Agent runtime (planned, M2).** A run processes positions in batches. One action handles a batch concurrently, writes its events, and schedules the next batch. Steps are idempotent per run and position, so a run resumes after a failure. The event log is what the UI shows live and what replay mode plays back.
+- A step that runs twice writes nothing the second time: storing a batch is guarded by the run's cursor.
+- A step that throws marks the run failed with the reason. A model call that fails does not: it comes back as a value, the position is left unconfirmed, and it goes to review.
+- Before each batch the run checks its own spend against `RUN_MAX_USD` and the day's against `LLM_DAILY_BUDGET_USD`, and stops itself with a note. The most a run can overshoot is one batch.
+- Calls are recorded per batch, in the transaction that stores their results, so side-by-side calls do not contend for the day's total.
+- Equal questions share an answer. The hash covers the prompt version, the model and everything shown, with lines numbered by position in the list instead of by id, so the same article asked for on seven floors is read once. The full demo tender has 1,170 positions and needs 880 calls on a cold cache, none on a warm one.
+- Runs are started from the command line (`pnpm bench --start`), never from the interface: a run costs money. The interface reads `runs:latest`, `runs:statuses`, `runs:match`, `runs:reviewQueue` and `runs:events`, all live.
+- Reloading a tender clears its runs; the answer cache stays.
 
-## 4. Pipeline (planned, M2)
+## 4. Pipeline (built, in `packages/core/src/pipeline.ts`)
 
 ```
-position ─► candidates (BM25 over offer lines)
-         ─► matcher: typed attributes for both sides, each with a verbatim quote, and a proposal
-         ─► quote verification: every quote must be a substring of its source
-         ─► deterministic checks ─► reason codes
-         ─► auto-accept (all checks pass) | review queue
-         ─► pricing: material + labor + surcharge
+positions, offer lines
+  ─► buildQuestions   lines that name the position, plus a text search over those that name none
+  ─► the matcher      per line: same, different, unrelated or unsure, with compared attributes and a quote for each
+  ─► verifyAnswer     every quote looked up in its source; values compared by arithmetic where they can be
+  ─► assess           unit, arithmetic, quantity and ambiguity checks per line
+  ─► attribute        a line that names no position is tied to the positions its quantity accounts for
+  ─► decide           a position needs a person exactly when its cheapest offer is not a clean one
 ```
 
-**Reason codes:** `SPEC_MISMATCH`, `UNIT_BASIS`, `PRICE_OUTLIER`, `QTY_MISMATCH`, `ALTERNATIVE_PRODUCT`, `NO_OFFER`, `AMBIGUOUS`, `ARITHMETIC`.
+Every step is a pure function, tested without a database or a model. The runtime calls them; so do the benchmarks.
 
-**Built so far**, all in `packages/core`:
+**The model proposes, code decides.**
 
-- `gaeb.ts` reads and writes GAEB DA XML 3.2, phases 83 and 84, and turns a file into positions or offer lines. Each offer line points at the XML element every field came from.
-- `pdfTable.ts` reads an offer table out of PDF text. It finds the header row by what German offers call their columns, assigns text to columns by alignment, joins continuation lines, and keeps the page and rectangle of every field. It splits runs of numbers that a PDF reader merged across columns.
+- The matcher (`convex/agent/prompt.ts`) gets one position and up to about eight lines, and answers in a fixed schema. It is told never to convert or calculate.
+- `verifyAnswer` throws out any compared attribute whose quote is not in its source word for word, or whose value is not in its quote. A line called "the same" with no attribute left standing is not confirmed.
+- `compareValues` (`measure.ts`) then compares the two values itself where it can: two measures of the same kind after conversion, a current against an apparent power at 400 V three-phase, codes as text. Its result stands whatever the model said. That is how a line the model calls "the same" becomes a `SPEC_MISMATCH` with `138 kVA / (√3 × 400 V) = 199 A` attached.
+- Prices, quantities and totals are the ones the readers parsed. Nothing the model writes is shown as a number.
+
+**Search without a model.** Lines that name no position are found by Okapi BM25 over words, numbers and the four-letter pieces of longer words (`Leitungsschutzschalter` and `LS-Schalter` share `scha`), three per supplier. A result is put to the model only if it scores at least half of what its line reaches for any position.
+
+**Reason codes:** `SPEC_MISMATCH`, `UNIT_BASIS`, `PRICE_OUTLIER`, `QTY_MISMATCH`, `ALTERNATIVE_PRODUCT`, `NO_OFFER`, `AMBIGUOUS`, `ARITHMETIC`. A finding carries the code and the figures behind it; the interface puts it into words (`apps/web/src/lib/findings.ts`).
+
+**The decision** per position: the cheapest clean offer is the price; findings on dearer offers are noted; a finding on an offer that is cheaper, or has no price per unit, or is the only one, makes it a review. `atRisk` is the difference between the clean price and the cheaper flagged one, times the quantity. [DATA](DATA.md#what-the-ground-truth-says) states the rule and where it falls short.
+
+**Not built yet:** labor and the copper surcharge (M3). A run prices material.
+
+**Also in `packages/core`:**
+
+- `gaeb.ts` reads and writes GAEB DA XML 3.2, phases 83 and 84, and turns a file into positions or offer lines. Formatted text is read as it stands in the file, so words and markup keep their order. `readGaeb` also returns what it had to assume.
+- `pdfTable.ts` reads an offer table out of PDF text. It finds the header row by what German offers call their columns, works out each column's extent from how the rows line up with its header, takes apart cells that a PDF reader handed over as one piece, joins continuation lines, and keeps the page and rectangle of every field.
 - `numbers.ts` parses and formats German numbers. A value that does not look like a number is `null`, never a guess.
-- `units.ts`. Three-phase apparent power to line current, I = S / (√3 · U). A cabinet offered as 138 kVA carries about 199 A at 400 V, which is how an offer in kVA is compared with a requirement in amps.
+- `units.ts`, `measure.ts`: three-phase apparent power to line current, I = S / (√3 · U), and the comparison of values written in different units.
+
+**Benchmarks** (`bench/`): `pnpm bench` scores the newest finished run; `pnpm bench:replay` puts the stored answers through the checks as they are now, without a model; `pnpm bench:heldout` runs the benchmarks on a tender generated from another seed and puts the demo back.
 
 ## 5. Model layer (built)
 
@@ -104,11 +134,11 @@ One code path: the official `@anthropic-ai/sdk`, pointed at the chosen provider.
 
 ### 5.2 Roles
 
-| Role         | Env var                  | Default            | Effort   | Used for                                                            |
-| ------------ | ------------------------ | ------------------ | -------- | ------------------------------------------------------------------- |
-| Matcher      | `LLM_MATCH_MODEL`        | `claude-haiku-5-5` | `low`    | One call per position: typed attributes with quotes, and a proposal |
-| Escalation   | `LLM_ESCALATION_MODEL`   | off                | `medium` | Second read of positions the matcher could not settle               |
-| Investigator | `LLM_INVESTIGATOR_MODEL` | `claude-haiku-5-5` | `low`    | Drafts a resolution for a flagged position                          |
+| Role         | Env var                  | Default            | Effort   | Used for                                                                |
+| ------------ | ------------------------ | ------------------ | -------- | ----------------------------------------------------------------------- |
+| Matcher      | `LLM_MATCH_MODEL`        | `claude-haiku-5-5` | `low`    | One call per distinct question: a verdict per line with quoted evidence |
+| Escalation   | `LLM_ESCALATION_MODEL`   | off                | `medium` | Second read of positions the matcher could not settle                   |
+| Investigator | `LLM_INVESTIGATOR_MODEL` | `claude-haiku-5-5` | `low`    | Drafts a resolution for a flagged position                              |
 
 `LLM_<ROLE>_EFFORT` overrides the effort. A unit test asserts that no role defaults to a larger model.
 
@@ -141,11 +171,11 @@ LLM_MATCH_MODEL=claude-sonnet-5-5
 - `stop_reason` is checked before content is used. `refusal`, `max_tokens` and an unparsed result are returned as typed failures, not thrown.
 - The system prompt is a frozen prefix with a cache breakpoint. Per-call content goes in the user turn.
 
-**One call path.** `llm/client.ts` exposes `llmParse(ctx, { role, system, user, schema, runId })`. It checks the daily budget, calls the provider with `messages.create`, writes the ledger row, and only then reads the answer with `readStructured`, which never throws: a refusal, a cut-off and text that does not fit the schema all come back as typed failures (ADR-24). Nothing else talks to the SDK. A role that names a model without a price is refused before any call.
+**One call path.** `llm/call.ts` makes one structured-output call and has nothing of the deployment in it: the role's configuration and the function that sends the request are passed in, so the whole path is tested with a stand-in for the SDK. Every outcome is a value: a provider error, a refusal, a cut-off and an answer off the schema all come back as typed failures, and any call that produced a response comes back with its ledger entry, whatever the response said (ADR-24, ADR-34). `llm/client.ts` wires it to the deployment: `llmCall` for the runtime, which records a batch of calls together, and `llmParse` for a single call, which checks the daily budget and records before it reads the answer. Nothing else talks to the SDK. A role that names a model without a price is refused before any call.
 
-**Cost meter.** Every call appends `{ day, at, provider, role, model, tokens by kind, usd, stopReason }` to `llmLedger` and adds to that day's row in `llmSpend`, in one mutation. The guard reads the day's total before each call and refuses once `LLM_DAILY_BUDGET_USD` is reached. Rows carry the run id, so the runtime can enforce the per-run cap (`RUN_MAX_USD`, M2). A call that fails before a response arrives has no usage to record. `llmParse` has not made a real call yet; the first is in M2.
+**Cost meter.** Every call appends `{ day, at, provider, role, model, tokens by kind, usd, stopReason, runId }` to `llmLedger` and adds to that day's row in `llmSpend`. A call that fails before a response arrives has no usage to record.
 
-**Estimated budget** (not yet measured; B1 will replace this): a matcher call of about 1,500 prompt tokens, half of them cached, and 600 output tokens costs about $0.0004 on Haiku 5.5, so a 1,170-position tender is about $0.45.
+**Measured:** a full run of the demo tender on `claude-haiku-5-5` at effort `low` made 880 calls and cost $0.38; the unseen tender made 731 calls and cost $0.34, in seven minutes. That is about $0.0004 per call, and three positions in four need a call of their own.
 
 ## 6. Frontend (apps/web)
 

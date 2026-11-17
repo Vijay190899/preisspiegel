@@ -33,37 +33,40 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 
 ## M2 — Pipeline, runtime, benchmarks (riskiest)
 
-**First, from the audit of M0 and M1, before any benchmark is written:**
+**Built, from the audits of M0, M1 and the first interface:**
 
-- Generator: one price per article per offer; clean lines that carry harmless oddities (stated pack sizes, price units of 1000, cent rounding, real price spreads between suppliers, a position split over two lines of the same article), so a plain rule on its own raises false alarms.
-- Ground truth: settle the disputed expectations and write the rule down in DATA.md (a flagged offer beside a cheaper clean one; the specialist's merged lines; positions with no offer counted apart from planted traps).
-- Readers: a PDF printed by other software as a committed fixture with hand-typed expectations; GAEB texts with mixed content, entities and prefixed namespaces; a missing quantity as a warning on one item, not a rejected file.
-- A no-model baseline (the plain rules alone), published beside B1 and B2.
-- From the second audit: the PDF reader assigns cells by column interval and warns when a header was seen and a page yields no line; `llmParse` returns provider errors as a typed failure, still returns the answer when the ledger write fails, and gets a test with an injected client.
+- Generator: one price per article per offer; the wholesaler quotes bulk material by article; 107 clean lines carry the surface of a trap (stated pack sizes, split quantities, rounded quantities, totals a cent off, a price unit of 1000).
+- Ground truth: one rule, written down in [DATA](DATA.md#what-the-ground-truth-says).
+- Readers: GAEB texts with mixed content, line breaks, entities and prefixed namespaces, and a missing quantity as a warning; the PDF reader works out column extents from the rows, takes apart merged cells, reads wrapped headers and warns when a header has no line under it; an offer printed by Chrome is a committed fixture with hand-typed expectations.
+- A reference run with no reader and one with a perfect reader, beside every benchmark.
+- `llmParse` returns provider errors as a value, records per batch, and is tested with a stand-in client.
 
-**Pipeline:**
+**Built, pipeline:**
 
-- Units and checks, written test-first; units normalised before anything is compared.
-- Candidate retrieval, the matcher step, quote verification, triage, pricing. Quantities are summed per article where a supplier quotes that way.
-- Agent runtime: event log, batching through the scheduler, idempotent steps, per-run budget, ledger writes per batch.
-- A reset that clears runs and matches when the tender is reloaded.
-- `pnpm bench` for B1–B3.
+- Values written in different units compared by arithmetic (`measure.ts`), test-first.
+- Search for lines that name no position, the matcher, quote verification, per-line checks, attribution by quantity, the decision.
+- Agent runtime: prepare, read in batches through the scheduler, decide; an event log; idempotent steps; a per-run and a per-day budget; an answer cache.
+- Runs cleared when the tender is reloaded.
+- `pnpm bench` for B1 to B3, `pnpm bench:replay`, `pnpm bench:heldout`.
 
-**Interface, alongside:**
+**Built, interface:**
 
-- Built: the "Schaltplan" design system, the overview as a single-line diagram, the positions workspace, the source of every number, ⌘K jump, `pnpm probe:ui`.
-- With the pipeline's results: the split and euros at risk on the overview; the review queue, keyboard-driven; tripped switches on flagged offers, with the arithmetic shown; live status in the list while a run is going, from its own query so a batch does not re-send the list.
+- The "Schaltplan" design system, the overview as a single-line diagram, the positions workspace, the source of every number, ⌘K jump, `pnpm probe:ui`.
+- With the run's results: the split and the euros at stake on the overview, with each title's bar in two parts; the review queue, the costliest decision first, stepped through with J and K; the decision on each position with what it is worth; findings in words on the offer they concern, with the arithmetic; what was compared, per offer; the run's state, live.
+
+**Moved to M3:** labor and the copper surcharge (ADR-40); starting a run from the interface (ADR-39). **Not run:** B4 (ADR-41).
 
 - **Gate:**
-  - A full run completes on the default model inside the budget.
-  - B1–B3 results are written, with the no-model baseline beside them.
-  - The undersized cabinet is flagged with the right reason code, and the interface shows why.
+  - A full run completes on the default model inside the budget. _Done: 880 calls, $0.38, limit $1.50._
+  - B1–B3 results are written, with the reference runs beside them. _Done: `bench/results/`._
+  - The undersized cabinet is flagged with the right reason code, and the interface shows why. _Done: `SPEC_MISMATCH`, 138 kVA = 199 A < 250 A, 391.49 € at stake._
   - `pnpm shots` and `pnpm probe:ui` pass on every route.
   - The audit's high-severity findings are fixed.
 
 ## M3 — Product surface, completed
 
-- Kalkulation breakdown and the copper control.
+- Labor: each position tied to an entry of the labor time table. Kalkulation breakdown and the copper control.
+- Lighting variants that share a short text: group positions by their compared attributes, not their short text (see [DATA](DATA.md#where-it-fails-on-the-unseen-tender)).
 - Run replay and the access code for live runs; `pnpm demo:reset`.
 - `/bench` page.
 - The GAEB excerpt served from Convex instead of downloading the file.

@@ -2,35 +2,26 @@
 
 ## 1. Where we are
 
-**M0 and M1 are closed and audited. The interface was rebuilt in a new direction and audited again. M2 is next.** Updated 2026-11-17.
+**M0, M1 and M2 are built. M2 is at its gate, waiting for its audit and a "go".** Updated 2026-11-17.
 
 Built and verified:
 
-- **M0:** workspace, task runner, CI, model layer with cost meter. The provider probe passed on OpenRouter with `claude-haiku-5-5`: every check returned the expected shape, and prompt caching showed a cache read on the repeat call (`bench/results/provider_probe.json`).
-- **M1:** GAEB and PDF readers in `packages/core`; a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; `pnpm seed`; the tender tables in Convex. See [DATA](DATA.md).
-- **Interface, "Schaltplan" (ADR-26):** the overview draws the tender as a single-line diagram that switches on once; the positions workspace has a virtualised list, the open position, and one row per offer; a traced number opens its document beside the position, at the page and the place it was read, while the list gives way (ADR-31); ⌘K jump; German and English; light and dark.
-- `pnpm check` green: lint, formatting, typecheck of six projects, 174 tests. `pnpm build` green. `pnpm shots` green on five routes at 390, 1024, 1280 and 1440 px in both themes. `pnpm probe:ui` green: 21 behaviour checks.
+- **M0:** workspace, task runner, CI, model layer with cost meter. The provider probe passed on OpenRouter with `claude-haiku-5-5` (`bench/results/provider_probe.json`).
+- **M1:** GAEB and PDF readers in `packages/core`; a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; `pnpm seed`. See [DATA](DATA.md).
+- **M2, pipeline:** search for the lines that could answer a position, the matcher on `claude-haiku-5-5`, quote verification, comparison of values by arithmetic, per-line checks, attribution of by-article lines by quantity, and the decision ([ARCHITECTURE §4](ARCHITECTURE.md#4-pipeline-built-in-packagescoresrcpipelinets)). The agent runtime runs it in batches with an event log, budgets and an answer cache ([§3](ARCHITECTURE.md#3-backend-servicesbackend)).
+- **M2, benchmarks:** `pnpm bench` (B1 to B3), `pnpm bench:replay`, `pnpm bench:heldout`. On a tender the pipeline had not seen: 99.4% of what it prices by itself is right, with a euro error of zero; 57 of 60 traps found; 93.3% of expected reviews found; 85.7% of raised reviews belong; every shown number is at its source. One full run costs about 40 cents. [DATA](DATA.md#what-the-benchmarks-show) has the table, the first run, and the failure written up.
+- **Interface, "Schaltplan" (ADR-26):** the overview draws the tender as a single-line diagram and says how many positions are priced, how many need a decision and how many euros rest on them; the positions workspace lists everything or only what is open, the costliest first; a position shows its decision, each offer with its findings in words and the arithmetic, and what was compared; a traced number opens its document beside the position at the place it was read.
+- `pnpm check` green: lint, formatting, typecheck of six projects, 269 tests. `pnpm build` green. `pnpm shots` green on six routes at four widths in both themes. `pnpm probe:ui` green: 27 behaviour checks.
 
-**First audit (M0 and M1): on plan, with gaps.** Every count in the docs was recounted and holds, and no non-negotiable was breached. Fixed since: the model call path records a billed call before reading its answer (ADR-24); the PDF reader warns in four cases where it used to drop text; overstated claims were corrected; deviations logged (ADR-25).
+**Audits so far.** The first (M0 and M1) and the second (the first interface and the fixes to the first audit) both said "on plan, with gaps". Their findings are closed, each with a test or a probe check, except the ones listed under open items below. The audit of M2 is the next thing to run.
 
-**Second audit (the first interface and those fixes): on plan, with gaps.** Its words: the slice "is not yet stunning, one displayed figure is wrong under its label, the layout breaks at 1280 to 1440 px, and the two fixes close the reported paths but not the whole class". No non-negotiable was breached and every count held. What was done with it:
+**What an honest reader should know about the numbers:**
 
-- The interface it reviewed was replaced (ADR-26). Its defects were checked against the new one and are closed, each with a check in `pnpm probe:ui` or a test: a price per ring labelled per metre; offer columns overflowing at 1280 px; 1,170 Tab stops in front of the numbers; the palette reopening on Enter; a crash on `?quelle=123` and an empty list on `?titel=10`; contrast failures; the description link marking the wrong element; a PDF too small to read; the document language after a reload; step arrows ignoring the title filter.
-- Still open, scheduled first in M2: the PDF reader loses lines without a warning on two ordinary layouts (left-aligned headers over right-aligned numbers; an indented continuation that reaches the quantity column). `llmParse` still throws on a provider error and loses the answer if the ledger write fails, and has no test of its own.
-- Still open, later: the list query sends every position (about 280 kB), so live status needs its own query; the GAEB source downloads the whole file to show one item; the palette does not lock the page behind it.
-- Docs corrected where it found them wrong, and four unlogged deviations logged (ADR-27 to 29).
+- The demo tender now agrees with its ground truth on every position. That was reached by changing the prompt and the checks while looking at that tender, so it is not the headline. The first run and the unseen tender are ([ADR-37, 38](DECISIONS.md)).
+- Every miss on the unseen tender has one cause: luminaires quoted by article in variants that share a short text. A perfect reader misses some of them too.
+- The unseen tender comes from the same generator, so it is unseen in its numbers, not in its language.
 
-Open from the first audit, also first in M2 (see [BUILD_PLAN](BUILD_PLAN.md) and "What this data does not prove yet" in [DATA](DATA.md)):
-
-- **The benchmark is too easy to mean much.** Six plain rules with no model reproduce the expected decision on 94.7% of positions. The generator needs clean lines with the same oddities, one price per article per offer, and a published no-model baseline.
-- Disputed expectations in the ground truth.
-- The GAEB reader mishandles mixed text and markup, some entities, prefixed namespaces and a missing quantity.
-- No PDF from other software is tested yet. A wrapped header ("Artikel-" over "Nr.") is still not recognised.
-- The ledger patches one row per call and will contend under a concurrent batch: record per batch in M2.
-
-`llm/client.ts` has still made no real call. The first is in M2.
-
-Next: M2, starting with the audit items above. The interface continues alongside.
+Next, after the gate: M3 (labor and the copper surcharge, run replay and the access code, starting a run from the interface, the `/bench` page).
 
 ## 2. Setup
 
@@ -50,7 +41,7 @@ pnpm check
 - A local Convex deployment only runs while `pnpm dev` does. `pnpm seed load` and `convex run` need it up.
 - After changing the Convex schema or `convex.config.ts`, `pnpm dev` regenerates `convex/_generated/`, which is committed.
 - `pnpm env:push` copies `.env.local` into the Convex deployment's environment. Run it after changing a model role or a key.
-- `pnpm shots` and `pnpm probe:ui` drive the Chrome installed on the machine and need `pnpm dev` running with the seed loaded.
+- `pnpm shots` and `pnpm probe:ui` drive the Chrome installed on the machine and need `pnpm dev` running with the seed loaded and a finished run. A fresh deployment has no run: `pnpm bench --start` makes one (about 40 cents on a cold answer cache, nothing on a warm one).
 
 ## 3. Decisions already made (do not re-litigate)
 
@@ -75,10 +66,15 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 
 ## 5. Open items
 
+- **Lighting variants that share a short text** defeat the attribution by quantity (ADR-33). Group positions by their compared attributes instead. This is the one known cause of wrong decisions.
+- **Labor is not priced** (ADR-40). The labor time table is loaded and unused.
+- **A trial run over part of the tender** (`limit`) decides by-article lines wrongly, because their quantities cover the whole tender. Trial runs are for checking that the steps work, not for scores.
+- **The model is not perfectly even:** the same article is occasionally read differently for two positions, and once in several hundred answers it compares an attribute with a brand name. The quantity rules absorb most of it; they should not be the only defence.
+- **The list query sends every position** (about 280 kB). Status comes from its own small query, so a run does not re-send the list, but the first load is heavy.
+- **The GAEB source downloads the whole file** to show one item. The excerpt should come from Convex.
+- **The palette does not lock the page behind it.**
+- **B3 says a number is where the interface points, not that it is right.**
 - Convex cloud deployment and Vercel project: needed at M4, both need the owner's accounts.
-- The interface shows offer lines that name a position by ordinal number. The specialist's lines, which carry none, appear once the pipeline has matched them.
-- Units arrive as each supplier prints them (ST, M, Stck, Mtr, RG, VE), and a PDF reader returns the micro sign as the Greek letter mu. Normalise before comparing or quoting.
-- Reloading the tender replaces four tables; once runs and matches exist, a reload needs a reset that clears them too.
 
 ## 6. Update protocol
 
