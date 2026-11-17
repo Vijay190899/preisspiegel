@@ -39,10 +39,10 @@ const de = {
 
   'ledger.title': 'Die teuersten Entscheidungen',
   'ledger.body':
-    'Was eine Entscheidung wert ist: der Abstand zwischen dem günstigsten Angebot, an dem etwas auffällt, und dem günstigsten ohne Befund.',
+    'Was eine Entscheidung wert ist: der Abstand zwischen dem günstigsten Angebot, an dem etwas auffällt, und dem günstigsten ohne Befund. Wo kein Angebot ohne Befund ist, der ganze Betrag.',
+  'ledger.several': '{n} Positionen: {where}',
   'ledger.all': 'Alle {n} Entscheidungen',
   'ledger.col.position': 'Position',
-  'ledger.col.quotes': 'Die Angebote',
   'ledger.col.worth': 'Im Spiel',
   'ledger.quote.clean': '{supplier}: {total} €, ohne Befund.',
   'ledger.quote.flagged': '{supplier}: {total} €, mit Befund.',
@@ -65,6 +65,8 @@ const de = {
   'facade.state.off': 'noch nicht gelesen',
   'facade.open': 'Position öffnen',
   'facade.caption': 'Jedes Fenster ist eine Position.',
+  'facade.openHead': 'offen',
+  'facade.titles': 'Die Titel des Leistungsverzeichnisses',
 
   'run.done':
     'Lauf vom {date} mit {model}: {calls} Fragen gelesen, {cached} Antworten lagen schon vor, {usd}\u00a0$.',
@@ -158,6 +160,7 @@ const de = {
   'offer.hide': 'Einzelheiten verbergen',
   'offer.chosen': 'Günstigstes gültiges Angebot',
   'offer.compared': 'Verglichen',
+  'offer.tenderWording': 'Im Wortlaut des Leistungsverzeichnisses',
   'offer.agrees': 'entspricht',
   'offer.differs': 'entspricht nicht',
   'offer.details': 'Einzelheiten',
@@ -227,10 +230,10 @@ const en: Record<MessageKey, string> = {
 
   'ledger.title': 'The costliest decisions',
   'ledger.body':
-    'What a decision is worth: the gap between the cheapest offer with something found on it and the cheapest one without.',
+    'What a decision is worth: the gap between the cheapest offer with something found on it and the cheapest one without. Where no offer is without a finding, the whole amount.',
+  'ledger.several': '{n} positions: {where}',
   'ledger.all': 'All {n} decisions',
   'ledger.col.position': 'Position',
-  'ledger.col.quotes': 'The offers',
   'ledger.col.worth': 'At stake',
   'ledger.quote.clean': '{supplier}: {total} €, nothing found.',
   'ledger.quote.flagged': '{supplier}: {total} €, with a finding.',
@@ -252,6 +255,8 @@ const en: Record<MessageKey, string> = {
   'facade.state.off': 'not read yet',
   'facade.open': 'Open position',
   'facade.caption': 'Every window is a position.',
+  'facade.openHead': 'open',
+  'facade.titles': 'The titles of the Leistungsverzeichnis',
 
   'run.done':
     'Run of {date} with {model}: {calls} questions read, {cached} answers were already there, {usd}\u00a0$.',
@@ -346,6 +351,7 @@ const en: Record<MessageKey, string> = {
   'offer.hide': 'Hide details',
   'offer.chosen': 'Cheapest valid offer',
   'offer.compared': 'Compared',
+  'offer.tenderWording': 'In the wording of the Leistungsverzeichnis',
   'offer.agrees': 'equals',
   'offer.differs': 'does not equal',
   'offer.details': 'Details',

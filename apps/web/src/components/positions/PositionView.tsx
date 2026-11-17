@@ -590,7 +590,7 @@ function Offer({
         <p className="mt-4 text-[0.92rem] text-ink-3">
           {hasArticle
             ? `${t('offer.articleNo')} ${line.articleNo}`
-            : supplier.fileName}
+            : t('offer.tenderWording')}
         </p>
       )}
 

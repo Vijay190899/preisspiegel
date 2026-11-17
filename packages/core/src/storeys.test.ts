@@ -31,6 +31,15 @@ describe('storeyOf', () => {
     expect(storeyOf('Abgänge')).toBeNull()
     expect(storeyOf('Zugang und Augenschein')).toBeNull()
   })
+
+  it('takes a storey word only where it stands by itself', () => {
+    // The short forms are inside many ordinary words.
+    for (const name of ['Aufzug', 'Werkzeug', 'Katalog', 'Dialog', 'Weg']) {
+      expect(storeyOf(name)).toBeNull()
+    }
+    expect(storeyOf('Beleuchtung 2.OG')).toEqual({ rank: 2, label: '2. OG' })
+    expect(storeyOf('Aufzug UG')).toEqual({ rank: -1, label: 'UG' })
+  })
 })
 
 describe('storeyPlan', () => {

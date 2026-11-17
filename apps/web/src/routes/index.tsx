@@ -2,7 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { motion } from 'motion/react'
 import { Reasons, Shares } from '~/components/overview/Breakdown'
-import { Decisions } from '~/components/overview/Decisions'
+import { Decisions, groupDecisions } from '~/components/overview/Decisions'
 import { Facade } from '~/components/overview/Facade'
 import { RunLine } from '~/components/overview/RunLine'
 import { formatMoney, formatQty } from '~/lib/format'
@@ -181,6 +181,26 @@ function Overview() {
           )}
         </ul>
 
+        {/* What the numbers above the roof stand for: the tender's titles. */}
+        <nav aria-label={t('facade.titles')} className="mt-5">
+          <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-[0.9rem]">
+            {tender.titles.map((title) => (
+              <li key={title.rno}>
+                <Link
+                  to="/positionen"
+                  search={{ titel: title.rno }}
+                  className="group inline-flex items-baseline gap-2 rounded-[4px] text-ink-2 transition-colors duration-150 hover:text-ink"
+                >
+                  <span className="code text-[0.8rem] text-ink-3 group-hover:text-ink-2">
+                    {title.rno}
+                  </span>
+                  {title.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
         {decided && queue.length > 0 && (
           <div className="mt-20 grid gap-x-20 gap-y-16 lg:mt-28 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
             <section aria-labelledby="costly" className="min-w-0">
@@ -190,7 +210,7 @@ function Overview() {
               <p className="mt-2 max-w-[52ch] text-ink-2">{t('ledger.body')}</p>
               <div className="mt-7">
                 <Decisions
-                  items={queue.slice(0, LISTED)}
+                  groups={groupDecisions(queue).slice(0, LISTED)}
                   suppliers={suppliers}
                   storeyOf={storeyOf}
                 />

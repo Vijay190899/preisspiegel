@@ -1,21 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { BLOCK, layoutFacade, paneStates, place } from '~/lib/facade'
+import { BLOCK, layoutFacade, outline, paneStates, place } from '~/lib/facade'
 import { useT } from '~/lib/i18n'
 import { statusesQuery } from '~/lib/queries'
-import type { Pane } from '~/lib/facade'
 import type { Tender } from '~/lib/queries'
 
 const round = (value: number) => Math.round(value * 10) / 10
-
-const outline = (panes: ReadonlyArray<Pane>) =>
-  panes
-    .map(
-      (pane) =>
-        `M${round(pane.x)} ${round(pane.y)}h${round(pane.width)}v${round(pane.height)}h${round(-pane.width)}z`,
-    )
-    .join('')
 
 /**
  * Where a position is in the building: the front from the overview, small,
@@ -55,8 +46,17 @@ export function Locator({ tender, seq }: { tender: Tender; seq: number }) {
     .filter(Boolean)
     .join(', ')
   const { wall } = layout
-  const x = pane.x + pane.width / 2
-  const y = pane.y + pane.height / 2
+  /** Half the size of the mark, in drawing units. */
+  const mark = 24
+  // The mark stays inside the picture for a window at its edge.
+  const x = Math.min(
+    Math.max(pane.x + pane.width / 2, wall.x + mark),
+    wall.x + wall.width - mark,
+  )
+  const y = Math.min(
+    Math.max(pane.y + pane.height / 2, wall.y + mark),
+    wall.y + wall.height - mark,
+  )
 
   return (
     <Link
@@ -83,19 +83,21 @@ export function Locator({ tender, seq }: { tender: Tender; seq: number }) {
           className="fill-pane opacity-35 transition-opacity duration-200 group-hover:opacity-60"
         />
         <path d={drawn.open} className="fill-open opacity-60" />
+        {/* Two hairlines that cross on the window, and the window itself,
+            drawn larger than life so it can be found. */}
         <path
-          d={`M${round(wall.x)} ${round(y)}H${round(pane.x - 9)}M${round(pane.x + pane.width + 9)} ${round(y)}H${round(wall.x + wall.width)}M${round(x)} ${round(wall.y)}V${round(pane.y - 9)}M${round(x)} ${round(pane.y + pane.height + 9)}V${round(wall.y + wall.height)}`}
+          d={`M${round(wall.x)} ${round(y)}H${round(x - mark)}M${round(x + mark)} ${round(y)}H${round(wall.x + wall.width)}M${round(x)} ${round(wall.y)}V${round(y - mark)}M${round(x)} ${round(y + mark)}V${round(wall.y + wall.height)}`}
           className="stroke-ink-2"
           strokeWidth="2.5"
           fill="none"
         />
         <rect
-          x={round(pane.x - 6)}
-          y={round(pane.y - 6)}
-          width={round(pane.width + 12)}
-          height={round(pane.height + 12)}
+          x={round(x - mark + 6)}
+          y={round(y - mark + 6)}
+          width={round(2 * mark - 12)}
+          height={round(2 * mark - 12)}
           className="fill-ink"
-          rx="2"
+          rx="3"
         />
       </svg>
     </Link>

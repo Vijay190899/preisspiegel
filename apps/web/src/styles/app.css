@@ -291,9 +291,10 @@
     animation: halo-in 900ms ease-out 1700ms forwards;
   }
 
+  /* The water can only show what is lit: it comes last. */
   .mirror {
     opacity: 0;
-    animation: appear 1400ms ease-out 900ms forwards;
+    animation: appear 1100ms ease-out 2300ms forwards;
   }
 
   /* The water moves a little, all the time. */
@@ -399,7 +400,7 @@
     border-top: 1px dashed var(--t-line);
   }
 
-  @container (min-width: 620px) {
+  @container (min-width: 700px) {
     .sheet-head {
       grid-template-columns: minmax(0, 1fr) auto;
     }

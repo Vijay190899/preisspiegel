@@ -5,6 +5,7 @@ import {
   BLOCK,
   TOWER,
   layoutFacade,
+  outline,
   paneAt,
   paneBeside,
   paneStates,
@@ -50,16 +51,6 @@ const STATE_LABEL: Record<PaneState, MessageKey> = {
 
 const round = (value: number) => Math.round(value * 100) / 100
 
-/** Every window of a set as one outline. */
-function outline(panes: ReadonlyArray<Pane>): string {
-  return panes
-    .map(
-      (pane) =>
-        `M${round(pane.x)} ${round(pane.y)}h${round(pane.width)}v${round(pane.height)}h${round(-pane.width)}z`,
-    )
-    .join('')
-}
-
 /**
  * No two lit rooms in a real building are equally bright. This varies the
  * windows a little, the same way on every render; it says nothing about the
@@ -101,10 +92,10 @@ export function Facade({
 
   return (
     <>
-      <div className="hidden lg:block">
+      <div className="hidden xl:block">
         <Elevation name="block" input={input} shape={BLOCK} states={states} />
       </div>
-      <div className="lg:hidden">
+      <div className="xl:hidden">
         <Elevation name="tower" input={input} shape={TOWER} states={states} />
       </div>
     </>
@@ -258,8 +249,15 @@ function Elevation({
             onPointerMove={(event) => {
               if (event.pointerType === 'touch') return
               const hit = under(event)
-              setChosen(
-                hit === null ? null : { index: hit.index, by: 'pointer' },
+              // Only a move onto another window is news.
+              setChosen((before) =>
+                hit === null
+                  ? before === null || before.by === 'keys'
+                    ? before
+                    : null
+                  : before?.index === hit.index && before.by === 'pointer'
+                    ? before
+                    : { index: hit.index, by: 'pointer' },
               )
             }}
             onPointerLeave={(event) => {
@@ -382,6 +380,19 @@ function Elevation({
                 />
               )
             })}
+
+            {/* What the figures at the right count. */}
+            {[...openByStorey.values()].some((count) => count > 0) && (
+              <text
+                x={round(wall.x + wall.width + 11)}
+                y={round(wall.y - 11)}
+                dominantBaseline="central"
+                fontSize="12"
+                className="fill-open-ink"
+              >
+                {t('facade.openHead')}
+              </text>
+            )}
 
             {/* Storey names on the left, what is open on each at the right. */}
             {layout.storeys.map((storey, at) => {
