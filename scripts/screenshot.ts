@@ -27,6 +27,8 @@ const viewports = allViewports.filter(
   (viewport) => wanted === undefined || wanted.includes(viewport.name),
 )
 const themes = ['light', 'dark'] as const
+/** Long enough for the overview's lights to come on. */
+const wait = Number(process.env.SHOTS_WAIT_MS ?? 3200)
 
 async function main(): Promise<void> {
   const paths = process.argv.slice(2)
@@ -50,6 +52,10 @@ async function main(): Promise<void> {
                 : 'no-preference',
             deviceScaleFactor: 2,
           })
+          // The app follows a stored choice, not the operating system.
+          await context.addInitScript((choice) => {
+            localStorage.setItem('preisspiegel:theme', choice)
+          }, theme)
           const page = await context.newPage()
           const label = `${path} @ ${viewport.name}px ${theme}`
 
@@ -74,8 +80,8 @@ async function main(): Promise<void> {
             )
           }
 
-          // Let entrances finish and late content, such as a PDF page, draw.
-          await page.waitForTimeout(Number(process.env.SHOTS_WAIT_MS ?? 900))
+          // Let the lights come on and late content, such as a PDF page, draw.
+          await page.waitForTimeout(wait)
 
           // A page wider than its viewport means something overflows.
           const overflow = await page.evaluate(
@@ -92,7 +98,18 @@ async function main(): Promise<void> {
             outDir,
             `${slug}-${viewport.name}-${theme}.png`.replace(/^-/, ''),
           )
-          await page.screenshot({ path: file, fullPage: true })
+          // A full-page capture resizes the page behind the scenes, which
+          // starts every CSS animation again and catches them at their
+          // beginning. So the window is made as tall as the page first, the
+          // lights get time to come on, and then the window is captured.
+          const height = await page.evaluate(
+            () => document.documentElement.scrollHeight,
+          )
+          if (height > viewport.height) {
+            await page.setViewportSize({ width: viewport.width, height })
+            await page.waitForTimeout(wait)
+          }
+          await page.screenshot({ path: file })
           console.log(`  ${label} -> ${file}`)
           await context.close()
         }
