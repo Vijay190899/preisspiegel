@@ -116,7 +116,7 @@ function Mark() {
         width="5"
         height="10"
         rx="1.5"
-        className="fill-copper"
+        className="fill-lamp"
       />
       <rect x="16" y="1" width="5" height="20" rx="1.5" className="fill-ink" />
     </svg>

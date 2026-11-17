@@ -49,9 +49,9 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (
-    // The boot script sets data-theme before React hydrates, so the attribute
-    // on <html> legitimately differs from what the server rendered.
-    <html lang="de" suppressHydrationWarning>
+    // The boot script applies a stored theme before React hydrates, so the
+    // attribute on <html> can legitimately differ from what the server rendered.
+    <html lang="de" data-theme="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
