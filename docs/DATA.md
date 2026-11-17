@@ -114,21 +114,25 @@ The first write-up of the seed-119 run named one cause for every miss: luminaire
 
 A quantity that fits many kinds of position is also no longer dropped; the kinds the line reads most like are kept.
 
-`pnpm bench:seeds 5000-5199` runs the two model-free readers on any range of seeds, in about half a second each, without writing anything and without a model. A perfect reader answers every question from the ground truth, so whatever it gets wrong is the search, the attribution or the decision.
+`pnpm bench:seeds <from>-<to>` runs the two model-free readers on any range of seeds, in about half a second each, without writing anything and without a model. A perfect reader answers every question from the ground truth, so whatever it gets wrong is the search, the attribution or the decision.
 
-| Perfect reader                                          | Seeds 3000 to 3149, before     | The same, after                | Seeds 5000 to 5199, after                   |
-| ------------------------------------------------------- | ------------------------------ | ------------------------------ | ------------------------------------------- |
-| What the range is                                       | the audit's; read while fixing | the audit's; read while fixing | never looked at; nothing changed afterwards |
-| Tenders                                                 | 150                            | 150                            | 200                                         |
-| Agrees with the ground truth on every position          | 97                             | 147                            | **198 (99%)**                               |
-| Tenders that lose a true offer before any reading       | 22, 104 offers                 | 2, 2 offers                    | **4, 9 offers**                             |
-| Tenders where it prices a position that needed a person | 23, 122 positions              | 3, 7 positions                 | **2, 12 positions**                         |
-| Tenders where it raises a review nobody needs           | 47, 188 reviews                | 2, 2 reviews                   | **1, 6 reviews**                            |
-| Tenders where it misses a planted trap                  | 45                             | 3                              | **8**                                       |
+| Perfect reader                                          | Seeds 3000 to 3149, before              | The same, after | Seeds 5000 to 5199, after                 | Four further ranges, after                  |
+| ------------------------------------------------------- | --------------------------------------- | --------------- | ----------------------------------------- | ------------------------------------------- |
+| Who ran it, and on what                                 | the builder, on seeds read while fixing | the same        | the builder, once, on seeds not looked at | a third audit, on seeds of its own choosing |
+| Tenders                                                 | 150                                     | 150             | 200                                       | 597                                         |
+| Agrees with the ground truth on every position          | 97                                      | 147             | 198 (99.0%)                               | 582 (97.5%)                                 |
+| Tenders that lose a true offer before any reading       | 22, 104 offers                          | 2, 2 offers     | 4, 9 offers                               | 4, 14 offers                                |
+| Tenders where it prices a position that needed a person | 23, 122 positions                       | 3, 7 positions  | 2, 12 positions                           | 14, 45 positions                            |
+| Tenders where it raises a review nobody needs           | 47, 188 reviews                         | 2, 2 reviews    | 1, 6 reviews                              | 3, 6 reviews                                |
+| Tenders where it misses a planted trap                  | 45                                      | 3               | 8                                         | 26                                          |
 
-The last column is the figure to quote: on about one tender in a hundred the checks still decide a handful of positions wrongly even when the reading is flawless, and on one in twenty-five a planted trap is not found on its line. Seeds 5032, 5101, 5143 and 5149 are the ones that lose offers; they have not been looked into, and whoever does should measure the next change on a range of its own. All sixteen seeds named earlier in this file, including 432 and 437 which failed before, now agree on every position.
+**The figure to quote is the pooled one: 780 of 797 unseen tenders (97.9%).** The builder's range turned out to be the most favourable of the five that have been run (the audit's four came to 96.5%, 96.0%, 98.6% and 100%), so "198 of 200" by itself flatters. Over all 797, with flawless reading: a position that needed a person is priced on 16 tenders (2.0%), a planted trap is missed on 34 (4.3%), and a true offer is lost before any reading on 8 (1.0%). The audit found no sign that the rules were fitted to the seeds they were built on: the rates on fresh ranges match those on seeds 3000 to 3149.
 
-The same sweep over twenty of the audit's seeds is a test in `pnpm check` (`bench/src/seeds.test.ts`). It keeps what was reached; it cannot show that the rules hold elsewhere, which is what a fresh range is for.
+Most of what is left is one case the rules do not handle, which the audit named: **a tie**. Where a line's quantity is at once the total of the positions asking for its own article and the total of the positions it was quoted in place of (54 and 54 on seed 5047, 115 and 115 on seed 5143), the first reading wins, the line counts as a plain offer for its own article, and the wrong-product offer for the other positions is dropped unseen. Thirty of the 36 traps a perfect reader misses on those ranges are this. The remedy is to keep the line as a flagged offer for the other kind on a tie, at the price of some needless reviews; it is not built.
+
+The generator still cannot plant its plan on 3 seeds in 600 and fails there.
+
+The same sweep over twenty of the first audit's seeds is a test in `pnpm check` (`bench/src/seeds.test.ts`). It keeps what was reached. It is blind to a change in the rate and to a missed trap, and it cannot show that the rules hold elsewhere, which is what a fresh range is for.
 
 One change was made to the generator on the way: on 14 seeds in 150 it failed because fewer lines qualified for a harmless oddity than the plan asked for. It now plants as many as there are. The demo tender is unchanged, byte for byte.
 
@@ -137,14 +141,16 @@ One change was made to the generator on the way: on 14 seeds in 150 it failed be
 Every position it priced by itself was one the truth also prices without a person, every expected review was raised, and all 60 traps were found. Three positions went wrong:
 
 - **Two needless reviews.** The model left a line open that names its position, both times a green-yellow earthing conductor quoted by the wholesaler. The position goes to review as "not clear-cut" although the line is plainly the right one. This is the model being uneven, and nothing in the checks catches it.
-- **One position priced 170 € too high.** A bollard luminaire that the specialist quotes by article for a single position: the line was read, but not taken as an offer, so the position was priced with the next valid one. The same luminaire was missed on seed 501. The error is on the safe side in money, but it is an error, and it has shown twice.
+- **One position priced 170 € too high.** A bollard luminaire that the specialist quotes by article for a single position: the model answered "unsure" for the line, so it was not taken as an offer and the position was priced with the next valid one. The same luminaire was missed on seed 501. The error is on the safe side in money, but it is an error, and it has shown twice.
+
+All three start in the model's answer; a perfect reader gets them right. Whether a larger model would read them correctly has not been tried.
 
 On seed 501, run before the second fix, seven positions were priced at a valid offer that was not the cheapest (1,417 €) and two traps were missed. Six of the seven and both traps were a light-band carrier tendered with and without DALI; the seventh was this bollard luminaire. With flawless reading that tender also raised six needless reviews at the time, which the first write-up did not say.
 
 ### Other limits of these numbers
 
-- **What a kind is rests on the long text stating its measures.** Two things that differ only in words, with no number or code between them, are still one kind. On the generated tenders the key separates exactly the products that are tendered, which is no proof for real ones.
-- **Accepting the quantity of some positions weakens a check.** For a by-article line that matches many positions, nearly any smaller quantity is the total of some of them, so a wrong quantity there is no longer reported. Quantity traps are planted on lines for a single position, where the check is as strict as before.
+- **What a kind is rests on the long text stating its measures, in the generator's wording.** On 947 generated tenders the key separates exactly the products that are tendered. On plain rewordings it does not: it splits one kind on `im 3. OG` against `im 4. OG`, on `3.000 K` against `3000 K` and on `Montagehöhe 2,50 m`, and it merges `Polzahl: 1` with `Polzahl: 3` and `mit DALI` with `ohne DALI`. Real long texts would split kinds and quietly lose what the quantity rules add.
+- **Accepting the quantity of some positions weakens a check, and no benchmark can see by how much.** For a by-article line that matches many positions, nearly any smaller quantity is the total of some of them: for seven positions of 3 to 6 pieces, 26 of 30 wrong totals pass. Quantity traps are planted only on lines for a single position, where the check is as strict as before, so the benchmarks do not measure this.
 - **The unseen tenders are unseen in their numbers, not in their language.** They come from the same generator and catalogue, so the model had seen the same articles and the same ways of abbreviating them. Real offers vary far more.
 - **The benchmarks score the pipeline against the generator that wrote the data.** They share no code beyond the file readers, and the pipeline never reads `truth.json`, but the notion of what a trap is comes from one head.
 - **The attribution leans on how the generator writes by-article lines** (M2 audit, D2): their quantities are exact totals, rounded quantities are planted only on lines for a single position, and the pipeline's allowance for rounding (30%) is the generator's. A supplier who rounds a by-article total would defeat it.

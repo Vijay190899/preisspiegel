@@ -53,7 +53,7 @@ Rules:
 - Every LLM call goes through the ledger and the daily budget guard.
 - Secrets live in `.env.local` and the Convex deployment env. Never in prompts, logs or commits.
 - **The pipeline never reads `data/seed/truth.json`.** Only the benchmarks do.
-- **`pnpm bench --start` and `pnpm bench:heldout` call the model and cost money** (about 40 cents a full run). Try a change with `pnpm bench:replay` (stored answers) and `pnpm bench:seeds 5000-5199` (the model-free readers on a range of other tenders) first; both are free. A change to the search, the attribution or the decision is measured on a range of seeds nobody has read, never on a handful. Never tune anything against the held-out tender; if it is looked at for a fix, generate a new one for the next number.
+- **`pnpm bench --start` and `pnpm bench:heldout` call the model and cost money** (about 40 cents a full run). Try a change with `pnpm bench:replay` (stored answers) and `pnpm bench:seeds <from>-<to>` (the model-free readers on a range of other tenders) first; both are free. A change to the search, the attribution or the decision is measured on a range of at least 200 seeds that `docs/HANDOVER.md` §5 does not list as read or scored, never on a handful, and the rate is quoted with its range. Never tune anything against the held-out tender; if it is looked at for a fix, generate a new one for the next number.
 - A change to the matcher's instructions changes `PROMPT_VERSION` in `agent/prompt.ts`, which starts a new answer cache.
 - **Fictional names only.** No real company's name, branding or copy in the UI, the README or the docs. All data is synthetic and labelled as such.
 - In Convex code, read configuration from the typed `env` export, never `process.env`.

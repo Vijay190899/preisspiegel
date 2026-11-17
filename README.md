@@ -39,9 +39,9 @@ The prompt and the checks were worked on while looking at the demo tender, so th
 - **No reader** reads no text and trusts every position reference: what a few plain rules amount to. **First run** is the first full run, kept in `bench/results/baseline/` before anything was changed in response to it.
 - On the demo tender itself the pipeline now agrees with the ground truth on every position, which is what tuning on a tender buys and not a result.
 - What went wrong on the unseen tender: two needless reviews, where the model left open a line that names its position, and one luminaire priced at the second-cheapest valid offer.
-- One run is one tender. With flawless reading and no model (`pnpm bench:seeds 5000-5199`), the checks agree with the ground truth on every position of **198 of 200** further tenders nobody had looked at, and miss a planted trap on 8 of them.
+- One run is one tender. With flawless reading and no model (`pnpm bench:seeds`), the checks agree with the ground truth on every position of **780 of 797** further unseen tenders (97.9%), price a position that needed a person on 2.0% of them and miss a planted trap on 4.3%. Those figures pool one range run here with four an independent audit chose; the range run here alone gave 198 of 200, the best of the five.
 - [docs/DATA.md](docs/DATA.md#what-the-benchmarks-show) has the full table, all three unseen runs, what the two audits found, and the failures written up.
-- B4 (matcher alone against matcher plus a larger model) is not run: what is left is the model being uneven on a few plain lines and one attribution miss, not misreading that a larger model would fix across the board (ADR-41).
+- B4 (matcher alone against matcher plus a larger model) is not run. All three errors on the unseen tender start in the model's answer, so a larger model might fix them; trying it on those positions would cost a few cents and has not been done.
 
 ## Architecture
 
