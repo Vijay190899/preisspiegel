@@ -13,18 +13,24 @@ export interface Storey {
 }
 
 const ORDINAL = String.raw`(\d+)\s*\.?\s*`
+/** A storey word has to stand by itself: `Aufzug` is not a basement. */
+const WORD = String.raw`(?<![\p{L}])`
+const END = String.raw`(?![\p{L}\d])`
 const PATTERNS: ReadonlyArray<{
   pattern: RegExp
   storey: (count: number | null) => Storey
 }> = [
   {
-    pattern: new RegExp(`(?:${ORDINAL})?(?:Obergeschoss|OG)\\b`, 'i'),
+    pattern: new RegExp(
+      `(?:${ORDINAL})?${WORD}(?:Obergeschoss|OG)${END}`,
+      'iu',
+    ),
     storey: (n) => ({ rank: n ?? 1, label: `${n ?? 1}. OG` }),
   },
   {
     pattern: new RegExp(
-      `(?:${ORDINAL})?(?:Untergeschoss|Kellergeschoss|UG|KG)\\b`,
-      'i',
+      `(?:${ORDINAL})?${WORD}(?:Untergeschoss|Kellergeschoss|UG|KG)${END}`,
+      'iu',
     ),
     storey: (n) => ({
       rank: -(n ?? 1),
@@ -32,11 +38,14 @@ const PATTERNS: ReadonlyArray<{
     }),
   },
   {
-    pattern: /\b(?:Erdgeschoss|EG)\b/i,
+    pattern: new RegExp(`${WORD}(?:Erdgeschoss|EG)${END}`, 'iu'),
     storey: () => ({ rank: 0, label: 'EG' }),
   },
   {
-    pattern: /\b(?:Dachgeschoss|Staffelgeschoss|DG)\b/i,
+    pattern: new RegExp(
+      `${WORD}(?:Dachgeschoss|Staffelgeschoss|DG)${END}`,
+      'iu',
+    ),
     storey: () => ({ rank: 1000, label: 'DG' }),
   },
 ]
