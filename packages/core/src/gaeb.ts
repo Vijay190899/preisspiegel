@@ -202,22 +202,45 @@ function escapeXml(text: string): string {
 type XmlNode = { [key: string]: XmlValue }
 type XmlValue = string | XmlNode | Array<XmlValue> | undefined
 
-const REPEATING = new Set(['BoQCtgy', 'Item', 'BoQBkdn', 'p', 'span'])
+const REPEATING = new Set(['BoQCtgy', 'Item', 'BoQBkdn'])
+
+/** Elements that hold formatted text. Their content is read as written. */
+const TEXT_ELEMENTS = ['Text', 'TextOutlTxt', 'LblTx']
 
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@',
+  // Some exporters qualify every element: <g:Item>. The prefix says nothing.
+  removeNSPrefix: true,
   // Values stay strings: `0010` must not become the number 10.
   parseTagValue: false,
   parseAttributeValue: false,
-  // Whitespace inside a text matters: two spans of one sentence meet at a
-  // space. Values are trimmed where they are read instead.
   trimValues: false,
+  // Formatted text mixes words and markup, and their order matters. A parsed
+  // tree loses it, so these elements come back as the text of the file.
+  stopNodes: TEXT_ELEMENTS.map((name) => `*.${name}`),
   isArray: (name) => REPEATING.has(name),
 })
 
+/** What a file gave, and what had to be assumed to read it. */
+export interface GaebReading {
+  document: GaebDocument
+  /** One sentence per thing a person should know about, naming the item. */
+  warnings: Array<string>
+}
+
 /** Parses a GAEB DA XML file of phase 83 or 84. */
 export function parseGaeb(xml: string): GaebDocument {
+  return readGaeb(xml).document
+}
+
+/**
+ * Parses a GAEB DA XML file and says what it could not read. A position
+ * without a quantity is kept with a quantity of 0 and a warning, because one
+ * such position should not cost the other thousand.
+ */
+export function readGaeb(xml: string): GaebReading {
+  const warnings: Array<string> = []
   let root: XmlNode
   try {
     root = parser.parse(xml) as XmlNode
@@ -259,8 +282,8 @@ export function parseGaeb(xml: string): GaebDocument {
     },
   )
 
-  const body = readBody(child(boq, 'BoQBody'), phase)
-  return {
+  const body = readBody(child(boq, 'BoQBody'), phase, warnings)
+  const document: GaebDocument = {
     phase,
     date: info === null ? '' : textOf(info, 'Date'),
     time: info === null ? '' : textOf(info, 'Time'),
@@ -282,11 +305,13 @@ export function parseGaeb(xml: string): GaebDocument {
       ...body,
     },
   }
+  return { document, warnings }
 }
 
 function readBody(
   body: XmlNode | null,
   phase: GaebPhase,
+  warnings: Array<string>,
 ): { categories: Array<GaebCategory>; items: Array<GaebItem> } {
   if (body === null) return { categories: [], items: [] }
 
@@ -294,8 +319,8 @@ function readBody(
     (category): GaebCategory => ({
       id: attribute(category, 'ID'),
       rno: attribute(category, 'RNoPart'),
-      label: richText(child(category, 'LblTx')),
-      ...readBody(child(category, 'BoQBody'), phase),
+      label: richText(category.LblTx),
+      ...readBody(child(category, 'BoQBody'), phase, warnings),
     }),
   )
 
@@ -304,15 +329,21 @@ function readBody(
     (item): GaebItem => {
       const id = attribute(item, 'ID')
       const complete = descend(item, ['Description', 'CompleteText'])
+      const quantity = textOf(item, 'Qty')
+      if (quantity === '') {
+        warnings.push(
+          `Item ${id} (${attribute(item, 'RNoPart')}) has no quantity. It is kept with a quantity of 0.`,
+        )
+      }
       const entry: GaebItem = {
         id,
         rno: attribute(item, 'RNoPart'),
-        qty: decimal(textOf(item, 'Qty'), `Qty of item ${id}`),
+        qty: quantity === '' ? 0 : decimal(quantity, `Qty of item ${id}`),
         unit: textOf(item, 'QU'),
         shortText: richText(
-          descend(complete, ['OutlineText', 'OutlTxt', 'TextOutlTxt']),
+          descend(complete, ['OutlineText', 'OutlTxt'])?.TextOutlTxt,
         ),
-        longText: richText(descend(complete, ['DetailTxt', 'Text'])),
+        longText: richText(descend(complete, ['DetailTxt'])?.Text),
       }
       if (phase === 84) {
         const unitPrice = textOf(item, 'UP')
@@ -379,30 +410,49 @@ function isNode(value: XmlValue): value is XmlNode {
   return typeof value === 'object' && !Array.isArray(value)
 }
 
-/**
- * Formatted text: paragraphs of spans. Spans of one paragraph are joined, and
- * paragraphs are separated by a newline. Text placed directly in an element is
- * kept too, since not every exporter wraps it.
- */
-function richText(node: XmlNode | null): string {
-  if (node === null) return ''
-  const paragraphs = children(node, 'p')
-  const blocks = paragraphs.length === 0 ? [node] : paragraphs
-  return blocks
-    .map((block) => flatten(block).replace(/\s+/g, ' ').trim())
-    .filter((block) => block !== '')
-    .join('\n')
+const NAMED_ENTITIES: Partial<Record<string, string>> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
 }
 
-/** All text below a node, in document order, with attributes left out. */
-function flatten(value: XmlValue): string {
-  if (typeof value === 'string') return value
-  if (value === undefined) return ''
-  if (Array.isArray(value)) return value.map(flatten).join('')
-  return Object.entries(value)
-    .filter(([key]) => !key.startsWith('@'))
-    .map(([, inner]) => flatten(inner))
-    .join('')
+function decodeEntities(text: string): string {
+  return text.replace(
+    /&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,
+    (whole, name: string) => {
+      if (name.startsWith('#')) {
+        const code =
+          name[1]?.toLowerCase() === 'x'
+            ? parseInt(name.slice(2), 16)
+            : parseInt(name.slice(1), 10)
+        return Number.isFinite(code) && code > 0 && code <= 0x10ffff
+          ? String.fromCodePoint(code)
+          : whole
+      }
+      return NAMED_ENTITIES[name.toLowerCase()] ?? whole
+    },
+  )
+}
+
+/**
+ * Formatted text as plain text. The content arrives as it stands in the
+ * file, so words and markup keep their order. A paragraph or a line break
+ * ends a line; every other element is dropped and its words stay; text that
+ * no exporter wrapped in a paragraph is kept as it is.
+ */
+function richText(raw: XmlValue): string {
+  if (typeof raw !== 'string') return ''
+  return raw
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/<\/(?:[\w.-]+:)?p\s*>|<(?:[\w.-]+:)?br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .split('\n')
+    .map((line) => decodeEntities(line).replace(/\s+/g, ' ').trim())
+    .filter((line) => line !== '')
+    .join('\n')
 }
 
 // ---------------------------------------------------------------------------

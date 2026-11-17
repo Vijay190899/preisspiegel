@@ -270,3 +270,154 @@ describe('parseOfferPdf', () => {
     })
   })
 })
+
+describe('layouts a second audit built against the reader', () => {
+  // Headers set flush left over figures set flush right: common in offers
+  // printed from a spreadsheet.
+  const leftHeader = (baseline: number, page = 1) => [
+    at('Pos.', 30, baseline, { page }),
+    at('Bezeichnung', 60, baseline, { page }),
+    at('Menge', 262, baseline, { page }),
+    at('ME', 310, baseline, { page }),
+    at('Preis', 352, baseline, { page }),
+    at('Betrag', 432, baseline, { page }),
+  ]
+
+  it('reads figures set flush right under headers set flush left', () => {
+    const { lines, warnings } = parseOfferPdf(
+      [
+        ...leftHeader(100),
+        ...row(114, '1', 'Kabelschuh 16 mm²', '40', 'St', '0,85', '34,00'),
+        ...row(
+          126,
+          '2',
+          'Erdungsband 30 x 3,5',
+          '1.250',
+          'm',
+          '1.204,10',
+          '15.051,25',
+        ),
+      ],
+      's',
+    )
+    expect(warnings).toEqual([])
+    expect(lines).toHaveLength(2)
+    expect(lines[1]).toMatchObject({
+      text: 'Erdungsband 30 x 3,5',
+      qty: 1250,
+      unit: 'm',
+      unitPrice: 1204.1,
+      total: 15051.25,
+    })
+  })
+
+  it('keeps a continuation line that runs under the quantity column', () => {
+    const { lines, warnings } = parseOfferPdf(
+      [
+        ...header(100),
+        ...row(114, '1', 'Standverteiler', '1', 'St', '965,73', '965,73'),
+        // Indented, and long enough to end where the quantities end.
+        at(
+          '2000 x 600 x 400 mm, IP 54, Stahlblech, mit Montageplatte',
+          75,
+          124,
+        ),
+      ],
+      's',
+    )
+    expect(warnings).toEqual([])
+    expect(lines).toHaveLength(1)
+    expect(lines[0]!.text).toBe(
+      'Standverteiler 2000 x 600 x 400 mm, IP 54, Stahlblech, mit Montageplatte',
+    )
+  })
+
+  it('says nothing about a closing page of terms or a bare page number', () => {
+    const { lines, warnings } = parseOfferPdf(
+      [
+        ...header(100),
+        ...row(114, '1', 'Kabelschuh', '40', 'St', '0,85', '34,00'),
+        at('2', 480, 800, { right: true }),
+        at('Allgemeine Lieferbedingungen', 60, 80, { page: 2 }),
+        at('Die Preise gelten 30 Tage ab Angebotsdatum.', 60, 100, { page: 2 }),
+        at('Lieferung frei Baustelle ab 250,00 EUR netto.', 60, 112, {
+          page: 2,
+        }),
+      ],
+      's',
+    )
+    expect(lines).toHaveLength(1)
+    expect(warnings).toEqual([])
+  })
+
+  it('still reports priced rows on a page without a header', () => {
+    const { lines, warnings } = parseOfferPdf(
+      [
+        ...header(100),
+        ...row(114, '1', 'Kabelschuh', '40', 'St', '0,85', '34,00'),
+        ...row(60, '2', 'Erdungsband', '12', 'm', '4,10', '49,20', 2),
+      ],
+      's',
+    )
+    expect(lines).toHaveLength(1)
+    expect(warnings).toEqual([
+      'Page 2 has priced rows after a table but no header row of its own; nothing on it was read.',
+    ])
+  })
+
+  it('reads a table that has a column it has no field for', () => {
+    const { lines, warnings } = parseOfferPdf(
+      [
+        ...header(100),
+        at('Lieferzeit', 500, 100),
+        ...row(114, '1', 'Kabelschuh', '40', 'St', '0,85', '34,00'),
+        at('3 Tage', 500, 114),
+      ],
+      's',
+    )
+    expect(warnings).toEqual([])
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toMatchObject({ text: 'Kabelschuh', total: 34 })
+  })
+
+  it('reads under a header whose first cell wraps onto a second row', () => {
+    const { lines, warnings } = parseOfferPdf(
+      [
+        at('Artikel-', 60, 92),
+        at('Bezeichnung', 120, 92),
+        at('Menge', 300, 92, { right: true }),
+        at('Einzel-', 400, 92, { right: true }),
+        at('Gesamt-', 480, 92, { right: true }),
+        at('Nr.', 60, 101),
+        at('preis', 400, 101, { right: true }),
+        at('preis', 480, 101, { right: true }),
+        at('7799724', 60, 114),
+        at('Kabelschuh 16 mm²', 120, 114),
+        at('40', 300, 114, { right: true }),
+        at('0,85', 400, 114, { right: true }),
+        at('34,00', 480, 114, { right: true }),
+      ],
+      's',
+    )
+    expect(warnings).toEqual([])
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toMatchObject({
+      articleNo: '7799724',
+      text: 'Kabelschuh 16 mm²',
+      qty: 40,
+      unitPrice: 0.85,
+      total: 34,
+    })
+  })
+
+  it('warns when a header is found and nothing can be read under it', () => {
+    const { lines, warnings } = parseOfferPdf(
+      [...header(100), at('Preise auf Anfrage', 60, 114)],
+      's',
+    )
+    expect(lines).toHaveLength(0)
+    expect(warnings).toEqual([
+      'Page 1 has a table header but no line could be read under it.',
+    ])
+  })
+})

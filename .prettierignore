@@ -19,3 +19,6 @@ apps/web/public/
 data/seed/
 bench/results/
 docs/assets/
+
+# Test fixtures printed by other software
+data/fixtures/

@@ -4,6 +4,7 @@ import {
   gaebOfferLines,
   gaebPositions,
   parseGaeb,
+  readGaeb,
   writeGaeb,
 } from './gaeb'
 import type { GaebDocument } from './gaeb'
@@ -213,5 +214,62 @@ describe('files from other exporters', () => {
     expect(() =>
       parseGaeb(foreign.replace('<Qty>1.000</Qty>', '<Qty>1,000</Qty>')),
     ).toThrow(/Qty of item ID243/)
+  })
+
+  it('keeps words and markup in the order they stand in the file', () => {
+    const mixed = foreign.replace(
+      '<span>Zweiter Absatz.</span>',
+      'Leitung <span>NYM-J</span> 3x1,5 mm² <b>halogenfrei</b>, verlegt',
+    )
+    expect(gaebPositions(parseGaeb(mixed))[0]!.longText).toBe(
+      'Erste Zeile mit Fortsetzung.\nLeitung NYM-J 3x1,5 mm² halogenfrei, verlegt',
+    )
+  })
+
+  it('treats a line break as the end of a line', () => {
+    const broken = foreign.replace(
+      '<span>Zweiter Absatz.</span>',
+      '<span>Zweiter Absatz,<br/>dritte Zeile.</span>',
+    )
+    expect(gaebPositions(parseGaeb(broken))[0]!.longText.split('\n')).toEqual([
+      'Erste Zeile mit Fortsetzung.',
+      'Zweiter Absatz,',
+      'dritte Zeile.',
+    ])
+  })
+
+  it('decodes entities, named and numeric', () => {
+    const escaped = foreign.replace(
+      '<span>Zweiter Absatz.</span>',
+      '<span>Kabel &amp; Leitungen &lt; 16 mm&#178;, 5&#xD7;2,5&nbsp;mm&#178;</span>',
+    )
+    expect(gaebPositions(parseGaeb(escaped))[0]!.longText).toContain(
+      'Kabel & Leitungen < 16 mm², 5×2,5 mm²',
+    )
+  })
+
+  it('reads a file whose elements carry a namespace prefix', () => {
+    const prefixed = foreign
+      .replace('xmlns=', 'xmlns:g=')
+      .replace(/<(\/?)(?!\?)([A-Za-z])/g, '<$1g:$2')
+    expect(prefixed).toContain('<g:Item ID="ID243"')
+    expect(gaebPositions(parseGaeb(prefixed))[0]).toMatchObject({
+      oz: '1',
+      qty: 1,
+      shortText: 'Kurztext',
+      longText: 'Erste Zeile mit Fortsetzung.\nZweiter Absatz.',
+    })
+  })
+
+  it('keeps a position without a quantity and says so', () => {
+    const reading = readGaeb(foreign.replace('<Qty>1.000</Qty>', ''))
+    expect(gaebPositions(reading.document)[0]).toMatchObject({
+      oz: '1',
+      qty: 0,
+    })
+    expect(reading.warnings).toEqual([
+      'Item ID243 (1) has no quantity. It is kept with a quantity of 0.',
+    ])
+    expect(readGaeb(foreign).warnings).toEqual([])
   })
 })
