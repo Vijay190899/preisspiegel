@@ -66,7 +66,7 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 ## M3 — Product surface, completed
 
 - Labor: each position tied to an entry of the labor time table. Kalkulation breakdown and the copper control.
-- **Deciding.** The PRD has the estimator decide from the keyboard; today a red window can be opened and read but never settled. Accept an offer, reject it, or set a price, with the decision recorded and the window going out.
+- **Deciding.** _Built (ADR-54):_ the estimator takes an offer as it stands or sets a price, by key or by button, and takes it back; the window turns from red to lit, the position leaves the queue and the sums follow. Decisions belong to the browser that made them.
 - A by-article line for a single position that is read but not taken as an offer (the bollard luminaire on seeds 501 and 502, see [DATA](DATA.md#where-it-fails-on-the-newest-unseen-tender-seed-502)). Measure on a range of seeds nobody has looked at.
 - From the M2 audit, before labor is added on the same runtime: hash the prompt and the answer schema into the cache key; write ledger rows per group of calls and add a watchdog for a step that dies; match quoted values on word boundaries and require the attributes the long text states; score the reason of a review.
 - Run replay and the access code for live runs; `pnpm demo:reset`.
