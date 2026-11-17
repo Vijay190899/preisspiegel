@@ -40,6 +40,7 @@ Root `package.json` scripts are the only entry points.
 | `pnpm shots [path ...]` | Screenshots at 390, 1024, 1280 and 1440 px, night and day; fails on console errors or overflow         |
 | `pnpm probe:llm`        | One cheap call per provider capability; writes `bench/results/provider_probe.json`                     |
 | `pnpm env:push`         | Copies `.env.local` to the Convex deployment's environment                                             |
+| `pnpm demo:reset`       | Takes back every decision and reads the stored answers once more; no model is called                   |
 | `pnpm seed`             | Writes `data/seed/` from the seed, parses it back and loads Convex. `generate` and `load` run one half |
 | `pnpm bench`            | M2                                                                                                     |
 
@@ -73,7 +74,9 @@ Rows refer to their tender by slug (ADR-15).
 - Before each batch the run checks its own spend against `RUN_MAX_USD` and the day's against `LLM_DAILY_BUDGET_USD`, and stops itself with a note. The most a run can overshoot is one batch.
 - Calls are recorded per batch, in the transaction that stores their results, so side-by-side calls do not contend for the day's total.
 - Equal questions share an answer. The hash covers the prompt version, the model and everything shown, with lines numbered by position in the list instead of by id, so the same article asked for on seven floors is read once. The full demo tender has 1,170 positions and about 880 distinct questions, so a run on an empty cache makes about that many calls and a run on a warm one none. The key covers a prompt version that is kept by hand, not the prompt's text (open item).
-- Runs are started from the command line (`pnpm bench --start`), never from the interface: a run costs money. The interface reads `runs:latest`, `runs:statuses`, `runs:match`, `runs:reviewQueue` and `runs:events`, all live.
+- A run has a mode. `live`: the model reads what nobody has read. `replay`: the stored answers are read back, every one is checked against its sources again and the triage decides again, and no model is called; a question without a stored answer stays unread. A replay pauses 450 ms between batches so it can be watched, about 20 s for the tender. `runs:start` is the one thing the interface may start: a replay for anyone, a live run only with `DEMO_ACCESS_CODE` (`agent/gate.ts`, tested: five wrong codes in ten minutes and codes are no longer read), and one run of a tender at a time. `pnpm bench --start` starts a live run from the command line; `pnpm demo:reset` takes back every decision and replays once.
+- A watchdog looks at each run every four minutes and marks it failed if it stands exactly where it stood, so a step that died cannot leave a run reading for good. When a run finishes, the runs before it are cleared; the answers stay in the cache.
+- The interface reads `runs:latest`, `runs:statuses`, `runs:match`, `runs:reviewQueue` and `runs:events`, all live.
 - Reloading a tender clears its runs; the answer cache stays.
 
 ## 4. Pipeline (built, in `packages/core/src/pipeline.ts`)
@@ -193,7 +196,7 @@ LLM_MATCH_MODEL=claude-sonnet-5-5
 - **Reduced motion:** `lib/pace.ts` keeps the starting state of every animation in the markup and removes the way there, so server and browser render the same thing and nothing waits for an animation.
 - **Checks:** `pnpm shots` (four widths, both themes, console errors, overflow) and `pnpm probe:ui` (keyboard, focus, the building by pointer, keys and finger, hand-typed addresses, units, language, reduced motion). Contrast is a unit test over the tokens.
 
-**Planned (M3):** labor in the Kalkulation, run replay, starting a run from the interface, `/bench`.
+**Planned (M3):** labor in the Kalkulation, `/bench`.
 
 **Known costs:** the list query sends all positions (about 280 kB for 1,170); status for a live run must be a separate query. The GAEB source downloads the whole file to show one item; the excerpt should come from Convex.
 

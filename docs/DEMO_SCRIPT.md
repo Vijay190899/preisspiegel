@@ -10,7 +10,7 @@ Status: this is the target walkthrough. It is verified step by step at the M3 ga
 | 0:55 | Position detail             | "The tender text, the three offers side by side, and why each passed or failed."                                                                   |
 | 1:10 | Source viewer               | "Click the price. That is the line in the supplier's PDF it came from."                                                                            |
 | 1:25 | Kalkulation, copper control | "Cable is quoted on a copper base. Move the notation and the total moves by five figures."                                                         |
-| 1:40 | Run replay                  | "Every step is recorded: what was read, what was decided, what it cost."                                                                           |
+| 1:40 | Overview, "Read it again"   | "The house goes dark and is read again: the stored answers, each checked against its source again. No model is called; a live run needs a code."   |
 | 1:50 | Benchmarks                  | "Measured against ground truth: how much was automated, how often that was right, which traps were caught."                                        |
 
 ## Likely questions
