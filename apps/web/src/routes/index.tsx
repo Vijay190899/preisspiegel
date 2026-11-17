@@ -1,15 +1,22 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { motion } from 'motion/react'
+import { RunLine } from '~/components/overview/RunLine'
 import { Schematic } from '~/components/overview/Schematic'
 import { useT } from '~/lib/i18n'
 import { usePace } from '~/lib/pace'
-import { offers, tenderQuery } from '~/lib/queries'
+import { formatMoney, formatQty } from '~/lib/format'
+import { offers, runQuery, statusesQuery, tenderQuery } from '~/lib/queries'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
 export const Route = createFileRoute('/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(tenderQuery),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(tenderQuery),
+      context.queryClient.ensureQueryData(runQuery),
+      context.queryClient.ensureQueryData(statusesQuery),
+    ]),
   component: Overview,
 })
 
@@ -17,6 +24,8 @@ function Overview() {
   const t = useT()
   const { pace } = usePace()
   const { data: tender } = useSuspenseQuery(tenderQuery)
+  const { data: run } = useSuspenseQuery(runQuery)
+  const { data: statuses } = useSuspenseQuery(statusesQuery)
 
   if (tender === null) {
     return (
@@ -35,6 +44,8 @@ function Overview() {
     animate: { opacity: 1, y: 0 },
     transition: pace({ delay: order * 0.07, duration: 0.6, ease: EASE }),
   })
+  const done = run.done
+  const decided = done !== null && done.auto !== null && done.review !== null
 
   return (
     <div className="mx-auto w-full max-w-[1240px] px-4 pb-16 pt-10 sm:px-8 sm:pt-16">
@@ -54,23 +65,65 @@ function Overview() {
         {...arrive(2)}
         className="mt-7 flex flex-wrap items-center gap-x-10 gap-y-6"
       >
-        <p className="max-w-[46ch] text-[1.1rem] leading-relaxed text-ink-2">
-          {t('overview.lead', {
-            bidder: tender.contractor,
-            client: tender.client,
-            n: offers(tender).length,
-          })}
-        </p>
-        <Link to="/positionen" className="action">
-          {t('overview.open')}
-        </Link>
+        {decided ? (
+          // What the run came to, in two sentences and one figure in euros.
+          <p className="max-w-[40ch] text-[1.25rem] leading-snug text-ink-2">
+            <span className="text-ink">
+              {t('overview.result', {
+                auto: formatQty(done.auto ?? 0),
+                total: formatQty(done.positions),
+              })}
+            </span>{' '}
+            {done.review === 1
+              ? t('overview.review.one')
+              : t('overview.review.many', {
+                  n: formatQty(done.review ?? 0),
+                })}{' '}
+            {done.atRisk !== null && done.atRisk > 0 && (
+              <span className="num">
+                {t('overview.atRisk', { amount: formatMoney(done.atRisk) })}
+              </span>
+            )}
+          </p>
+        ) : (
+          <p className="max-w-[46ch] text-[1.1rem] leading-relaxed text-ink-2">
+            {t('overview.lead', {
+              bidder: tender.contractor,
+              client: tender.client,
+              n: offers(tender).length,
+            })}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {decided && (done.review ?? 0) > 0 ? (
+            <>
+              <Link
+                to="/positionen"
+                search={{ offen: true }}
+                className="action"
+              >
+                {t('overview.decide')}
+              </Link>
+              <Link to="/positionen" className="quiet-action">
+                {t('overview.all')}
+              </Link>
+            </>
+          ) : (
+            <Link to="/positionen" className="action">
+              {t('overview.open')}
+            </Link>
+          )}
+        </div>
       </motion.div>
 
       <div className="mt-12 sm:mt-20">
-        <Schematic tender={tender} />
+        <Schematic tender={tender} statuses={statuses} />
       </div>
 
-      <p className="caption mt-14">{t('app.synthetic')}</p>
+      <div className="mt-12 grid gap-4">
+        <RunLine current={run.current} done={run.done} />
+        <p className="caption">{t('app.synthetic')}</p>
+      </div>
     </div>
   )
 }

@@ -8,6 +8,7 @@
 import { offers, tenderDocument } from './queries'
 import type {
   PositionDetail,
+  ReferringLine,
   SourceRef,
   Tender,
   TenderDocument,
@@ -63,6 +64,8 @@ export function resolveSource(
   name: string | undefined,
   tender: Tender,
   detail: PositionDetail,
+  /** The offer lines on the page, where they are more than the ones that name the position. */
+  lines: ReadonlyArray<ReferringLine> = detail.referring,
 ): ResolvedSource | null {
   if (name === undefined) return null
   const [key, second, third] = name.split('.')
@@ -85,7 +88,7 @@ export function resolveSource(
   }
 
   const document = offers(tender).find((offer) => offer.key === key)
-  const line = detail.referring.find(
+  const line = lines.find(
     (candidate) =>
       candidate.supplierKey === key && String(candidate.seq) === second,
   )

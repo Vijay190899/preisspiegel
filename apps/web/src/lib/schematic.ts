@@ -15,6 +15,10 @@ export interface PlanFeeder {
   x: number
   /** Length of the load bar that hangs from it. */
   bar: number
+  /** Positions of the title that need a decision. `null` before a run. */
+  open: number | null
+  /** Length of the end of the bar that stands for them. */
+  barOpen: number
 }
 
 export interface PlanIncomer {
@@ -45,12 +49,18 @@ export const PLAN = {
   barTop: 322,
   barMax: 132,
   barMin: 10,
+  /** The shortest a part of a bar is drawn, so that it can be seen. */
+  partMin: 4,
+  /** The gap between the two parts of a bar. */
+  partGap: 2,
 } as const
 
 /** Places the incomers and feeders evenly and sizes each load bar by count. */
 export function layoutPlan(
   titles: ReadonlyArray<{ rno: string; label: string; positionCount: number }>,
   incomerKeys: ReadonlyArray<string>,
+  /** One letter per position in document order, `r` for one that is open. */
+  statuses: string | null = null,
 ): Plan {
   const { width, margin } = PLAN
   const x1 = margin
@@ -74,20 +84,45 @@ export function layoutPlan(
       x: x1 + (span * (index + 0.5)) / incomerKeys.length,
     })),
     incomerRoom: incomerKeys.length === 0 ? span : span / incomerKeys.length,
-    feeders: titles.map((title, index) => ({
-      rno: title.rno,
-      label: title.label,
-      count: title.positionCount,
-      x: x1 + slot * (index + 0.5),
+    feeders: titles.map((title, index) => {
       // Length is proportional to the count; anything that exists is visible.
-      bar:
+      const bar =
         title.positionCount === 0
           ? 0
-          : Math.max(
-              PLAN.barMin,
-              (title.positionCount / largest) * PLAN.barMax,
-            ),
-    })),
+          : Math.max(PLAN.barMin, (title.positionCount / largest) * PLAN.barMax)
+      // Titles follow each other in the document, so a title's positions
+      // are a stretch of the status letters.
+      const from = titles
+        .slice(0, index)
+        .reduce((sum, earlier) => sum + earlier.positionCount, 0)
+      const open =
+        statuses === null
+          ? null
+          : [...statuses.slice(from, from + title.positionCount)].filter(
+              (letter) => letter === 'r',
+            ).length
+      const share =
+        open === null || open === 0 || title.positionCount === 0
+          ? 0
+          : open / title.positionCount
+      // Whatever is open can be seen, and so can whatever is not.
+      const room = Math.max(0, bar - PLAN.partGap - PLAN.partMin)
+      const barOpen =
+        share === 0
+          ? 0
+          : share === 1
+            ? bar
+            : Math.min(room, Math.max(PLAN.partMin, bar * share))
+      return {
+        rno: title.rno,
+        label: title.label,
+        count: title.positionCount,
+        x: x1 + slot * (index + 0.5),
+        bar,
+        open,
+        barOpen,
+      }
+    }),
     barWidth: Math.min(30, Math.max(12, slot * 0.3)),
   }
 }

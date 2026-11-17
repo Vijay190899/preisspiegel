@@ -12,6 +12,18 @@ export const positionsQuery = convexQuery(api.positions.list, {
 export const positionQuery = (oz: string) =>
   convexQuery(api.positions.get, { slug: TENDER_SLUG, oz })
 
+/** The newest run of the tender, and the newest one that reached its decisions. */
+export const runQuery = convexQuery(api.runs.latest, { slug: TENDER_SLUG })
+/** One letter per position in document order: `a` priced, `r` needs a person. */
+export const statusesQuery = convexQuery(api.runs.statuses, {
+  slug: TENDER_SLUG,
+})
+export const reviewQueueQuery = convexQuery(api.runs.reviewQueue, {
+  slug: TENDER_SLUG,
+})
+export const matchQuery = (oz: string) =>
+  convexQuery(api.runs.match, { slug: TENDER_SLUG, oz })
+
 export type Tender = NonNullable<FunctionReturnType<typeof api.tenders.get>>
 export type TenderDocument = Tender['documents'][number]
 export type PositionRow = FunctionReturnType<typeof api.positions.list>[number]
@@ -19,6 +31,14 @@ export type PositionDetail = NonNullable<
   FunctionReturnType<typeof api.positions.get>
 >
 export type ReferringLine = PositionDetail['referring'][number]
+export type RunSummary = NonNullable<
+  FunctionReturnType<typeof api.runs.latest>['done']
+>
+export type Match = NonNullable<FunctionReturnType<typeof api.runs.match>>
+export type MatchOffer = Match['offers'][number]
+export type Finding = MatchOffer['findings'][number]
+export type ReasonCode = Finding['code']
+export type ReviewItem = FunctionReturnType<typeof api.runs.reviewQueue>[number]
 export type SourceRef = ReferringLine['sources'][string]
 
 /** The offers of a tender in a fixed order, so a supplier keeps its column. */

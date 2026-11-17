@@ -94,7 +94,12 @@ async function main(): Promise<void> {
     )
 
     console.log('Source of a number')
-    await page.locator('.traceable.num').nth(1).click()
+    // The wholesaler's price: its offer is a PDF, so a page gets drawn.
+    await page
+      .locator('.module > div', { hasText: 'Rheinbogen' })
+      .locator('.traceable.num')
+      .first()
+      .click()
     await page.waitForURL(/quelle=/)
     await settle(page, 900)
     check(
@@ -137,10 +142,17 @@ async function main(): Promise<void> {
     await settle(page, 300)
     await page.keyboard.press('Enter')
     await page.waitForURL(/01\.01\.0040/)
-    await settle(page, 400)
+    // The palette leaves with a short animation. It has to be gone, and it
+    // has to stay gone: the key press must not have reopened it.
+    const palette = page.locator('[role="dialog"]')
+    const left = await palette
+      .waitFor({ state: 'detached', timeout: 3000 })
+      .then(() => true)
+      .catch(() => false)
+    await settle(page, 500)
     check(
       'Enter opens the result and the palette stays closed',
-      (await page.locator('[role="dialog"]').count()) === 0,
+      left && (await palette.count()) === 0,
     )
 
     console.log('Hand-typed addresses')
@@ -172,20 +184,118 @@ async function main(): Promise<void> {
       (await page.locator('a.action').count()) === 1,
     )
 
-    console.log('Units')
-    await page.goto(`${base}/positionen/04.08.0070`, {
+    console.log('Decisions')
+    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    const lead = await page.locator('main p.text-\\[1\\.25rem\\]').innerText()
+    const split =
+      /([\d.]+) von ([\d.]+) Positionen sind kalkuliert\. ([\d.]+) brauchen/.exec(
+        lead,
+      )
+    check(
+      'the overview says how many positions are priced and how many are open',
+      split !== null,
+      lead,
+    )
+    const openCount = split?.[3] ?? ''
+
+    await page.getByRole('link', { name: 'Entscheidungen öffnen' }).click()
+    await page.waitForURL(/offen=true/)
+    await page.waitForURL(/\/positionen\/\d/)
+    await settle(page, 500)
+    const queued = await page
+      .locator('[data-position-list] [aria-live]')
+      .innerText()
+    check(
+      'the open filter lists exactly the positions that need a decision',
+      queued.startsWith(`${openCount} `),
+      { queued, openCount },
+    )
+    const amounts = await page
+      .locator(
+        '[data-position-list] a[data-selected], [data-position-list] a[tabindex]',
+      )
+      .evaluateAll((rows) =>
+        rows
+          .slice(0, 6)
+          .map((row) =>
+            Number(
+              (row.lastElementChild?.textContent ?? '')
+                .replace(/[^\d,]/g, '')
+                .replace(',', '.'),
+            ),
+          ),
+      )
+    check(
+      'the costliest decision comes first',
+      amounts.length > 1 &&
+        amounts.every(
+          (amount, index) => index === 0 || amount <= (amounts[index - 1] ?? 0),
+        ),
+      amounts,
+    )
+    const firstOpen = path(page)
+    await page.locator('h1').click()
+    await page.keyboard.press('j')
+    await settle(page, 500)
+    check(
+      'J steps to the next decision and keeps the filter',
+      path(page) !== firstOpen && path(page).includes('offen=true'),
+      path(page),
+    )
+
+    await page.goto(`${base}/positionen/01.01.0020`, {
       waitUntil: 'networkidle',
     })
-    const units = await page.locator('.module .caption.num').allInnerTexts()
+    const featured = await page.locator('article').innerText()
     check(
-      'a price per ring is not labelled as a price per metre',
-      units.includes('je RG') && units.includes('je m'),
-      units,
+      'the undersized cabinet is flagged with its arithmetic',
+      featured.includes('138 kVA / (√3 × 400 V) = 199 A') &&
+        featured.includes('verlangt 250 A, angeboten 138 kVA'),
+      featured.slice(0, 400),
     )
     check(
-      'prices in different units are not compared',
-      (await page.locator('.module .origin-left').count()) === 0,
+      'the decision says what it is worth',
+      /kostet die Position [\d.,]+ € mehr/.test(featured),
     )
+    check(
+      'the offer the position is priced with is marked',
+      (await page
+        .locator('article')
+        .getByText('Günstigstes gültiges Angebot')
+        .count()) === 1,
+    )
+
+    console.log('Units')
+    await page.goto(`${base}/positionen?offen=true`, {
+      waitUntil: 'networkidle',
+    })
+    await page.locator('[data-position-list] input').fill('')
+    const unclear = page
+      .locator('[data-position-list] a', { hasText: 'Einheit unklar' })
+      .first()
+    // The list only renders what is on screen, so scroll until one shows.
+    for (let step = 0; step < 40 && (await unclear.count()) === 0; step++) {
+      await page
+        .locator('[data-position-list] .overflow-auto')
+        .evaluate((list) => list.scrollBy(0, 500))
+      await settle(page, 80)
+    }
+    if ((await unclear.count()) > 0) {
+      await unclear.click()
+      await settle(page, 600)
+      const text = await page.locator('article').innerText()
+      check(
+        'a pack without a stated size is named as such, in its own unit',
+        /Preis je (RG|VE), ausgeschrieben in (m|St)/.test(text),
+        text.slice(0, 300),
+      )
+    } else {
+      check(
+        'a pack without a stated size is in the queue',
+        false,
+        'no such decision in view',
+      )
+    }
 
     console.log('Language')
     await page.getByRole('button', { name: 'Switch to English' }).click()

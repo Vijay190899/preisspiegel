@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { searchText } from './searchParams'
+import { searchFlag, searchText } from './searchParams'
+
+describe('searchFlag', () => {
+  it('is on for true in any of the ways a URL can say it', () => {
+    expect(searchFlag(true)).toBe(true)
+    expect(searchFlag('true')).toBe(true)
+    expect(searchFlag(1)).toBe(true)
+  })
+
+  it('is absent otherwise, so it leaves no trace in the address', () => {
+    expect(searchFlag(false)).toBeUndefined()
+    expect(searchFlag('nein')).toBeUndefined()
+    expect(searchFlag(undefined)).toBeUndefined()
+  })
+})
 
 describe('searchText', () => {
   it('keeps text', () => {

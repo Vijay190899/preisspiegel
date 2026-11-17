@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useId, useState } from 'react'
+import { findingText, reasonLabel } from '~/lib/findings'
 import {
   formatMoney,
   formatQty,
@@ -12,18 +13,24 @@ import { useT } from '~/lib/i18n'
 import { usePace } from '~/lib/pace'
 import { offers } from '~/lib/queries'
 import { offerSource, tenderSource } from '~/lib/sources'
-import type { OfferField } from '~/lib/sources'
+import type { ReactNode } from 'react'
 import type {
+  Match,
+  MatchOffer,
   PositionDetail,
   ReferringLine,
   Tender,
   TenderDocument,
 } from '~/lib/queries'
-import type { ReactNode } from 'react'
+import type { OfferField } from '~/lib/sources'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
 type Pace = ReturnType<typeof usePace>['pace']
+type Lamp = 'settled' | 'open' | 'caution' | 'idle'
+
+const lampStyle = (lamp: Lamp) =>
+  ({ '--lamp': `var(--t-${lamp})` }) as React.CSSProperties
 
 /** A value that leads to the place it was read from. */
 function Traceable({
@@ -57,19 +64,34 @@ function perUnit(line: ReferringLine): number | null {
   return line.unitPrice === null ? null : line.unitPrice / line.priceBasis
 }
 
+/** One offer as the page shows it: the line, and what a run made of it. */
+interface Shown {
+  supplier: TenderDocument
+  line: ReferringLine
+  /** What a run found, once there has been one. */
+  offer: MatchOffer | null
+  /** The price for one unit of the tender, where it can be worked out. */
+  unitPrice: number | null
+  /** A further line of the same supplier for this position. */
+  second: boolean
+}
+
 /**
- * One position: what the tender asks for, and under it what each supplier
- * offers, one row per offer.
+ * One position: what the tender asks for, what was decided about it, and
+ * under that what each supplier offers, one row per offer.
  */
 export function PositionView({
   tender,
   detail,
+  match,
   source,
   previous,
   next,
 }: {
   tender: Tender
   detail: PositionDetail
+  /** The decision of the last run, if there has been one. */
+  match: Match | null
   source: string | undefined
   previous: string | undefined
   next: string | undefined
@@ -78,14 +100,59 @@ export function PositionView({
   const { pace } = usePace()
   const { position, referring } = detail
   const [title, subtitle] = position.path
+  const suppliers = offers(tender)
+  const supplierOf = (key: string) =>
+    suppliers.find((supplier) => supplier.key === key)
 
-  // Prices are only compared when they are for the same unit: a ring of cable
-  // and a metre of it are not.
-  const comparable = (line: ReferringLine) =>
-    unitLabel(line.unit ?? position.unit) === unitLabel(position.unit)
-  const prices = referring
-    .filter(comparable)
-    .map(perUnit)
+  // After a run, the offers are the ones the run settled on, the chosen one
+  // first. Before one, they are the lines that name the position.
+  const shown: Array<Shown> = []
+  if (match === null) {
+    const seen = new Set<string>()
+    for (const line of referring) {
+      const supplier = supplierOf(line.supplierKey)
+      if (supplier === undefined) continue
+      const sameUnit =
+        unitLabel(line.unit ?? position.unit) === unitLabel(position.unit)
+      shown.push({
+        supplier,
+        line,
+        offer: null,
+        unitPrice: sameUnit ? perUnit(line) : null,
+        second: seen.has(line.supplierKey),
+      })
+      seen.add(line.supplierKey)
+    }
+  } else {
+    const lineOf = new Map(
+      match.lines.map((line) => [`${line.supplierKey}.${line.seq}`, line]),
+    )
+    const rank = (offer: MatchOffer) =>
+      offer.id === match.best?.id ? 0 : offer.findings.length === 0 ? 1 : 2
+    const ordered = [...match.offers].sort(
+      (a, b) =>
+        rank(a) - rank(b) ||
+        (a.unitPrice ?? Infinity) - (b.unitPrice ?? Infinity),
+    )
+    for (const offer of ordered) {
+      const supplier = supplierOf(offer.supplierKey)
+      const line = lineOf.get(offer.id)
+      if (supplier === undefined || line === undefined) continue
+      shown.push({
+        supplier,
+        line,
+        offer,
+        unitPrice: offer.unitPrice,
+        second: false,
+      })
+    }
+  }
+  const silent = suppliers.filter(
+    (supplier) => !shown.some((entry) => entry.supplier.key === supplier.key),
+  )
+
+  const prices = shown
+    .map((entry) => entry.unitPrice)
     .filter((price): price is number => price !== null)
   const highest = Math.max(0, ...prices)
   // A bar compares; one price alone has nothing to be compared with.
@@ -157,7 +224,22 @@ export function PositionView({
         <p className="caption">{t('pos.quantity')}</p>
       </motion.div>
 
-      <motion.div {...arrive(2)} className="mt-7">
+      {match !== null && (
+        <motion.div {...arrive(2)} className="mt-7">
+          <Decision
+            match={match}
+            unit={unitLabel(position.unit)}
+            supplier={
+              match.best === null
+                ? undefined
+                : (supplierOf(match.best.supplierKey)?.supplierName ??
+                  undefined)
+            }
+          />
+        </motion.div>
+      )}
+
+      <motion.div {...arrive(3)} className="mt-7">
         <Description text={position.longText} />
         <p className="mt-3 text-[0.92rem]">
           <Traceable
@@ -170,44 +252,111 @@ export function PositionView({
         </p>
       </motion.div>
 
-      <motion.section {...arrive(3)} className="mt-12">
+      <motion.section {...arrive(4)} className="mt-12">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <h2 className="heading text-[1.2rem]">{t('pos.offers')}</h2>
           <p className="caption">{t('pos.offersHint')}</p>
         </div>
 
         <div className="module divide-y divide-line overflow-hidden">
-          {offers(tender).map((offer) => {
-            const lines = referring.filter(
-              (line) => line.supplierKey === offer.key,
-            )
-            return lines.length === 0 ? (
-              <Unanswered key={offer.key} offer={offer} />
-            ) : (
-              lines.map((line, index) => {
-                const price = perUnit(line)
-                return (
-                  <OfferRow
-                    key={`${offer.key}.${line.seq}`}
-                    offer={offer}
-                    line={line}
-                    second={index > 0}
-                    tenderUnit={position.unit}
-                    share={
-                      compare && price !== null && comparable(line)
-                        ? price / highest
-                        : undefined
-                    }
-                    source={source}
-                    pace={pace}
-                  />
-                )
-              })
-            )
-          })}
+          {shown.map((entry) => (
+            <OfferRow
+              key={`${entry.line.supplierKey}.${entry.line.seq}`}
+              shown={entry}
+              chosen={
+                entry.offer !== null && match?.best?.id === entry.offer.id
+              }
+              tenderUnit={position.unit}
+              share={
+                compare && entry.unitPrice !== null
+                  ? entry.unitPrice / highest
+                  : undefined
+              }
+              source={source}
+              pace={pace}
+            />
+          ))}
+          {silent.map((supplier) => (
+            <Unanswered
+              key={supplier.key}
+              offer={supplier}
+              afterRun={match !== null}
+            />
+          ))}
         </div>
       </motion.section>
     </article>
+  )
+}
+
+/** What a run decided about the position, and what the decision is worth. */
+function Decision({
+  match,
+  unit,
+  supplier,
+}: {
+  match: Match
+  unit: string
+  supplier: string | undefined
+}) {
+  const t = useT()
+  const review = match.status === 'review'
+  const unpriced = match.offers.some(
+    (offer) => offer.findings.length > 0 && offer.unitPrice === null,
+  )
+
+  const body =
+    !review && match.best !== null
+      ? t('decision.auto.body', {
+          supplier: supplier ?? '',
+          price: formatUnitPrice(match.best.unitPrice),
+          unit,
+          total: formatMoney(match.materialTotal ?? 0),
+        })
+      : match.offers.length === 0
+        ? t('decision.review.none')
+        : match.atRisk !== null && match.best !== null
+          ? t('decision.review.cheaper', { atRisk: formatMoney(match.atRisk) })
+          : match.atRisk !== null
+            ? t('decision.review.only', { atRisk: formatMoney(match.atRisk) })
+            : unpriced
+              ? t('decision.review.unpriced', { unit })
+              : ''
+
+  return (
+    <div
+      className={`rounded-module border px-4 py-3.5 sm:px-5 ${
+        review ? 'border-open/35 bg-open-soft' : 'border-line bg-surface'
+      }`}
+    >
+      <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-medium">
+        <span className="lamp" style={lampStyle(review ? 'open' : 'settled')} />
+        {t(review ? 'decision.review' : 'decision.auto')}
+        {review &&
+          match.reasons.map((reason) => (
+            <span
+              key={reason}
+              className="rounded-full border border-open/40 px-2.5 py-0.5 text-[0.84rem] font-medium text-open-ink"
+            >
+              {t(reasonLabel(reason))}
+            </span>
+          ))}
+      </p>
+      {body !== '' && (
+        <p className="num mt-1.5 max-w-[60ch] leading-snug text-ink-2">
+          {body}
+        </p>
+      )}
+      {match.noted.length > 0 && (
+        <p className="caption mt-2">
+          {t('decision.noted', {
+            reasons: match.noted
+              .map((reason) => t(reasonLabel(reason)))
+              .join(', '),
+          })}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -233,7 +382,7 @@ function Step({
     <Link
       to="/positionen/$oz"
       params={{ oz: to }}
-      search={(previous) => ({ titel: previous.titel })}
+      search={(previous) => ({ titel: previous.titel, offen: previous.offen })}
       aria-label={label}
       title={label}
       className={`${className} hover:bg-ink/[0.07] hover:text-ink`}
@@ -275,8 +424,14 @@ function Description({ text }: { text: string }) {
   )
 }
 
-/** A supplier with no line for this position. */
-function Unanswered({ offer }: { offer: TenderDocument }) {
+/** A supplier with no offer for this position. */
+function Unanswered({
+  offer,
+  afterRun,
+}: {
+  offer: TenderDocument
+  afterRun: boolean
+}) {
   const t = useT()
   return (
     <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 px-4 py-4 sm:px-5">
@@ -284,8 +439,13 @@ function Unanswered({ offer }: { offer: TenderDocument }) {
       <div className="min-w-0">
         <p className="truncate text-ink-2">{offer.supplierName}</p>
         <p className="mt-0.5 text-[0.92rem] text-ink-3">
-          {/* Some suppliers quote by article and give no ordinal numbers. */}
-          {t(offer.referenceCount > 0 ? 'offer.noLine' : 'offer.noRefs')}
+          {/* Before a run, a supplier that quotes by article shows nothing
+              here yet; after one, nothing means it did not offer this. */}
+          {t(
+            afterRun || offer.referenceCount > 0
+              ? 'offer.noLine'
+              : 'offer.noRefs',
+          )}
         </p>
       </div>
     </div>
@@ -293,18 +453,16 @@ function Unanswered({ offer }: { offer: TenderDocument }) {
 }
 
 function OfferRow({
-  offer,
-  line,
-  second,
+  shown,
+  chosen,
   tenderUnit,
   share,
   source,
   pace,
 }: {
-  offer: TenderDocument
-  line: ReferringLine
-  /** A further line of the same supplier for the same position. */
-  second: boolean
+  shown: Shown
+  /** The offer the position is priced with. */
+  chosen: boolean
   tenderUnit: string
   /** This price as a share of the highest one offered, if there are several. */
   share: number | undefined
@@ -313,47 +471,56 @@ function OfferRow({
 }) {
   const t = useT()
   const details = useId()
+  const { supplier, line, offer, second } = shown
   const name = (field: OfferField) =>
     offerSource(line.supplierKey, line.seq, field)
 
-  // A number traced from inside the details opens them; the price in the
-  // row itself is in view either way.
+  // A number traced from inside the details opens them; the price and the
+  // wording in the row itself are in view either way.
   const traced =
     source !== undefined &&
     source.startsWith(`${line.supplierKey}.${line.seq}.`) &&
-    source !== name('unitPrice')
-  const [chosen, setChosen] = useState<boolean | null>(null)
-  const open = chosen ?? traced
+    source !== name('unitPrice') &&
+    source !== name('text')
+  const [picked, setPicked] = useState<boolean | null>(null)
+  const open = picked ?? traced
 
   const unit = unitLabel(line.unit ?? tenderUnit)
-  const price = perUnit(line)
   // A supplier that answers in GAEB repeats the tender's own text.
   const ownWording = line.sources.text?.kind === 'pdf'
   const hasArticle = line.articleNo !== null && line.articleNo !== ''
+  const findings = offer?.findings ?? []
+  const flagged = findings.length > 0
+  // The price for one unit of the tender, where it is not the printed one.
+  const converted =
+    shown.unitPrice !== null &&
+    line.unitPrice !== null &&
+    Math.abs(shown.unitPrice - line.unitPrice) > 1e-9
+  const lamp: Lamp =
+    offer === null
+      ? second
+        ? 'caution'
+        : 'settled'
+      : flagged
+        ? 'open'
+        : 'settled'
 
   return (
-    <div>
+    <div className={flagged ? 'bg-open-soft/40' : ''}>
       <div className="relative grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 px-4 py-4 transition-colors duration-150 hover:bg-ink/[0.03] sm:px-5">
-        <span
-          className="lamp"
-          style={
-            {
-              '--lamp': second ? 'var(--t-caution)' : 'var(--t-settled)',
-            } as React.CSSProperties
-          }
-        />
+        <span className="lamp" style={lampStyle(lamp)} />
 
         <div className="min-w-0">
           {/* The whole row opens the details; the links in it stay links. */}
           <button
             type="button"
-            onClick={() => setChosen(!open)}
+            onClick={() => setPicked(!open)}
             aria-expanded={open}
             aria-controls={details}
-            aria-label={`${offer.supplierName}: ${t(open ? 'offer.hide' : 'offer.show')}`}
+            aria-label={`${supplier.supplierName}: ${t(open ? 'offer.hide' : 'offer.show')}`}
             className="block max-w-full truncate text-left font-medium outline-none after:absolute after:inset-0 focus-visible:after:rounded-[inherit] focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-focus"
           >
-            {second ? t('offer.second') : offer.supplierName}
+            {second ? t('offer.second') : supplier.supplierName}
           </button>
 
           {ownWording ? (
@@ -371,16 +538,19 @@ function OfferRow({
             <p className="mt-0.5 truncate text-[0.92rem] text-ink-3">
               {hasArticle
                 ? `${t('offer.articleNo')} ${line.articleNo}`
-                : offer.fileName}
+                : supplier.fileName}
             </p>
           )}
 
-          {line.alternative && (
+          {chosen && (
+            <p className="mt-1.5 flex items-center gap-2 text-[0.86rem] font-medium text-copper-ink">
+              <span className="h-[3px] w-4 rounded-full bg-copper" />
+              {t('offer.chosen')}
+            </p>
+          )}
+          {offer === null && line.alternative && (
             <p className="mt-1.5 flex items-center gap-2 text-[0.86rem] text-ink-2">
-              <span
-                className="lamp"
-                style={{ '--lamp': 'var(--t-caution)' } as React.CSSProperties}
-              />
+              <span className="lamp" style={lampStyle('caution')} />
               {t('offer.alternative')}
             </p>
           )}
@@ -416,11 +586,35 @@ function OfferRow({
           }`}
         />
 
+        {flagged && (
+          // What was found, in words, with the arithmetic where there is one.
+          <ul className="col-span-full mt-3 grid gap-2 pl-[1.35rem]">
+            {findings.map((finding, index) => {
+              const said = findingText(t, finding)
+              return (
+                <li key={index} className="text-[0.95rem] leading-snug">
+                  <span className="font-medium text-open-ink">
+                    {t(reasonLabel(finding.code))}.
+                  </span>{' '}
+                  <span className="num">{said.text}</span>
+                  {said.arithmetic !== undefined && (
+                    <span className="code mt-1 block text-[0.84rem] text-ink-2">
+                      {said.arithmetic}
+                    </span>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
         {share !== undefined && (
           // The Preisspiegel itself: each price as a length, side by side.
           <span className="col-span-full mt-3.5 block h-[3px] rounded-full bg-surface-sunken">
             <motion.span
-              className="block h-full origin-left rounded-full bg-ink-3"
+              className={`block h-full origin-left rounded-full ${
+                chosen ? 'bg-copper' : 'bg-ink-3'
+              }`}
               style={{ width: `${Math.max(1.5, share * 100)}%` }}
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
@@ -502,18 +696,53 @@ function OfferRow({
                 )}
               </dl>
 
-              {line.priceBasis !== 1 && price !== null && (
+              {converted && shown.unitPrice !== null && (
                 <p className="caption num mt-4">
                   {t('offer.converted', {
-                    price: formatUnitPrice(price),
-                    unit,
+                    price: formatUnitPrice(shown.unitPrice),
+                    unit: unitLabel(tenderUnit),
                   })}
                 </p>
               )}
+
+              {offer !== null && <Evidence offer={offer} />}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  )
+}
+
+/** What was compared to tell that the line is, or is not, what was asked for. */
+function Evidence({ offer }: { offer: MatchOffer }) {
+  const t = useT()
+  const note =
+    offer.by === 'code' && offer.pairs.length === 0 && offer.referenced
+      ? t('offer.sameText')
+      : offer.by === 'code' &&
+          !offer.referenced &&
+          offer.verdict === 'confirmed'
+        ? t('offer.byQuantity')
+        : null
+  if (offer.pairs.length === 0 && note === null) return null
+
+  return (
+    <div className="mt-5">
+      <p className="caption">{t('offer.compared')}</p>
+      <ul className="mt-1.5 grid gap-1 text-[0.92rem] text-ink-2">
+        {offer.pairs.map((pair, index) => (
+          <li key={index} className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-ink-3">{pair.attribute}</span>
+            <span className="num">{pair.tender.value}</span>
+            <span aria-hidden="true" className="text-ink-3">
+              {pair.agrees ? '=' : '≠'}
+            </span>
+            <span className="num">{pair.offer.value}</span>
+          </li>
+        ))}
+        {note !== null && <li>{note}</li>}
+      </ul>
     </div>
   )
 }

@@ -29,6 +29,12 @@ const de = {
   'overview.lead':
     '{bidder} kalkuliert das Angebot für die {client}. {n} Lieferanten haben geantwortet.',
   'overview.open': 'Positionen öffnen',
+  'overview.result': '{auto} von {total} Positionen sind kalkuliert.',
+  'overview.review.one': 'Eine braucht eine Entscheidung.',
+  'overview.review.many': '{n} brauchen eine Entscheidung.',
+  'overview.atRisk': 'An diesen Entscheidungen hängen {amount} €.',
+  'overview.decide': 'Entscheidungen öffnen',
+  'overview.all': 'Alle Positionen',
   'overview.empty.title': 'Noch keine Ausschreibung geladen',
   'overview.empty.body':
     'Mit pnpm seed load wird die Demo-Ausschreibung eingelesen: das Leistungsverzeichnis und drei Lieferantenangebote.',
@@ -43,6 +49,20 @@ const de = {
     '{referenced} von {total} Positionen nennt mindestens ein Angebot mit ihrer Ordnungszahl. Die übrigen {rest} werden über den Text zugeordnet.',
   'plan.hint': 'Ein Abgang öffnet die Positionen dieses Titels.',
   'plan.openTitle': 'Titel {rno} {label} öffnen, {positions}',
+  'plan.openCount': 'davon {n} offen',
+  'plan.legend.settled': 'ohne Rückfrage kalkuliert',
+  'plan.legend.open': 'braucht eine Entscheidung',
+
+  'run.done':
+    'Lauf vom {date} mit {model}: {calls} Fragen gelesen, {cached} Antworten lagen schon vor, {usd}\u00a0$.',
+  'run.reading.before': 'Ein Lauf liest gerade die Angebote:',
+  'run.reading.after': 'von {total} Positionen.',
+  'run.deciding':
+    'Alles gelesen. Die Positionen werden geprüft und entschieden.',
+  'run.stopped': 'Der letzte Lauf wurde angehalten: {note}',
+  'run.failed': 'Der letzte Lauf ist abgebrochen: {note}',
+  'run.none':
+    'Noch kein Lauf. Ein Lauf liest die Angebote und entscheidet jede Position; er wird mit pnpm bench --start gestartet.',
 
   'positions.one': 'Position',
   'positions.many': 'Positionen',
@@ -50,6 +70,12 @@ const de = {
   'list.search': 'Ordnungszahl oder Text',
   'list.none': 'Keine Position passt zur Suche.',
   'list.clearTitle': 'Filter aufheben',
+  'list.all': 'Alle',
+  'list.open': 'Offen',
+  'list.show': 'Welche Positionen anzeigen',
+  'list.noneOpen': 'Keine Position braucht eine Entscheidung.',
+  'list.status.a': 'kalkuliert',
+  'list.status.r': 'braucht eine Entscheidung',
 
   'pos.back': 'Alle Positionen',
   'pos.readMore': 'Ganz lesen',
@@ -61,6 +87,45 @@ const de = {
   'pos.next': 'Nächste Position',
   'pos.source': 'Im Leistungsverzeichnis zeigen',
   'pos.quantity': 'Menge laut Leistungsverzeichnis',
+
+  'decision.auto': 'Ohne Rückfrage kalkuliert',
+  'decision.auto.body':
+    '{supplier} bietet am günstigsten an: {price} € je {unit}, zusammen {total} €.',
+  'decision.review': 'Braucht eine Entscheidung',
+  'decision.review.cheaper':
+    'Das günstigste Angebot ist nicht ohne Befund. Mit dem günstigsten gültigen kostet die Position {atRisk} € mehr.',
+  'decision.review.only':
+    'Kein Angebot ist ohne Befund. Es geht um {atRisk} €.',
+  'decision.review.unpriced':
+    'Ein Angebot lässt sich nicht auf {unit} umrechnen und deshalb nicht vergleichen.',
+  'decision.review.none': 'Kein Lieferant hat diese Position angeboten.',
+  'decision.noted': 'Gesehen, ohne Folgen für den Preis: {reasons}.',
+
+  'reason.SPEC_MISMATCH': 'Leistung weicht ab',
+  'reason.UNIT_BASIS': 'Einheit unklar',
+  'reason.PRICE_OUTLIER': 'Preis fällt heraus',
+  'reason.QTY_MISMATCH': 'Menge weicht ab',
+  'reason.ALTERNATIVE_PRODUCT': 'Anderes Fabrikat',
+  'reason.NO_OFFER': 'Kein Angebot',
+  'reason.AMBIGUOUS': 'Nicht eindeutig',
+  'reason.ARITHMETIC': 'Rechnet sich nicht',
+
+  'finding.SPEC_MISMATCH': '{attribute}: verlangt {tender}, angeboten {offer}.',
+  'finding.SPEC_MISMATCH.unconfirmed':
+    'Dem Text nach ein anderes Produkt. Ein Beleg dafür ließ sich nicht prüfen.',
+  'finding.UNIT_BASIS':
+    'Preis je {lineUnit}, ausgeschrieben in {tenderUnit}. Wie viel eine Einheit enthält, steht nicht im Angebot.',
+  'finding.ARITHMETIC':
+    'Menge mal Preis ergibt {expected} €, im Angebot steht {printed} €.',
+  'finding.QTY_MISMATCH': 'Ausgeschrieben sind {asked}, angeboten {offered}.',
+  'finding.ALTERNATIVE_PRODUCT': 'Als abweichendes Fabrikat gekennzeichnet.',
+  'finding.AMBIGUOUS':
+    'Der Lieferant beantwortet die Position auf {lines} Zeilen zu verschiedenen Preisen.',
+  'finding.AMBIGUOUS.unconfirmed':
+    'Ob diese Zeile zur Position gehört, ließ sich aus den beiden Texten nicht klären.',
+  'finding.PRICE_OUTLIER':
+    '{price} € je Einheit. Das nächste Angebot liegt bei {others} €.',
+  'finding.NO_OFFER': 'Kein Lieferant hat diese Position angeboten.',
 
   'offer.articleNo': 'Artikelnummer',
   'offer.qty': 'Menge',
@@ -76,6 +141,10 @@ const de = {
   'offer.second': 'Zweite Zeile zur selben Position',
   'offer.show': 'Einzelheiten zeigen',
   'offer.hide': 'Einzelheiten verbergen',
+  'offer.chosen': 'Günstigstes gültiges Angebot',
+  'offer.compared': 'Verglichen',
+  'offer.byQuantity': 'Über die Menge zugeordnet',
+  'offer.sameText': 'Wiederholt den Text der Position',
 
   'source.title': 'Quelle',
   'source.page': 'Seite {page} von {pages}',
@@ -125,6 +194,12 @@ const en: Record<MessageKey, string> = {
   'overview.lead':
     '{bidder} is pricing the bid for {client}. {n} suppliers have answered.',
   'overview.open': 'Open positions',
+  'overview.result': '{auto} of {total} positions are priced.',
+  'overview.review.one': 'One needs a decision.',
+  'overview.review.many': '{n} need a decision.',
+  'overview.atRisk': '{amount} € rest on these decisions.',
+  'overview.decide': 'Open the decisions',
+  'overview.all': 'All positions',
   'overview.empty.title': 'No tender loaded yet',
   'overview.empty.body':
     'pnpm seed load reads in the demo tender: the Leistungsverzeichnis and three supplier offers.',
@@ -139,6 +214,20 @@ const en: Record<MessageKey, string> = {
     '{referenced} of {total} positions are named by at least one offer with their Ordnungszahl. The other {rest} are matched from the text.',
   'plan.hint': 'A feeder opens the positions of that title.',
   'plan.openTitle': 'Open title {rno} {label}, {positions}',
+  'plan.openCount': '{n} of them open',
+  'plan.legend.settled': 'priced without asking',
+  'plan.legend.open': 'needs a decision',
+
+  'run.done':
+    'Run of {date} with {model}: {calls} questions read, {cached} answers were already there, {usd}\u00a0$.',
+  'run.reading.before': 'A run is reading the offers:',
+  'run.reading.after': 'of {total} positions.',
+  'run.deciding':
+    'Everything is read. The positions are being checked and decided.',
+  'run.stopped': 'The last run was stopped: {note}',
+  'run.failed': 'The last run failed: {note}',
+  'run.none':
+    'No run yet. A run reads the offers and decides every position; it is started with pnpm bench --start.',
 
   'positions.one': 'position',
   'positions.many': 'positions',
@@ -146,6 +235,12 @@ const en: Record<MessageKey, string> = {
   'list.search': 'Ordnungszahl or text',
   'list.none': 'No position matches the search.',
   'list.clearTitle': 'Clear filter',
+  'list.all': 'All',
+  'list.open': 'Open',
+  'list.show': 'Which positions to show',
+  'list.noneOpen': 'No position needs a decision.',
+  'list.status.a': 'priced',
+  'list.status.r': 'needs a decision',
 
   'pos.back': 'All positions',
   'pos.readMore': 'Read all',
@@ -157,6 +252,45 @@ const en: Record<MessageKey, string> = {
   'pos.next': 'Next position',
   'pos.source': 'Show in the Leistungsverzeichnis',
   'pos.quantity': 'Quantity in the Leistungsverzeichnis',
+
+  'decision.auto': 'Priced without asking',
+  'decision.auto.body':
+    '{supplier} offers the lowest price: {price} € per {unit}, {total} € in all.',
+  'decision.review': 'Needs a decision',
+  'decision.review.cheaper':
+    'The cheapest offer has a finding. With the cheapest valid one the position costs {atRisk} € more.',
+  'decision.review.only':
+    'No offer is without a finding. {atRisk} € are at stake.',
+  'decision.review.unpriced':
+    'One offer cannot be converted to {unit} and so cannot be compared.',
+  'decision.review.none': 'No supplier offered this position.',
+  'decision.noted': 'Seen, without consequence for the price: {reasons}.',
+
+  'reason.SPEC_MISMATCH': 'Not what was specified',
+  'reason.UNIT_BASIS': 'Unit unclear',
+  'reason.PRICE_OUTLIER': 'Price stands out',
+  'reason.QTY_MISMATCH': 'Quantity differs',
+  'reason.ALTERNATIVE_PRODUCT': 'Another make',
+  'reason.NO_OFFER': 'No offer',
+  'reason.AMBIGUOUS': 'Not clear-cut',
+  'reason.ARITHMETIC': 'Does not add up',
+
+  'finding.SPEC_MISMATCH': '{attribute}: {tender} specified, {offer} offered.',
+  'finding.SPEC_MISMATCH.unconfirmed':
+    'Another product, going by the text. The evidence for it could not be checked.',
+  'finding.UNIT_BASIS':
+    'Priced per {lineUnit}, tendered in {tenderUnit}. The offer does not say how much one unit holds.',
+  'finding.ARITHMETIC':
+    'Quantity times price is {expected} €; the offer prints {printed} €.',
+  'finding.QTY_MISMATCH': '{asked} tendered, {offered} offered.',
+  'finding.ALTERNATIVE_PRODUCT': 'Marked as another make.',
+  'finding.AMBIGUOUS':
+    'The supplier answers the position on {lines} lines at different prices.',
+  'finding.AMBIGUOUS.unconfirmed':
+    'Whether this line is for the position could not be settled from the two texts.',
+  'finding.PRICE_OUTLIER':
+    '{price} € per unit. The nearest offer is {others} €.',
+  'finding.NO_OFFER': 'No supplier offered this position.',
 
   'offer.articleNo': 'Article number',
   'offer.qty': 'Quantity',
@@ -172,6 +306,10 @@ const en: Record<MessageKey, string> = {
   'offer.second': 'A second line for the same position',
   'offer.show': 'Show details',
   'offer.hide': 'Hide details',
+  'offer.chosen': 'Cheapest valid offer',
+  'offer.compared': 'Compared',
+  'offer.byQuantity': 'Assigned by its quantity',
+  'offer.sameText': "Repeats the position's own text",
 
   'source.title': 'Source',
   'source.page': 'Page {page} of {pages}',

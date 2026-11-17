@@ -36,14 +36,23 @@ type Pace = (transition: Transition) => Transition
  * titles goes out below through a switch. The bar hanging from a feeder is
  * as long as the title has positions.
  */
-export function Schematic({ tender }: { tender: Tender }) {
+export function Schematic({
+  tender,
+  statuses = null,
+}: {
+  tender: Tender
+  /** One letter per position, once a run has decided them. */
+  statuses?: string | null
+}) {
   const t = useT()
   const { still, pace } = usePace()
   const suppliers = offers(tender)
   const plan = layoutPlan(
     tender.titles,
     suppliers.map((supplier) => supplier.key),
+    statuses,
   )
+  const decided = statuses !== null
   const [pointed, setPointed] = useState<number | null>(null)
   const feeder = pointed === null ? undefined : plan.feeders[pointed]
 
@@ -136,6 +145,9 @@ export function Schematic({ tender }: { tender: Tender }) {
               <span className="font-medium">{feeder.label}</span>
               <span className="block text-ink-3">
                 {positionsText(t, feeder.count)}
+                {feeder.open !== null &&
+                  feeder.open > 0 &&
+                  `, ${t('plan.openCount', { n: formatQty(feeder.open) })}`}
               </span>
             </motion.p>
           )}
@@ -144,6 +156,19 @@ export function Schematic({ tender }: { tender: Tender }) {
 
       {/* Narrow screens: the same distribution, turned on its side. */}
       <NarrowPlan tender={tender} suppliers={suppliers} plan={plan} />
+
+      {decided && (
+        <ul className="mt-6 flex flex-wrap gap-x-7 gap-y-2 text-[0.92rem] text-ink-2 lg:mt-2">
+          <li className="flex items-center gap-2">
+            <span className="size-2.5 rounded-[3px] bg-settled" />
+            {t('plan.legend.settled')}
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="size-2.5 rounded-[3px] bg-open" />
+            {t('plan.legend.open')}
+          </li>
+        </ul>
+      )}
 
       <figcaption className="mt-8 max-w-[68ch] text-[0.98rem] leading-relaxed text-ink-2 lg:mt-12">
         {t('plan.read', {
@@ -451,11 +476,40 @@ function Feeder({
   const half = plan.barWidth / 2
   const top = PLAN.barTop
   const slot = (plan.busbar.x2 - plan.busbar.x1) / plan.feeders.length
-  const radius = Math.min(5, bar / 2)
+  const left = x - half
+  const width = plan.barWidth
 
-  // A bar that hangs from its top edge: square where it is anchored, rounded
-  // at the free end.
-  const shape = `M ${x - half} ${top} h ${plan.barWidth} v ${bar - radius} a ${radius} ${radius} 0 0 1 ${-radius} ${radius} h ${-(plan.barWidth - 2 * radius)} a ${radius} ${radius} 0 0 1 ${-radius} ${-radius} z`
+  // A bar hangs from its top edge: square where it is anchored, rounded at
+  // the free end. Once a run has decided the positions, its end stands for
+  // the ones that are open, set off by a gap.
+  const hanging = (from: number, length: number, round: boolean) => {
+    const radius = round ? Math.min(5, length / 2) : 0
+    return `M ${left} ${from} h ${width} v ${length - radius} a ${radius} ${radius} 0 0 1 ${-radius} ${radius} h ${-(width - 2 * radius)} a ${radius} ${radius} 0 0 1 ${-radius} ${-radius} z`
+  }
+  const { open, barOpen } = feeder
+  const settledLength =
+    open === null || barOpen === 0 ? bar : bar - barOpen - PLAN.partGap
+  const parts: Array<{ d: string; fill: string }> =
+    open === null
+      ? [{ d: hanging(top, bar, true), fill: 'url(#plan-load)' }]
+      : [
+          ...(barOpen < bar
+            ? [
+                {
+                  d: hanging(top, settledLength, barOpen === 0),
+                  fill: 'var(--t-settled)',
+                },
+              ]
+            : []),
+          ...(barOpen > 0
+            ? [
+                {
+                  d: hanging(top + bar - barOpen, barOpen, true),
+                  fill: 'var(--t-open)',
+                },
+              ]
+            : []),
+        ]
 
   return (
     <Link
@@ -487,9 +541,7 @@ function Feeder({
         />
 
         {bar > 0 && (
-          <motion.path
-            d={shape}
-            fill="url(#plan-load)"
+          <motion.g
             className={`transition-[filter] duration-200 ${
               pointed
                 ? '[filter:brightness(1.12)_drop-shadow(0_6px_14px_var(--t-glow))]'
@@ -503,7 +555,11 @@ function Feeder({
               duration: 0.6,
               ease: EASE,
             })}
-          />
+          >
+            {parts.map((part) => (
+              <path key={part.fill} d={part.d} style={{ fill: part.fill }} />
+            ))}
+          </motion.g>
         )}
 
         <motion.g

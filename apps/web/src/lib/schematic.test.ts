@@ -57,6 +57,52 @@ describe('layoutPlan', () => {
   })
 })
 
+describe('layoutPlan with a run', () => {
+  // 12 + 34 + 364 + 0 positions: one letter each, in document order.
+  const statuses =
+    'a'.repeat(12) + 'r'.repeat(17) + 'a'.repeat(17) + 'r' + 'a'.repeat(363)
+  const plan = layoutPlan(titles, ['a', 'b', 'c'], statuses)
+
+  it('counts the open positions of each title from its stretch of letters', () => {
+    expect(plan.feeders.map((feeder) => feeder.open)).toEqual([0, 17, 1, 0])
+  })
+
+  it('gives the open positions their share of the bar', () => {
+    const [none, half, one] = plan.feeders
+    expect(none!.barOpen).toBe(0)
+    expect(half!.barOpen).toBeCloseTo(half!.bar / 2, 6)
+    // One of 364 would be a hair; it is drawn large enough to see.
+    expect(one!.barOpen).toBe(PLAN.partMin)
+  })
+
+  it('leaves room for the other part unless everything is open', () => {
+    const all = layoutPlan(
+      [{ rno: '01', label: 'Alles offen', positionCount: 3 }],
+      ['a'],
+      'rrr',
+    )
+    expect(all.feeders[0]!.barOpen).toBe(all.feeders[0]!.bar)
+    const most = layoutPlan(
+      [{ rno: '01', label: 'Fast alles', positionCount: 400 }],
+      ['a'],
+      'r'.repeat(399) + 'a',
+    )
+    const [feeder] = most.feeders
+    expect(feeder!.bar - feeder!.barOpen).toBeGreaterThanOrEqual(
+      PLAN.partMin + PLAN.partGap,
+    )
+  })
+
+  it('knows nothing about open positions before a run', () => {
+    expect(layoutPlan(titles, ['a']).feeders.map((f) => f.open)).toEqual([
+      null,
+      null,
+      null,
+      null,
+    ])
+  })
+})
+
 describe('openContact', () => {
   it('swings the tip of the contact to the left of its closed place', () => {
     const tip = openContact(30)

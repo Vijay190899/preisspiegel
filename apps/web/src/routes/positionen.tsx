@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Outlet,
   createFileRoute,
@@ -8,26 +8,37 @@ import {
 } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef } from 'react'
 import { PositionList } from '~/components/positions/PositionList'
-import { positionsQuery, tenderQuery } from '~/lib/queries'
-import { searchText } from '~/lib/searchParams'
-import type { PositionRow } from '~/lib/queries'
+import {
+  positionsQuery,
+  reviewQueueQuery,
+  statusesQuery,
+  tenderQuery,
+} from '~/lib/queries'
+import { searchFlag, searchText } from '~/lib/searchParams'
 
 export const Route = createFileRoute('/positionen')({
-  /** `titel` shows one title of the Leistungsverzeichnis only. */
-  validateSearch: (search: Record<string, unknown>): { titel?: string } => ({
+  /**
+   * `titel` shows one title of the Leistungsverzeichnis only. `offen` shows
+   * only the positions that need a decision, the costliest first.
+   */
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { titel?: string; offen?: true } => ({
     titel: searchText(search.titel),
+    offen: searchFlag(search.offen),
   }),
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(tenderQuery),
       context.queryClient.ensureQueryData(positionsQuery),
+      context.queryClient.ensureQueryData(statusesQuery),
     ]),
   component: Positions,
 })
 
 /** The working surface: the list on the left, the open position beside it. */
 function Positions() {
-  const { titel } = Route.useSearch()
+  const { titel, offen } = Route.useSearch()
   const { oz } = useParams({ strict: false })
   // Set by the position route while one of its numbers has its source open.
   const sourceOpen = useSearch({
@@ -35,10 +46,15 @@ function Positions() {
     select: (search) => search.quelle !== undefined,
   })
   const { data: rows } = useSuspenseQuery(positionsQuery)
+  const { data: statuses } = useSuspenseQuery(statusesQuery)
+  const { data: queue } = useQuery({
+    ...reviewQueueQuery,
+    enabled: offen === true,
+  })
   const navigate = useNavigate()
 
-  const visible = useRef<Array<PositionRow>>(rows)
-  const onVisibleChange = useCallback((next: Array<PositionRow>) => {
+  const visible = useRef<Array<string>>(rows.map((row) => row.oz))
+  const onVisibleChange = useCallback((next: Array<string>) => {
     visible.current = next
   }, [])
 
@@ -59,14 +75,17 @@ function Positions() {
       if (step === 0) return
 
       const list = visible.current
-      const index = list.findIndex((row) => row.oz === oz)
+      const index = oz === undefined ? -1 : list.indexOf(oz)
       const next = index === -1 ? list[0] : list[index + step]
       if (next === undefined) return
       event.preventDefault()
       void navigate({
         to: '/positionen/$oz',
-        params: { oz: next.oz },
-        search: (previous) => ({ titel: previous.titel }),
+        params: { oz: next },
+        search: (previous) => ({
+          titel: previous.titel,
+          offen: previous.offen,
+        }),
       })
     }
     window.addEventListener('keydown', onKey)
@@ -85,6 +104,8 @@ function Positions() {
           rows={rows}
           selected={oz}
           title={titel}
+          statuses={statuses}
+          queue={offen === true ? (queue ?? null) : undefined}
           onVisibleChange={onVisibleChange}
         />
       </aside>

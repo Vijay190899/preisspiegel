@@ -8,3 +8,8 @@ export function searchText(value: unknown): string | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return String(value)
   return undefined
 }
+
+/** A switch in the URL's search: on, or not there at all. */
+export function searchFlag(value: unknown): true | undefined {
+  return value === true || value === 'true' || value === 1 ? true : undefined
+}
