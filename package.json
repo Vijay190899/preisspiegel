@@ -25,6 +25,7 @@
     "demo:reset": "pnpm -C services/backend exec convex run demo:reset",
     "probe:llm": "tsx bench/src/probe.ts",
     "shots": "tsx scripts/screenshot.ts",
+    "banner": "tsx scripts/banner.ts",
     "probe:ui": "tsx scripts/uiProbe.ts",
     "probe:a11y": "tsx scripts/a11yProbe.ts"
   },

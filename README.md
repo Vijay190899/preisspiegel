@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/banner.png" alt="preisspiegel: tender pricing for electrical contractors, shown beside the tender as a building at night, one lit window per item and a red one for each that needs a person" width="100%"></p>
+
 # Preisspiegel
 
 [![CI](https://github.com/Vijay190899/preisspiegel/actions/workflows/ci.yml/badge.svg)](https://github.com/Vijay190899/preisspiegel/actions/workflows/ci.yml)
@@ -59,7 +61,7 @@ flowchart LR
   BENCH["bench"] -->|"scores against truth"| CVX
 ```
 
-Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Product: [docs/PRD.md](docs/PRD.md) · Plan: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) · Decisions: [docs/DECISIONS.md](docs/DECISIONS.md)
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Product: [docs/PRD.md](docs/PRD.md) · Plan: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) · Decisions: [docs/DECISIONS.md](docs/DECISIONS.md) · Production readiness: [docs/PRODUCTION.md](docs/PRODUCTION.md)
 
 ## Models (swappable)
 
