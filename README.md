@@ -5,8 +5,12 @@
 [![CI](https://github.com/Vijay190899/preisspiegel/actions/workflows/ci.yml/badge.svg)](https://github.com/Vijay190899/preisspiegel/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/Vijay190899/preisspiegel)](LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/Vijay190899/preisspiegel)](https://github.com/Vijay190899/preisspiegel/commits/main)
+[![Live demo](https://img.shields.io/badge/live%20demo-preis--spiegel.vercel.app-E39A2E)](https://preis-spiegel.vercel.app)
+[![Benchmarks](https://img.shields.io/badge/benchmarks-B1%20%C2%B7%20B2%20%C2%B7%20B3%20%C2%B7%20B5-2E7D5B)](https://preis-spiegel.vercel.app/messung)
 
 **Tender pricing where every number points at its source.** An electrical contractor's tender arrives as a Leistungsverzeichnis with around 1,170 positions and a handful of supplier offers. Preisspiegel matches each position to an offer, prices it, and shows the estimator only the positions that need a decision, with the reason and the arithmetic.
+
+**Live demo: [preis-spiegel.vercel.app](https://preis-spiegel.vercel.app).** Visitors can read the tender again from the model's stored answers, which runs the real checks and decisions and calls no model; a run in which the model reads needs the owner's access code. Decisions you make are kept for your browser only. German first, English with the DE/EN switch.
 
 > An independent portfolio project. The contractor, the suppliers and the tender are fictional, and all data is synthetic ([docs/DATA.md](docs/DATA.md)).
 
@@ -14,9 +18,9 @@
 
 <sub>Recorded from the app in replay mode with [`scripts/showcase.ts`](scripts/showcase.ts) and [`scripts/encode_showcase.py`](scripts/encode_showcase.py); the read-back is shown at 3&times; speed.</sub>
 
-**Status: in progress.** Built so far: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; a GAEB reader and a PDF table reader that keep the source of every number; the matching pipeline with its agent runtime; the benchmarks below; and an interface that shows the tender as the building it is for, one window per position, lit when it is priced and red when it needs a decision; lists what needs a decision by the euros at stake; sets the suppliers side by side; and opens the supplier's PDF at the place a price was read. A position that needs a person can be decided by key; every position is tied to an entry of the contractor's labor time table; a costing page adds labor and moves the bid with the copper notation; and the overview can read the tender again in view from the stored answers, without calling a model. The benchmark results are a page of their own, read from the committed files. The public demo follows in M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
+**Status: M0 to M3 built and deployed; M4 (shipping) under way.** Built: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; a GAEB reader and a PDF table reader that keep the source of every number; the matching pipeline with its agent runtime; the benchmarks below; and an interface that shows the tender as the building it is for, one window per position, lit when it is priced and red when it needs a decision; lists what needs a decision by the euros at stake; sets the suppliers side by side; and opens the supplier's PDF at the place a price was read. A position that needs a person can be decided by key; every position is tied to an entry of the contractor's labor time table; a costing page adds labor and moves the bid with the copper notation; and the overview can read the tender again in view from the stored answers, without calling a model. The benchmark results are a page of their own, read from the committed files. The demo is public at the address above. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
 
-## What it will demonstrate
+## What it demonstrates
 
 | Problem                        | How Preisspiegel does it                                                                                                                                                                                                     |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

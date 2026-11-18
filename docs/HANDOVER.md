@@ -60,6 +60,7 @@ pnpm check
 
 ### Production
 
+- **Live at https://preis-spiegel.vercel.app** (Vercel project `preisspiegel`, Hobby; production branch `main`). Checked on 2026-11-18: `pnpm probe:ui` 55 of 55, `pnpm probe:a11y` clean and `pnpm shots` clean against the live address; every response carries the security headers; `/demo/*.x83` arrives as brotli-compressed XML on Vercel too; production's model spend for the day stayed 0 calls and $0 through all of it.
 - Convex production deployment: `watchful-lapwing-32.convex.cloud`. Its deploy key lives in `services/backend/.env.production.local` (git-ignored, mode 600) beside the generated `DEMO_ACCESS_CODE`; never in `.env.local`, which the dev server and every local `convex` command read.
 - `pnpm prod <convex args>` runs the Convex CLI against production with that key, e.g. `pnpm prod run health:get`, `pnpm prod run demo:reset`, `pnpm prod deploy -y`.
 - Production holds the local deployment's data as exported on 2026-11-18 (`convex export`, then `pnpm prod import --replace-all`): the tender, 3,668 stored match answers and 2,810 labor answers. A read-back there gives 1,078 / 92 / 19,621.76 € with 0 model calls.
