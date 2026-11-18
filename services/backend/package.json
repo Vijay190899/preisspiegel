@@ -13,7 +13,7 @@
     "./llm/registry": "./convex/llm/registry.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0",
+    "@anthropic-ai/sdk": "^1.9.0",
     "@convex-dev/rate-limiter": "0.4.3",
     "@preisspiegel/core": "workspace:*",
     "convex": "^1.50.0",
