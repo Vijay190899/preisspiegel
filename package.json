@@ -21,6 +21,7 @@
     "bench:heldout": "tsx bench/src/heldOut.ts",
     "bench:seeds": "tsx bench/src/seeds.ts",
     "env:push": "tsx scripts/pushEnv.ts",
+    "demo:reset": "pnpm -C services/backend exec convex run demo:reset",
     "probe:llm": "tsx bench/src/probe.ts",
     "shots": "tsx scripts/screenshot.ts",
     "probe:ui": "tsx scripts/uiProbe.ts"

@@ -1,10 +1,15 @@
 /**
  * What the interface reads about a run: its state, what happened in it, and
- * the decisions it reached. Starting a run is not here; a run costs money,
- * so it is started from the command line.
+ * the decisions it reached. And the one thing it may start: the stored
+ * answers read back, which calls no model, or, with the deployment's access
+ * code, a run in which the model reads.
  */
 import { v } from 'convex/values'
-import { query } from './_generated/server'
+import { env, mutation, query } from './_generated/server'
+import { LOCK_WINDOW_MS, WRONG_CODES_ALLOWED, admit } from './agent/gate'
+import { beginRun, runUnderWay } from './agent/store'
+import { roleModel } from './llm/client'
+import type { Admission } from './agent/gate'
 import type { Doc } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 
@@ -36,6 +41,7 @@ const summary = (run: Doc<'runs'>) => ({
   id: run._id,
   status: run.status,
   model: run.model,
+  mode: run.mode ?? ('live' as const),
   startedAt: run.startedAt,
   finishedAt: run.finishedAt,
   positions: run.positions,
@@ -62,6 +68,59 @@ export const latest = query({
       current: current === null ? null : summary(current),
       done: done === null ? null : summary(done),
     }
+  },
+})
+
+/**
+ * Starts a run from the interface. Without a code the stored answers are
+ * read back; with the right one the model reads, under the same budgets as
+ * any run. What it refuses, it refuses by returning the reason.
+ */
+export const start = mutation({
+  args: { slug: v.string(), code: v.optional(v.string()) },
+  handler: async (ctx, { slug, code }): Promise<Admission> => {
+    const tender = await ctx.db
+      .query('tenders')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()
+    if (tender === null) throw new Error(`No tender "${slug}".`)
+
+    const now = Date.now()
+    const wrong =
+      code === undefined
+        ? []
+        : await ctx.db
+            .query('codeAttempts')
+            .withIndex('by_at', (q) => q.gte('at', now - LOCK_WINDOW_MS))
+            .take(WRONG_CODES_ALLOWED)
+    const admission = admit({
+      code: code?.slice(0, 200),
+      configured: env.DEMO_ACCESS_CODE,
+      running: await runUnderWay(ctx, slug),
+      wrongCodes: wrong.length,
+    })
+    if (!admission.ok) {
+      if (admission.reason === 'code') {
+        await ctx.db.insert('codeAttempts', { at: now })
+        // Attempts that no longer count are not kept.
+        const stale = await ctx.db
+          .query('codeAttempts')
+          .withIndex('by_at', (q) => q.lt('at', now - LOCK_WINDOW_MS))
+          .take(50)
+        for (const row of stale) await ctx.db.delete('codeAttempts', row._id)
+      }
+      return admission
+    }
+
+    const model = roleModel('match')
+    if (model === null) throw new Error('The match role has no model.')
+    await beginRun(ctx, {
+      slug,
+      positions: tender.positionCount,
+      model,
+      mode: admission.mode,
+    })
+    return admission
   },
 })
 

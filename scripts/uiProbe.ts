@@ -245,7 +245,7 @@ async function main(): Promise<void> {
 
     await page.goto(`${base}/`, { waitUntil: 'networkidle' })
     await settle(page, 600)
-    await page.getByRole('link', { name: 'Alle Positionen' }).focus()
+    await page.getByRole('button', { name: 'Noch einmal lesen' }).focus()
     await page.keyboard.press('Tab')
     const onFront = await page.evaluate(
       () => document.activeElement?.getAttribute('role') === 'application',
@@ -429,6 +429,59 @@ async function main(): Promise<void> {
           atMost.total - atMost.surcharge - (atFirst.total - atFirst.surcharge),
         ) < 0.02,
       { atFirst, atMost, atLeast },
+    )
+
+    console.log('Reading again')
+    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await settle(page, 600)
+    const stands = async () =>
+      (await page.locator('p.statement').first().innerText()).replace(
+        /\s+/g,
+        ' ',
+      )
+    const litPanes = () =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll('svg.front rect.pane')].filter(
+            (pane) =>
+              pane.closest('svg')?.getClientRects().length !== 0 &&
+              pane.getAttribute('data-s') !== 'off',
+          ).length,
+      )
+    const stoodBefore = await stands()
+    const readAgain = page.getByRole('button', { name: 'Noch einmal lesen' })
+    await readAgain.click()
+    await page.getByRole('status').first().waitFor({ timeout: 5000 })
+    await settle(page, 5000)
+    const midway = await litPanes()
+    // The control is gone while a run is under way, and comes back with it.
+    const offered = await readAgain.count()
+    await readAgain.waitFor({ timeout: 60000 })
+    await settle(page, 800)
+    const stoodAfter = await stands()
+    const runSaid = await page
+      .getByText(/gespeicherte Antworten .* wiedergegeben/)
+      .innerText()
+    check(
+      'the stored answers are read back in view, without a model, to the same result',
+      midway > 0 &&
+        midway < 1170 &&
+        offered === 0 &&
+        stoodAfter === stoodBefore &&
+        /Kein Modell wurde gerufen/.test(runSaid) &&
+        (await litPanes()) === 1170,
+      { midway, offered, stoodBefore, stoodAfter, runSaid },
+    )
+    await page.locator('summary').click()
+    await page.getByLabel('Zugangscode').fill('geraten')
+    await page.getByRole('button', { name: 'Lauf starten' }).click()
+    const refusedWith = page.getByRole('alert')
+    await refusedWith.waitFor({ timeout: 5000 })
+    check(
+      'a run in which the model reads is refused without the access code',
+      (await readAgain.count()) === 1 &&
+        (await page.getByRole('status').count()) === 0,
+      { refusal: await refusedWith.innerText() },
     )
 
     console.log('Overview, below the picture')

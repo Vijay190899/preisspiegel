@@ -95,38 +95,113 @@ export const offerLines = internalQuery({
 
 // --- A run's own rows ------------------------------------------------------
 
-export const createRun = internalMutation({
-  args: {
-    slug: v.string(),
-    positions: v.number(),
-    model: v.union(v.string(), v.null()),
+/** How long a run may show no progress before it is taken for dead. */
+const WATCH_MS = 4 * 60 * 1000
+
+/**
+ * Creates a run and schedules its first step and its watchdog. The one way
+ * a run begins, from the command line and from the interface alike.
+ */
+export async function beginRun(
+  ctx: MutationCtx,
+  run: {
+    slug: string
+    positions: number
+    model: string | null
+    mode: 'live' | 'replay'
   },
-  handler: async (ctx, { slug, positions: count, model }) => {
-    const runId = await ctx.db.insert('runs', {
-      tenderSlug: slug,
-      status: 'preparing',
-      model,
-      startedAt: Date.now(),
-      finishedAt: null,
-      positions: count,
-      cursor: 0,
-      nextEvent: 0,
-      calls: 0,
-      cached: 0,
-      failed: 0,
-      usd: 0,
-      auto: null,
-      review: null,
-      materialTotal: null,
-      atRisk: null,
-      statuses: null,
-      note: null,
+): Promise<Id<'runs'>> {
+  const { slug, positions: count, model, mode } = run
+  const runId = await ctx.db.insert('runs', {
+    tenderSlug: slug,
+    status: 'preparing',
+    model,
+    mode,
+    startedAt: Date.now(),
+    finishedAt: null,
+    positions: count,
+    cursor: 0,
+    nextEvent: 0,
+    calls: 0,
+    cached: 0,
+    failed: 0,
+    usd: 0,
+    auto: null,
+    review: null,
+    materialTotal: null,
+    atRisk: null,
+    statuses: null,
+    note: null,
+  })
+  const nextEvent = await appendEvents(ctx, runId, 0, [
+    { kind: 'run.started', data: { positions: count, model, mode } },
+  ])
+  await ctx.db.patch('runs', runId, { nextEvent })
+  await ctx.scheduler.runAfter(0, internal.agent.run.prepare, { runId })
+  await ctx.scheduler.runAfter(WATCH_MS, internal.agent.store.watch, {
+    runId,
+    status: 'preparing',
+    cursor: 0,
+  })
+  return runId
+}
+
+/** Whether a run of the tender is under way. */
+export async function runUnderWay(
+  ctx: MutationCtx,
+  slug: string,
+): Promise<boolean> {
+  const newest = await ctx.db
+    .query('runs')
+    .withIndex('by_tenderSlug_and_startedAt', (q) => q.eq('tenderSlug', slug))
+    .order('desc')
+    .first()
+  return (
+    newest !== null &&
+    (newest.status === 'preparing' ||
+      newest.status === 'reading' ||
+      newest.status === 'deciding')
+  )
+}
+
+/**
+ * The watchdog. A step that dies without throwing (the deployment restarts,
+ * an action runs out of time) schedules nothing, and the run would stay
+ * "reading" for good. This looks at the run every few minutes; if it stands
+ * exactly where it stood the last time, the run is marked failed, which also
+ * makes a late step write nothing.
+ */
+export const watch = internalMutation({
+  args: { runId: v.id('runs'), status: v.string(), cursor: v.number() },
+  handler: async (ctx, { runId, status, cursor }) => {
+    const current = await ctx.db.get('runs', runId)
+    if (
+      current === null ||
+      current.status === 'done' ||
+      current.status === 'stopped' ||
+      current.status === 'failed'
+    ) {
+      return null
+    }
+    if (current.status === status && current.cursor === cursor) {
+      const note = `No progress in ${WATCH_MS / 60000} minutes: a step did not come back.`
+      const nextEvent = await appendEvents(ctx, runId, current.nextEvent, [
+        { kind: 'run.failed', data: { note } },
+      ])
+      await ctx.db.patch('runs', runId, {
+        status: 'failed',
+        note,
+        nextEvent,
+        finishedAt: Date.now(),
+      })
+      return null
+    }
+    await ctx.scheduler.runAfter(WATCH_MS, internal.agent.store.watch, {
+      runId,
+      status: current.status,
+      cursor: current.cursor,
     })
-    const nextEvent = await appendEvents(ctx, runId, 0, [
-      { kind: 'run.started', data: { positions: count, model } },
-    ])
-    await ctx.db.patch('runs', runId, { nextEvent })
-    return runId
+    return null
   },
 })
 
@@ -206,6 +281,7 @@ export const nextBatch = internalQuery({
 
     return {
       status: current.status,
+      mode: current.mode ?? 'live',
       cursor: current.cursor,
       positions: current.positions,
       runUsd: current.usd,
@@ -418,6 +494,13 @@ export const finishRun = internalMutation({
       status: 'done',
       finishedAt: Date.now(),
       nextEvent,
+    })
+    // The pages show the newest finished run, which is now this one. The
+    // runs before it are cleared, so starting runs does not fill the
+    // database; the answers they read stay in the cache.
+    await ctx.scheduler.runAfter(0, internal.agent.store.reset, {
+      slug: current.tenderSlug,
+      before: current.startedAt,
     })
     return null
   },

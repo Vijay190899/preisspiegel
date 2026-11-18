@@ -50,7 +50,7 @@ _Accepted when:_ clicking a price, quantity or labor time opens the source at th
 _Accepted when:_ every component is clickable to its source and the total is the sum of its parts.
 
 **F5 Run.** Processing is visible as it happens, position by position, with the cost so far.
-_Accepted when:_ a recorded run replays with no model calls, and a live run stays inside its budget.
+_Accepted when:_ the stored answers can be read back in view with no model calls, and a live run stays inside its budget.
 
 ## 6. Prioritisation
 
@@ -104,7 +104,7 @@ Tokens live in `apps/web/src/styles/tokens.css`. `pnpm shots` checks every route
 5. Run deterministic checks and assign reason codes. Auto-accept only when all pass.
 6. Price each position and keep the breakdown and its evidence.
 7. Record every model call with tokens and cost. Enforce a daily and a per-run budget.
-8. Record a run as an event log that can be replayed.
+8. Record a run as an event log, and keep every answer so a run can be read back without the model.
 
 ## 9. Benchmarks
 
