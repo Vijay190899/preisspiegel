@@ -1,6 +1,11 @@
 import { useSyncExternalStore } from 'react'
 import { formatQty } from './format'
-import { LOCALE_COOKIE, noteLocale, requestedLocale } from './locale'
+import {
+  LOCALE_COOKIE,
+  activeLocale,
+  noteLocale,
+  requestedLocale,
+} from './locale'
 import type { Locale } from './locale'
 
 export type { Locale } from './locale'
@@ -23,6 +28,7 @@ const de = {
   'nav.jump': 'Position suchen',
   'nav.costing': 'Kalkulation',
   'nav.measured': 'Messung',
+  'pos.title': 'Position {oz}',
   'measured.title': 'Was gemessen ist',
   'measured.s1':
     'Auf einer Ausschreibung, die das System nie gesehen hatte, hat es',
@@ -359,6 +365,8 @@ const de = {
 
 export type MessageKey = keyof typeof de
 
+const APP_NAME = 'Preisspiegel'
+
 const en: Record<MessageKey, string> = {
   'app.skipToContent': 'Skip to content',
   'app.synthetic':
@@ -369,6 +377,7 @@ const en: Record<MessageKey, string> = {
   'nav.jump': 'Find an item',
   'nav.costing': 'Costing',
   'nav.measured': 'Measured',
+  'pos.title': 'Item {oz}',
   'measured.title': 'What was measured',
   'measured.s1': 'On a tender the system had never seen, it priced',
   'measured.s2': 'of {total} items without a person,',
@@ -752,6 +761,23 @@ export function useT(): Translate {
     }
     return text
   }
+}
+
+/**
+ * The document title of a page: what the page is, then the app. Route heads
+ * are not components, so this reads the language of the request (on the
+ * server) or of the cookie (in the browser) instead of a hook.
+ */
+export function pageTitle(
+  page?: MessageKey,
+  values?: Record<string, string | number>,
+): string {
+  if (page === undefined) return APP_NAME
+  let name: string = messages[activeLocale()][page]
+  for (const [key, value] of Object.entries(values ?? {})) {
+    name = name.replaceAll(`{${key}}`, String(value))
+  }
+  return `${name} · ${APP_NAME}`
 }
 
 /** "1 Position", "1.170 Positionen": the count with its noun in the right number. */

@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { formatDate, formatMoney, formatQty, formatShare } from '~/lib/format'
-import { useT } from '~/lib/i18n'
+import { pageTitle, useT } from '~/lib/i18n'
 import {
   LABOR_RUNS,
   RUNS,
@@ -12,7 +12,10 @@ import {
 import type { MessageKey } from '~/lib/i18n'
 import type { LaborRun, MeasuredRun } from '~/lib/measured'
 
-export const Route = createFileRoute('/messung')({ component: Measured })
+export const Route = createFileRoute('/messung')({
+  head: () => ({ meta: [{ title: pageTitle('nav.measured') }] }),
+  component: Measured,
+})
 
 const COLUMN: Record<MeasuredRun['key'], MessageKey> = {
   first: 'measured.run.first',

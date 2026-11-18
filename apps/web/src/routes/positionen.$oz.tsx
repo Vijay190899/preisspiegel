@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { PositionView } from '~/components/positions/PositionView'
 import { SourcePanel } from '~/components/source/SourcePanel'
 import { settleQueue } from '~/lib/decisions'
-import { useT } from '~/lib/i18n'
+import { pageTitle, useT } from '~/lib/i18n'
 import { filterPositions } from '~/lib/positionSearch'
 import {
   matchQuery,
@@ -25,6 +25,9 @@ import { resolveSource } from '~/lib/sources'
 import { useDecisions } from '~/lib/useDecisions'
 
 export const Route = createFileRoute('/positionen/$oz')({
+  head: ({ params }) => ({
+    meta: [{ title: pageTitle('pos.title', { oz: params.oz }) }],
+  }),
   /** `quelle` names the value whose source is open, e.g. `a.0.unitPrice`. */
   validateSearch: (search: Record<string, unknown>): { quelle?: string } => ({
     quelle: searchText(search.quelle),

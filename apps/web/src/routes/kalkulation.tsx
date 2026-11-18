@@ -8,7 +8,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useId, useMemo, useState } from 'react'
 import { settleMaterial } from '~/lib/decisions'
 import { formatMoney, formatQty, unitLabel } from '~/lib/format'
-import { useT } from '~/lib/i18n'
+import { pageTitle, useT } from '~/lib/i18n'
 import {
   laborQuery,
   positionsQuery,
@@ -29,6 +29,7 @@ const AT_FIRST = 950
 const LISTED = 8
 
 export const Route = createFileRoute('/kalkulation')({
+  head: () => ({ meta: [{ title: pageTitle('nav.costing') }] }),
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(tenderQuery),
