@@ -168,8 +168,14 @@ async function main(): Promise<void> {
 
     console.log('Jump to a position')
     await page.getByRole('button', { name: 'Position suchen' }).click()
-    await page.keyboard.type('NYY-J 4x95')
-    await settle(page, 300)
+    // Typed into the field itself: it takes focus a moment after the palette
+    // opens, and keys pressed before that would go nowhere.
+    await page.getByRole('combobox').fill('NYY-J 4x95')
+    await page
+      .locator('[role="option"][aria-selected="true"]', {
+        hasText: '01.01.0040',
+      })
+      .waitFor({ timeout: 20_000 })
     await page.keyboard.press('Enter')
     await page.waitForURL(/01\.01\.0040/)
     // The palette leaves with a short animation. It has to be gone, and it
@@ -284,7 +290,12 @@ async function main(): Promise<void> {
     )
     await page.keyboard.press('ArrowRight')
     await page.keyboard.press('ArrowUp')
-    await settle(page, 200)
+    // The note names the position once the list of positions has arrived,
+    // which on a deployment takes a moment after the page; until then a
+    // window can be pointed at but not opened.
+    await front
+      .locator('.note', { hasText: /\d\d\.\d\d\.\d{4}/ })
+      .waitFor({ timeout: 20_000 })
     const walked = await front.locator('.note').innerText()
     const chosenOz = /\d\d\.\d\d\.\d{4}/.exec(walked)?.[0]
     await page.keyboard.press('Enter')
@@ -366,6 +377,16 @@ async function main(): Promise<void> {
     )
 
     console.log('Deciding')
+    // A decision goes to the deployment and comes back through the live
+    // queries, so each step waits for what it should lead to, not a pause.
+    const until = async (test: () => Promise<boolean>, ms = 20_000) => {
+      const end = Date.now() + ms
+      while (Date.now() < end) {
+        if (await test().catch(() => false)) return true
+        await page.waitForTimeout(250)
+      }
+      return false
+    }
     const openCountNow = async () =>
       Number(
         (
@@ -374,58 +395,6 @@ async function main(): Promise<void> {
       )
     const verdict = async () =>
       (await page.locator('.verdict').innerText()).replace(/\s+/g, ' ')
-    await open(page, `${base}/positionen/01.01.0020?offen=true`, {
-      waitUntil: 'networkidle',
-    })
-    await settle(page, 600)
-    const stillOpen = await openCountNow()
-    await page.locator('h1').click()
-    await page.keyboard.press('3')
-    await settle(page, 900)
-    check(
-      'a key takes the offer in that column, and the position leaves the queue',
-      (await verdict()).startsWith('Entschieden. Kalkuliert mit Osterholt') &&
-        (await openCountNow()) === stillOpen - 1,
-      { verdict: await verdict(), stillOpen, now: await openCountNow() },
-    )
-    await open(page, `${base}/`, { waitUntil: 'networkidle' })
-    await settle(page, 3000)
-    const after = (await page.locator('main p.statement').innerText()).replace(
-      /\s+/g,
-      ' ',
-    )
-    check(
-      'the overview counts the decision in and its window is no longer red',
-      after.includes(`${stillOpen - 1} warten`) &&
-        (await page
-          .locator('svg.front:visible rect.pane[data-s="open"]')
-          .count()) ===
-          stillOpen - 1,
-      after,
-    )
-    await open(page, `${base}/positionen/01.01.0020?offen=true`, {
-      waitUntil: 'networkidle',
-    })
-    await settle(page, 500)
-    await page.locator('h1').click()
-    await page.keyboard.press('u')
-    await settle(page, 800)
-    check(
-      'U takes the decision back',
-      (await verdict()).startsWith('Braucht eine Entscheidung') &&
-        (await openCountNow()) === stillOpen,
-      await verdict(),
-    )
-    await page.getByLabel(/Eigener Preis/).fill('4321,5')
-    await page
-      .getByRole('button', { name: 'Mit diesem Preis kalkulieren' })
-      .click()
-    await settle(page, 800)
-    check(
-      "a price of one's own settles a position too",
-      (await verdict()).includes('eigenen Preis: 4.321,50 €'),
-      await verdict(),
-    )
     const sum = async () => {
       const text = (await page.locator('main p.statement').innerText()).replace(
         /\s+/g,
@@ -441,29 +410,113 @@ async function main(): Promise<void> {
         total: figures.at(-1) ?? 0,
       }
     }
+    const openCabinet = async () => {
+      await open(page, `${base}/positionen/01.01.0020?offen=true`, {
+        waitUntil: 'networkidle',
+      })
+      await shown(page, '01.01.0020')
+      await until(async () => (await openCountNow()) > 0)
+    }
+
+    await openCabinet()
+    await until(async () => (await verdict()).startsWith('Braucht'))
+    const stillOpen = await openCountNow()
+    await page.locator('h1').click()
+    await page.keyboard.press('3')
+    await until(
+      async () =>
+        (await verdict()).startsWith('Entschieden. Kalkuliert mit Osterholt') &&
+        (await openCountNow()) === stillOpen - 1,
+    )
+    check(
+      'a key takes the offer in that column, and the position leaves the queue',
+      (await verdict()).startsWith('Entschieden. Kalkuliert mit Osterholt') &&
+        (await openCountNow()) === stillOpen - 1,
+      { verdict: await verdict(), stillOpen, now: await openCountNow() },
+    )
+    await open(page, `${base}/`, { waitUntil: 'networkidle' })
+    const statement = async () =>
+      (await page.locator('main p.statement').innerText()).replace(/\s+/g, ' ')
+    await until(async () =>
+      (await statement()).includes(`${stillOpen - 1} warten`),
+    )
+    await settle(page, 3000)
+    const after = await statement()
+    check(
+      'the overview counts the decision in and its window is no longer red',
+      after.includes(`${stillOpen - 1} warten`) &&
+        (await page
+          .locator('svg.front:visible rect.pane[data-s="open"]')
+          .count()) ===
+          stillOpen - 1,
+      after,
+    )
+    await openCabinet()
+    await until(async () => (await verdict()).startsWith('Entschieden'))
+    await page.locator('h1').click()
+    await page.keyboard.press('u')
+    await until(
+      async () =>
+        (await verdict()).startsWith('Braucht eine Entscheidung') &&
+        (await openCountNow()) === stillOpen,
+    )
+    check(
+      'U takes the decision back',
+      (await verdict()).startsWith('Braucht eine Entscheidung') &&
+        (await openCountNow()) === stillOpen,
+      await verdict(),
+    )
+
+    // The costing page with nothing decided, to measure the decision against.
     await open(page, `${base}/kalkulation`, { waitUntil: 'networkidle' })
-    await settle(page, 400)
+    await until(async () => (await sum()).material > 0)
+    await settle(page, 1500)
+    const undecided = await sum()
+
+    await openCabinet()
+    await until(async () => (await verdict()).startsWith('Braucht'))
+    await page.getByLabel(/Eigener Preis/).fill('4321,5')
+    await page
+      .getByRole('button', { name: 'Mit diesem Preis kalkulieren' })
+      .click()
+    await until(async () =>
+      (await verdict()).includes('eigenen Preis: 4.321,50 €'),
+    )
+    check(
+      "a price of one's own settles a position too",
+      (await verdict()).includes('eigenen Preis: 4.321,50 €'),
+      await verdict(),
+    )
+    // One cabinet, priced by the run at the cheapest clean offer of
+    // 4,893.62 €; the typed 4,321.50 € takes its place.
+    const shift = 4321.5 - 4893.62
+    await open(page, `${base}/kalkulation`, { waitUntil: 'networkidle' })
+    await until(
+      async () =>
+        Math.abs((await sum()).material - undecided.material - shift) < 0.005,
+    )
     const withOwnPrice = await sum()
-    await open(page, `${base}/positionen/01.01.0020?offen=true`, {
-      waitUntil: 'networkidle',
-    })
-    await settle(page, 500)
+    await openCabinet()
     await page
       .getByRole('button', { name: 'Entscheidung zurücknehmen' })
       .click()
-    await settle(page, 600)
+    await until(async () => (await verdict()).startsWith('Braucht'))
 
     console.log('Costing')
     await open(page, `${base}/kalkulation`, { waitUntil: 'networkidle' })
-    await settle(page, 400)
+    await until(
+      async () => Math.abs((await sum()).material - undecided.material) < 0.005,
+    )
     const atFirst = await sum()
     check(
       'the costing page counts a decided price in, and lets it go when taken back',
-      // One cabinet, priced by the run at the cheapest clean offer of
-      // 4,893.62 €; the typed 4,321.50 € takes its place.
-      Math.abs(withOwnPrice.material - atFirst.material - (4321.5 - 4893.62)) <
-        0.005,
-      { decided: withOwnPrice.material, undecided: atFirst.material },
+      Math.abs(withOwnPrice.material - undecided.material - shift) < 0.005 &&
+        Math.abs(atFirst.material - undecided.material) < 0.005,
+      {
+        decided: withOwnPrice.material,
+        undecided: undecided.material,
+        afterwards: atFirst.material,
+      },
     )
     await page.locator('input[type="range"]').focus()
     await page.keyboard.press('End')
@@ -769,7 +822,11 @@ async function main(): Promise<void> {
     }
     if ((await unclear.count()) > 0) {
       await unclear.click()
-      await settle(page, 600)
+      // The position clicked has to have arrived, not the one before it.
+      await page
+        .locator('article', { hasText: /Preis je (RG|VE), ausgeschrieben in/ })
+        .waitFor({ timeout: 20_000 })
+        .catch(() => undefined)
       const text = await page.locator('article').innerText()
       check(
         'a pack without a stated size is named as such, in its own unit',
@@ -913,7 +970,11 @@ async function main(): Promise<void> {
     const pane = upright.locator('rect.pane[data-s="open"]').first()
     await pane.scrollIntoViewIfNeeded()
     await pane.tap()
-    await settle(phonePage, 300)
+    // The note names the window once the list of positions has arrived.
+    await upright
+      .getByRole('link', { name: 'Position öffnen' })
+      .waitFor({ timeout: 20_000 })
+      .catch(() => undefined)
     check(
       'a tap says what the window is and offers to open it',
       (await upright.getByRole('link', { name: 'Position öffnen' }).count()) ===
