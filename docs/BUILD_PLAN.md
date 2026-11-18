@@ -71,7 +71,7 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 - A by-article line for a single position that is read but not taken as an offer (the bollard luminaire on seeds 501 and 502, see [DATA](DATA.md#where-it-fails-on-the-newest-unseen-tender-seed-502)). Measure on a range of seeds nobody has looked at.
 - From the M2 audit, before labor is added on the same runtime: hash the prompt and the answer schema into the cache key; write ledger rows per group of calls and add a watchdog for a step that dies; match quoted values on word boundaries and require the attributes the long text states; score the reason of a review.
 - Run replay and the access code for live runs; `pnpm demo:reset`. _Built (ADR-57):_ "Read it again" on the overview reads the stored answers back in about 20 s without a model; a live run needs the access code; a watchdog fails a run whose step died.
-- `/bench` page.
+- `/bench` page. _Built (ADR-58) as `/messung`:_ the committed result files, side by side, led by the newest unseen tender.
 - The GAEB excerpt served from Convex instead of downloading the file.
 - **Gate:**
   - The [DEMO_SCRIPT](DEMO_SCRIPT.md) works end to end locally.

@@ -6,6 +6,7 @@
  * Needs `pnpm dev` and a loaded seed. Uses the Chrome installed on the
  * machine. Exits non-zero if a check fails or the browser logs an error.
  */
+import { readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
 import type { Page } from 'playwright'
 
@@ -429,6 +430,45 @@ async function main(): Promise<void> {
           atMost.total - atMost.surcharge - (atFirst.total - atFirst.surcharge),
         ) < 0.02,
       { atFirst, atMost, atLeast },
+    )
+
+    console.log('Measured')
+    await page.goto(`${base}/messung`, { waitUntil: 'networkidle' })
+    await settle(page, 300)
+    // The page leads with the newest unseen tender, and what it says is
+    // what that run's committed files say.
+    const committed = (name: string) =>
+      JSON.parse(
+        readFileSync(`bench/results/heldout-502/${name}.json`, 'utf8'),
+      ) as { result: Record<string, number> }
+    const pricing = committed('b1_auto_pricing').result
+    const traps = committed('b2_traps').result
+    const german = (value: number, digits = 0) =>
+      value.toLocaleString('de-DE', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      })
+    const leads = (await page.locator('main p.statement').innerText()).replace(
+      /\s+/g,
+      ' ',
+    )
+    const firstColumn = await page
+      .locator('table.measure thead th')
+      .first()
+      .innerText()
+    check(
+      'the measured page leads with the newest unseen run, as its files have it',
+      leads.includes(`${german(pricing.auto ?? -1)} von`) &&
+        leads.includes(
+          `${german(traps.trapsCaught ?? -1)} von ${german(traps.trapsPlanted ?? -1)}`,
+        ) &&
+        leads.includes(`${german(pricing.euroError ?? -1, 2)} €`) &&
+        /Seed 502/.test(firstColumn) &&
+        (await page.locator('table.measure tbody tr').count()) === 9 &&
+        (await page
+          .getByRole('link', { name: 'Messung' })
+          .getAttribute('aria-current')) === 'page',
+      { leads, firstColumn },
     )
 
     console.log('Reading again')

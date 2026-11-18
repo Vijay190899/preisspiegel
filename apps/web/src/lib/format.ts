@@ -19,6 +19,11 @@ const build = (tag: string) => ({
     maximumFractionDigits: 4,
   }),
   whole: new Intl.NumberFormat(tag, { maximumFractionDigits: 3 }),
+  share: new Intl.NumberFormat(tag, {
+    style: 'percent',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }),
   date: new Intl.DateTimeFormat(tag, {
     day: tag === 'de-DE' ? '2-digit' : 'numeric',
     month: tag === 'de-DE' ? '2-digit' : 'short',
@@ -28,6 +33,11 @@ const build = (tag: string) => ({
 })
 const FORMATS = { de: build(TAG.de), en: build(TAG.en) }
 const formats = () => FORMATS[activeLocale()]
+
+/** 0.9162 -> `91,6 %`, or `91.6%` in English */
+export function formatShare(value: number): string {
+  return formats().share.format(value)
+}
 
 /** 4505.36 -> `4.505,36`, or `4,505.36` in English */
 export function formatMoney(value: number): string {

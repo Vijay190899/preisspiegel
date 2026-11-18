@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as KalkulationRouteImport } from './routes/kalkulation'
+import { Route as MessungRouteImport } from './routes/messung'
 import { Route as PositionenRouteImport } from './routes/positionen'
 import { Route as PositionenIndexRouteImport } from './routes/positionen.index'
 import { Route as PositionenOzRouteImport } from './routes/positionen.$oz'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const KalkulationRoute = KalkulationRouteImport.update({
   id: '/kalkulation',
   path: '/kalkulation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessungRoute = MessungRouteImport.update({
+  id: '/messung',
+  path: '/messung',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PositionenRoute = PositionenRouteImport.update({
@@ -44,6 +50,7 @@ const PositionenOzRoute = PositionenOzRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/kalkulation': typeof KalkulationRoute
+  '/messung': typeof MessungRoute
   '/positionen': typeof PositionenRouteWithChildren
   '/positionen/$oz': typeof PositionenOzRoute
   '/positionen/': typeof PositionenIndexRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/kalkulation': typeof KalkulationRoute
+  '/messung': typeof MessungRoute
   '/positionen/$oz': typeof PositionenOzRoute
   '/positionen': typeof PositionenIndexRoute
 }
@@ -58,6 +66,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/kalkulation': typeof KalkulationRoute
+  '/messung': typeof MessungRoute
   '/positionen': typeof PositionenRouteWithChildren
   '/positionen/$oz': typeof PositionenOzRoute
   '/positionen/': typeof PositionenIndexRoute
@@ -65,13 +74,19 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/kalkulation' | '/positionen' | '/positionen/$oz' | '/positionen/'
+    | '/'
+    | '/kalkulation'
+    | '/messung'
+    | '/positionen'
+    | '/positionen/$oz'
+    | '/positionen/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/kalkulation' | '/positionen/$oz' | '/positionen'
+  to: '/' | '/kalkulation' | '/messung' | '/positionen/$oz' | '/positionen'
   id:
     | '__root__'
     | '/'
     | '/kalkulation'
+    | '/messung'
     | '/positionen'
     | '/positionen/$oz'
     | '/positionen/'
@@ -80,6 +95,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   KalkulationRoute: typeof KalkulationRoute
+  MessungRoute: typeof MessungRoute
   PositionenRoute: typeof PositionenRouteWithChildren
 }
 
@@ -97,6 +113,13 @@ declare module '@tanstack/react-router' {
       path: '/kalkulation'
       fullPath: '/kalkulation'
       preLoaderRoute: typeof KalkulationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messung': {
+      id: '/messung'
+      path: '/messung'
+      fullPath: '/messung'
+      preLoaderRoute: typeof MessungRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/positionen': {
@@ -140,6 +163,7 @@ const PositionenRouteWithChildren = PositionenRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   KalkulationRoute: KalkulationRoute,
+  MessungRoute: MessungRoute,
   PositionenRoute: PositionenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
