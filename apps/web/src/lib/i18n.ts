@@ -29,6 +29,8 @@ const de = {
   'nav.costing': 'Kalkulation',
   'nav.measured': 'Messung',
   'pos.title': 'Position {oz}',
+  'app.description':
+    'Angebotskalkulation für Elektro-Ausschreibungen: jede Position zugeordnet und kalkuliert, jede Zahl bis zur Quelle nachvollziehbar.',
   'measured.title': 'Was gemessen ist',
   'measured.s1':
     'Auf einer Ausschreibung, die das System nie gesehen hatte, hat es',
@@ -378,6 +380,8 @@ const en: Record<MessageKey, string> = {
   'nav.costing': 'Costing',
   'nav.measured': 'Measured',
   'pos.title': 'Item {oz}',
+  'app.description':
+    'Bid pricing for electrical tenders: every item matched and priced, every number traceable to its source.',
   'measured.title': 'What was measured',
   'measured.s1': 'On a tender the system had never seen, it priced',
   'measured.s2': 'of {total} items without a person,',
@@ -778,6 +782,11 @@ export function pageTitle(
     name = name.replaceAll(`{${key}}`, String(value))
   }
   return `${name} · ${APP_NAME}`
+}
+
+/** What the app is, in the language of the request, for the page's head. */
+export function pageDescription(): string {
+  return messages[activeLocale()]['app.description']
 }
 
 /** "1 Position", "1.170 Positionen": the count with its noun in the right number. */

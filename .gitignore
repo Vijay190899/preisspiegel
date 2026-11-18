@@ -27,3 +27,6 @@ coverage
 
 # Source documents copied from data/seed for the viewer
 /apps/web/public/demo/
+
+# The production deploy key and access code (scripts/prod.ts); a name Vite never loads
+services/backend/.convex-prod.env

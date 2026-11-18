@@ -2,9 +2,9 @@
 
 ## 1. Where we are
 
-**M0 to M3 are built. M3 is at its gate: re-run green, audited ("on plan, with gaps", nothing high), and its medium findings fixed. A production review followed before the first deployment ([PRODUCTION](PRODUCTION.md), ADR-63 to 66). Waiting for a "go" for M4.** Updated 2026-11-18.
+**M0 to M4 are built: the demo is live at https://preis-spiegel.vercel.app, on a Convex production deployment and Vercel. M4 is at its gate.** Updated 2026-11-18.
 
-M0 to M2 and the third interface direction are on `main` (pull requests 1 and 2, merged on 2026-11-17 at the owner's word). M3 is a stack of pull requests, none merged, each based on the one before, so they merge in order: 3 `design/house-sky-sea` (the house, sky and sea; English; ADR-52, 53), 4 `feat/m3-deciding` (ADR-54), 5 `feat/m3-copper` (ADR-55), 6 `fix/house-audit` (answers the audit of 3, ADR-56; 3 should not be merged without it), 7 `feat/m3-replay` (ADR-57), 8 `feat/m3-measured` (ADR-58), 9 `feat/m3-labor` (ADR-59), 10 `fix/m3-runtime` (ADR-60), 11 `fix/m3-tie` (ADR-61 and the gate docs), 12 `fix/m3-audit` (the M3 audit's findings, ADR-62) and 13 `prod/hardening` (the production review, ADR-63 to 66). Work goes on a branch (ADR-44).
+Everything through pull request 16 is on `main`: pull requests 1 and 2 merged on 2026-11-17, 3 to 14 and 16 on 2026-11-18, each at the owner's word; 15 (a major bump of `@types/node`) was closed. Work goes on a branch with a pull request (ADR-44); merging is the owner's call.
 
 Built and verified:
 
@@ -36,7 +36,7 @@ Built and verified:
 - The unseen tenders come from the same generator, so they are unseen in their numbers, not in their language.
 - The order of "first run, changes, unseen run" in M2 rests on file times; git does not show it.
 
-Next, after a "go": M4 (deploy to a Convex cloud deployment and Vercel, both needing the owner's accounts; carry the answer caches over; banner, showcase and README; the shipping steps). Before any public live run: one cheap paid trial to see the per-call ledger match the run's cost, and an access code of at least 16 characters on the cloud deployment. The Vercel build needs `VITE_CONVEX_URL` (it fails without it, ADR-67) and `VITE_SITE_URL`; check on the deployment that `/demo/*.x83` and `*.x84` arrive compressed, which was measured on the Node server only.
+Next: the shipping steps of the plan (pin the repository, put it first in the profile README, apply with the GitHub profile, a short note with the live address), and the README film as a video once it is uploaded through GitHub. The production deploy key with every permission (on this Mac only) can be revoked once nothing more needs importing; Vercel holds a deploy-only key.
 
 ## 2. Setup
 
@@ -61,8 +61,8 @@ pnpm check
 ### Production
 
 - **Live at https://preis-spiegel.vercel.app** (Vercel project `preisspiegel`, Hobby; production branch `main`). Checked on 2026-11-18: `pnpm probe:ui` 55 of 55, `pnpm probe:a11y` clean and `pnpm shots` clean against the live address; every response carries the security headers; `/demo/*.x83` arrives as brotli-compressed XML on Vercel too; production's model spend for the day stayed 0 calls and $0 through all of it.
-- Convex production deployment: `watchful-lapwing-32.convex.cloud`. Its deploy key lives in `services/backend/.env.production.local` (git-ignored, mode 600) beside the generated `DEMO_ACCESS_CODE`; never in `.env.local`, which the dev server and every local `convex` command read.
-- `pnpm prod <convex args>` runs the Convex CLI against production with that key, e.g. `pnpm prod run health:get`, `pnpm prod run demo:reset`, `pnpm prod deploy -y`.
+- Convex production deployment: `watchful-lapwing-32.convex.cloud`. Its deploy key lives in `services/backend/.convex-prod.env` (git-ignored, mode 600) beside the generated `DEMO_ACCESS_CODE`; never in `.env.local`, which the dev server and every local `convex` command read.
+- `pnpm prod <convex args>` runs the Convex CLI against production with that key, e.g. `pnpm prod run health:get` or `pnpm prod run demo:reset`; `deploy` and `import` run only from a clean `main` that matches GitHub (ADR-69). Vercel deploys the functions on every merge to `main`, so a change to `PROMPT_VERSION` or the labor prompt version leaves production's stored answers behind: a read-back there would then read almost nothing and send nearly every position to a person. Before merging such a change, plan a live run on production (with the access code) or a fresh import.
 - Production holds the local deployment's data as exported on 2026-11-18 (`convex export`, then `pnpm prod import --replace-all`): the tender, 3,668 stored match answers and 2,810 labor answers. A read-back there gives 1,078 / 92 / 19,621.76 € with 0 model calls.
 - Vercel builds from root directory `apps/web` with `cd ../../services/backend && pnpm exec convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'pnpm -C ../../apps/web build'`; Nitro writes Vercel's output. Needs `CONVEX_DEPLOY_KEY` (a deploy-only production key, Production scope), `ENABLE_EXPERIMENTAL_COREPACK=1` (pnpm 12 from `packageManager`) and `VITE_SITE_URL`, and Node 24.
 
@@ -93,16 +93,15 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 - **Decisions are per browser.** A decision is stored under a random id the browser keeps; a script can make up ids, so the limits per browser have overall ceilings beside them (ADR-63). After a decision the position leaves the queue and the arrows on its page have nowhere to go until J or K is pressed.
 - **M3 is at its gate, audited.** The tie was measured and left (ADR-61); the bollard case is left with its reason below; the GAEB excerpt is left because the files are small once compressed, and the production build serves them as XML with brotli (the tender is 20.9 KB, ADR-64). The four runtime findings of the M2 audit are closed (ADR-60); the ledger written per call has not yet been exercised by a paid call.
 - **The measured page does not show the sweep** (1,021 of 1,046 tenders with flawless reading): no committed file holds it, and the page shows only what a file holds. `pnpm bench:seeds` would have to write one. Nor does it show the two write-ups of failures, which are prose in [DATA](DATA.md).
-- **The replay is not the event log played back** (ADR-57): it is a run over the stored answers, paced to be watched. On a deployment whose answer cache is empty it reads nothing and every position with a candidate line goes to a person; M4 has to carry the cache to the cloud deployment.
+- **The replay is not the event log played back** (ADR-57): it is a run over the stored answers, paced to be watched. On a deployment whose answer cache is empty it reads nothing and every position with a candidate line goes to a person; the production deployment holds the cache carried over at M4 (ADR-68).
 - **Older runs are cleared when a run finishes.** A run's rows cannot be looked at once a newer one is done; the benchmark results in `bench/results/` are files and stay.
 - **A tie between two totals.** Where a line's quantity is at once the total of the positions asking for its own article and of those it was quoted in place of, the wrong-product offer is dropped unseen and the position is priced at another supplier's clean offer. It is most of what a perfect reader still gets wrong. Flagging every tie was built and measured: about twelve needless reviews for each wrong price prevented, so it is not kept (ADR-61). What would decide a tie is reading, not arithmetic: whether the line's text is closer to one kind or the other.
 - **The model answers "unsure" for a by-article line for a single position** (a bollard luminaire, on seeds 501 and 502): the position is priced with the next valid offer. Confirming such a line when its quantity is exactly that of one position nobody else answers would remove it. Whether a larger model reads it correctly has not been tried; it would cost a few cents. Not built in M3: the case was found on seeds 501 and 502, so a fix would need a new unseen tender run with the model to be measured, and a quantity alone is weak evidence for a line the model could not read (a quantity of 1 matches almost anything, ADR-61).
 - **The model leaves a plain line open now and then** (two earthing conductors on seed 502), which raises a review nobody needs.
-- **Seeds that are spent.** Read: 118 to 123, 2026, 7, 1, 999, 431 to 438, 501 to 504, 3000 to 3149, and 5047, 5143, 7344, 20019, 20052, 20066. Scored: 5000 to 5199, 7300 to 7499, 12000 to 12449 (labor), 13000 to 13249, 20000 to 20149, 41000 to 41149, 88000 to 88099. The audits also ran 1 to 99, 200, 600 to 603, 777 to 999, 9001 to 9005, 31337 and 65536. Measure the next change on a range that is in none of these.
+- **Seeds that are spent.** Read: 90001 (30 positions, the ledger check of M4), 118 to 123, 2026, 7, 1, 999, 431 to 438, 501 to 504, 3000 to 3149, and 5047, 5143, 7344, 20019, 20052, 20066. Scored: 5000 to 5199, 7300 to 7499, 12000 to 12449 (labor), 13000 to 13249, 20000 to 20149, 41000 to 41149, 88000 to 88099. The audits also ran 1 to 99, 200, 600 to 603, 777 to 999, 9001 to 9005, 31337 and 65536. Measure the next change on a range that is in none of these.
 - **From the seventh audit (M3), not fixed:**
   - `bench:seeds` and `bench:labor --perfect` write no result file, so the pooled rate and the 79% live only in prose; `/messung` assigns the labor prompt version by hand (`lib/measured.ts`).
   - Seeds 503 and 504 were scored before the size check was tightened (ADR-62); on the demo's stored answers the tightened check changes nothing.
-  - The per-call ledger has not seen a paid call; the answer caches must be carried to the cloud deployment at M4.
 - **From the sixth audit, not fixed:**
   - In English an amount still has the euro sign after the figure, and "cannot be converted to piece" is said clumsily.
   - Three of 187 attribute names have no English (0.2% of their uses), and the glossary knows this generator's words: a real tender brings items it shows as written.
@@ -130,6 +129,8 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
   - The answer cache is still keyed by a version kept by hand; a test now fails when the instructions or the schema change without it (ADR-60).
   - `decide` and the ground truth differ at the edges: an only offer with an unreadable price is priced at nothing, and a price is called an outlier against offers of other products.
 - **From the M2 audit, low:** (a review found for a right reason is now counted beside the plain count, ADR-60) the euro error of a wrongly automatic position is only the price difference; `score.ts` and `judges.ts` have no test; the review queue is cut at 300 without saying so. A price far off the only other one is a review in the ground truth but invisible to the pipeline when the other offer is not for the same product. A near match with no exact total is dropped without a note. The search field's focus is a 1 px border colour. Reloading the seed can race a run that is under way.
+- **The first batch of a run writes the prompt cache once per call.** Its eight calls start together, so each writes the 3,475-token prefix before any can read it (seen in the M4 ledger check: 9 writes and 3 reads over 12 calls; the first batch's eight calls all wrote it, and one call in the second batch did too). Sending one call first would save most of them, a few cents at most.
+- **B4 is not run** (matcher alone against matcher plus a larger model on the unsettled positions). The plan has it "if time allows"; it needs escalation wired into the run and a paid comparison.
 - **A model call that fails** leaves its lines unconfirmed; the position is still priced if another supplier answers it cleanly, and nothing on it says a line went unread.
 - **Labor (ADR-59):** the kind of work is the model's call; code checks only the unit and a size or count in the label. A cable manager (`Kabelrangierpanel`) is still timed as a patch panel. A position's verdict sentence speaks of the material only, so a position priced without asking can still have its labor decided by a person, said further down. Labor decisions cannot yet be overridden in the interface. No source viewer for the labor time table: its entry is named, not opened. The measured page shows B5 but the pooled perfect-reader sweeps are not in a committed file.
 - **Changing `packages/core` does not re-bundle the Convex functions** in `pnpm dev`: touch a file under `services/backend/convex/` and wait for "Convex functions ready" before measuring on the deployment.
@@ -139,7 +140,6 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
 - **The GAEB source downloads the whole file** to show one item. The excerpt should come from Convex.
 - **The palette does not lock the page behind it.**
 - **B3 says a number the readers took is where the interface points, not that it is right,** and it does not cover figures worked out from those numbers or the values the model compared.
-- Convex cloud deployment and Vercel project: needed at M4, both need the owner's accounts.
 
 ## 6. Update protocol
 
