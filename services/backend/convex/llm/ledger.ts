@@ -32,9 +32,10 @@ export const spentOn = internalQuery({
 })
 
 /**
- * Appends calls to the ledger and adds them to their day's running total.
- * The total is one document per day, so a batch of calls made side by side
- * is recorded together, with one write to it, instead of contending for it.
+ * Appends calls to the ledger and adds them to their day's running total,
+ * one document per day. The runtime records each call as it returns; calls
+ * that finish together may contend for the day's document, which Convex
+ * settles by retrying the mutation.
  */
 export async function recordEntries(
   ctx: MutationCtx,

@@ -19,7 +19,7 @@ import type { Role } from './registry'
  *
  * - `llmCall` makes one call and hands back the answer with its ledger
  *   entry. The agent runtime uses it, makes many calls side by side, and
- *   records them all in the one mutation that stores their results.
+ *   puts each on the ledger the moment it returns (`recordMany`).
  * - `llmParse` is for a single call: it checks the daily budget, calls, and
  *   records the cost before it looks at the answer.
  */

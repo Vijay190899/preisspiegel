@@ -95,8 +95,12 @@ export const offerLines = internalQuery({
 
 // --- A run's own rows ------------------------------------------------------
 
-/** How long a run may show no progress before it is taken for dead. */
-const WATCH_MS = 4 * 60 * 1000
+/**
+ * How long a run may show no progress before it is taken for dead. Longer
+ * than an action may run (ten minutes), so a step that is still working
+ * is never mistaken for one that died.
+ */
+export const WATCH_MS = 12 * 60 * 1000
 
 /**
  * Creates a run and schedules its first step and its watchdog. The one way
