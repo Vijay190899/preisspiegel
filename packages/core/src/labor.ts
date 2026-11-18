@@ -44,6 +44,8 @@ export type LaborReason =
   | 'limit_unstated'
   /** The position's size is outside what the label covers. */
   | 'limit'
+  /** The words quoted state another size than the position itself does. */
+  | 'limit_conflict'
 
 export type LaborOutcome =
   | {
@@ -76,9 +78,13 @@ export interface Limit {
   text: string
 }
 
-const NUMBER = String.raw`\d+(?:,\d+)?`
+/** A German number: `16`, `2,5`, `1.250` (thousands), `1.250,5`. */
+const NUMBER = String.raw`\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?`
+/** Not inside a longer number. */
+const FRONT = String.raw`(?<![\d,.])`
 const UNIT = String.raw`(mm²|mm|A)(?![\p{L}\d²])`
-const number = (text: string) => Number(text.replace(',', '.'))
+const number = (text: string) =>
+  Number(text.replaceAll('.', '').replace(',', '.'))
 
 /** `Kabel 10 bis 16 mm² verlegen` covers 10 to 16 mm²; `Leuchte montieren` nothing. */
 export function entryLimit(label: string): Limit | null {
@@ -133,13 +139,18 @@ export function statedSize(quote: string, unit: LimitUnit): number | null {
   const text = squash(quote)
   const patterns: Record<LimitUnit, RegExp> = {
     // The last factor of a designation is the cross-section.
-    'mm²': new RegExp(String.raw`(?:\d+\s*[xX×]\s*)*(${NUMBER})\s*mm²`, 'gu'),
-    mm: new RegExp(
-      String.raw`(?<![\d,xX×])(${NUMBER})\s*mm(?![\p{L}\d²])`,
+    'mm²': new RegExp(
+      String.raw`${FRONT}(?:\d+\s*[xX×]\s*)*(${NUMBER})\s*mm²`,
       'gu',
     ),
-    A: new RegExp(String.raw`(?<![\d,])(${NUMBER})\s*A(?![\p{L}\d])`, 'gu'),
-    polig: /(?<![\d,])(\d)\s*-?\s*pol(?:ig)?(?![\p{L}])/gu,
+    // Likewise the last factor of `60 x 300 mm` is the width, which is what
+    // a tray or a trunking is sized by.
+    mm: new RegExp(
+      String.raw`${FRONT}(?:\d+\s*[xX×]\s*)*(${NUMBER})\s*mm(?![\p{L}\d²])`,
+      'gu',
+    ),
+    A: new RegExp(String.raw`${FRONT}(${NUMBER})\s*A(?![\p{L}\d])`, 'gu'),
+    polig: /(?<![\d,.])(\d)\s*-?\s*pol(?:ig)?(?![\p{L}])/gu,
   }
   const found = new Set<number>()
   for (const match of text.matchAll(patterns[unit])) {
@@ -208,14 +219,24 @@ export function assessLabor(
   if (limit === null) {
     return { status: 'set', entry, quote: proposal.quote, limitQuote: null }
   }
-  // Without a quote the position's own texts are read, the short one first.
-  // A text that states two different sizes says nothing, and the next is read.
-  const quote =
-    proposal.limitQuote ??
-    [position.shortText, position.longText].find(
-      (text) => statedSize(text, limit.unit) !== null,
-    ) ??
-    null
+  // The position's own texts are read, the short one first; a text that
+  // states two different sizes says nothing, and the next is read. Where
+  // they state one, that is the size, and words quoted for another are not
+  // taken: a tray of 60 x 300 mm is not sized by its 60 mm sides.
+  const own = [position.shortText, position.longText].find(
+    (text) => statedSize(text, limit.unit) !== null,
+  )
+  if (
+    proposal.limitQuote !== null &&
+    !containsWhole(source, proposal.limitQuote)
+  ) {
+    return review(
+      'quote',
+      `"${proposal.limitQuote}" is not in the position.`,
+      entry,
+    )
+  }
+  const quote = own ?? proposal.limitQuote ?? null
   if (quote === null) {
     return review(
       'limit_unstated',
@@ -227,6 +248,17 @@ export function assessLabor(
     return review('quote', `"${quote}" is not in the position.`, entry)
   }
   const size = statedSize(quote, limit.unit)
+  const quoted =
+    proposal.limitQuote === null
+      ? null
+      : statedSize(proposal.limitQuote, limit.unit)
+  if (size !== null && quoted !== null && quoted !== size) {
+    return review(
+      'limit_conflict',
+      `The position states ${say(size)} ${limit.unit}; "${proposal.limitQuote ?? ''}" states ${say(quoted)}.`,
+      entry,
+    )
+  }
   if (size === null) {
     return review(
       'limit_unstated',

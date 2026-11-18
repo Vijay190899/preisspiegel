@@ -19,9 +19,10 @@ import {
 import { utcDay } from '../llm/call'
 import { llmCall, roleModel, spendLimits } from '../llm/client'
 import { ledgerEntry } from '../llm/ledger'
+import { WATCH_MS } from './store'
 import {
   laborAnswerSchema,
-  laborKey,
+  laborQuestionKey,
   laborSystem,
   renderLaborQuestion,
 } from './laborPrompt'
@@ -86,7 +87,37 @@ export const start = internalMutation({
       note: null,
     })
     await ctx.scheduler.runAfter(0, internal.agent.labor.step, { jobId })
+    await ctx.scheduler.runAfter(WATCH_MS, internal.agent.labor.watch, {
+      jobId,
+      cursor: 0,
+    })
     return jobId
+  },
+})
+
+/**
+ * The watchdog, as for runs (`store.watch`): a pass that stands where it
+ * stood a watch ago is marked failed, so a step that died cannot leave it
+ * "reading" for good and block the next one.
+ */
+export const watch = internalMutation({
+  args: { jobId: v.id('laborJobs'), cursor: v.number() },
+  handler: async (ctx, { jobId, cursor }) => {
+    const job = await ctx.db.get('laborJobs', jobId)
+    if (job === null || job.status !== 'reading') return null
+    if (job.cursor === cursor) {
+      await ctx.db.patch('laborJobs', jobId, {
+        status: 'failed',
+        note: `No progress in ${WATCH_MS / 60000} minutes: a step did not come back.`,
+        finishedAt: Date.now(),
+      })
+      return null
+    }
+    await ctx.scheduler.runAfter(WATCH_MS, internal.agent.labor.watch, {
+      jobId,
+      cursor: job.cursor,
+    })
+    return null
   },
 })
 
@@ -283,7 +314,7 @@ export const step = internalAction({
       const asked = await Promise.all(
         plan.positions.map(async (position) => ({
           position,
-          key: await laborKey(position, plan.model, system),
+          key: await laborQuestionKey(position, plan.model, system),
         })),
       )
       const stored: Array<{ key: string; answer: LaborProposal }> =

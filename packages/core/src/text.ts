@@ -63,11 +63,21 @@ export function containsWhole(source: string, quote: string): boolean {
   if (needle === '') return false
   const wordy = (char: string | undefined) =>
     char !== undefined && /[\p{L}\p{N}]/u.test(char)
+  const digit = (char: string | undefined) =>
+    char !== undefined && char >= '0' && char <= '9'
+  // A mark between digits joins them: `000 A` is not in `1.000 A`.
+  const joins = (mark: string | undefined, next: string | undefined) =>
+    (mark === ',' || mark === '.') && digit(next)
   for (let from = 0; ;) {
     const at = hay.indexOf(needle, from)
     if (at < 0) return false
-    const cutsFront = wordy(hay[at - 1]) && wordy(needle[0])
-    const cutsBack = wordy(hay[at + needle.length]) && wordy(needle.at(-1))
+    const end = at + needle.length
+    const cutsFront =
+      (wordy(hay[at - 1]) && wordy(needle[0])) ||
+      (digit(needle[0]) && joins(hay[at - 1], hay[at - 2]))
+    const cutsBack =
+      (wordy(hay[end]) && wordy(needle.at(-1))) ||
+      (digit(needle.at(-1)) && joins(hay[end], hay[end + 1]))
     if (!cutsFront && !cutsBack) return true
     from = at + 1
   }

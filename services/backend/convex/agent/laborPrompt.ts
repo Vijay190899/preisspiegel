@@ -95,7 +95,7 @@ export function renderLaborQuestion(position: {
  * the prompt, the table, the model and the position's text. Positions that
  * ask for the same thing share an answer.
  */
-export async function laborKey(
+export async function laborQuestionKey(
   position: { shortText: string; longText: string; unit: string },
   model: string,
   system: string,

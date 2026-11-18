@@ -134,6 +134,17 @@ describe('statedSize', () => {
     expect(statedSize('30 mA', 'A')).toBeNull()
   })
 
+  it('reads German thousands as one number', () => {
+    expect(statedSize('Bemessungsstrom 1.250 A', 'A')).toBe(1250)
+    expect(statedSize('1.000 A', 'A')).toBe(1000)
+    expect(statedSize('2,5 mm²', 'mm²')).toBe(2.5)
+  })
+
+  it('reads a tray by its width, the last factor', () => {
+    expect(statedSize('Kabelrinne 60 x 300 mm', 'mm')).toBe(300)
+    expect(statedSize('Holmhöhe 60 mm', 'mm')).toBe(60)
+  })
+
   it('gives nothing where two sizes are stated', () => {
     expect(statedSize('5x16 mm² oder 5x25 mm²', 'mm²')).toBeNull()
     expect(statedSize('5x16 mm² und 5x16 mm²', 'mm²')).toBe(16)
@@ -165,6 +176,8 @@ describe('containsWhole', () => {
       true,
     )
     expect(containsWhole('anything', '')).toBe(false)
+    expect(containsWhole('Bemessungsstrom 1.000 A', '000 A')).toBe(false)
+    expect(containsWhole('Bemessungsstrom 1.000 A', '1.000 A')).toBe(true)
   })
 })
 
@@ -223,6 +236,7 @@ describe('assessLabor', () => {
         TABLE,
       ),
     ).toMatchObject({ status: 'review', reason: 'limit_unstated' })
+    // Words that state no size do not matter where the position states one.
     expect(
       assessLabor(
         cable,
@@ -233,7 +247,7 @@ describe('assessLabor', () => {
         },
         TABLE,
       ),
-    ).toMatchObject({ status: 'review', reason: 'limit_unstated' })
+    ).toMatchObject({ status: 'set', limitQuote: cable.shortText })
   })
 
   it('reads the size from the position itself where no words were quoted', () => {
@@ -278,6 +292,45 @@ describe('assessLabor', () => {
         TABLE,
       ).status,
     ).toBe('set')
+  })
+
+  it('takes the size the position states over the words quoted for another', () => {
+    const tray = {
+      shortText: 'Kabelrinne 60 x 300 mm, gelocht',
+      longText: 'Kabelrinne, Holmhöhe 60 mm, Breite 300 mm, gelocht.',
+      unit: 'm',
+    }
+    // Quoting the sides makes a 300 mm tray look like one "bis 200 mm".
+    expect(
+      assessLabor(
+        tray,
+        { entry: 'tray.s', quote: 'Kabelrinne', limitQuote: 'Holmhöhe 60 mm' },
+        TABLE,
+      ),
+    ).toMatchObject({ status: 'review', reason: 'limit_conflict' })
+    expect(
+      assessLabor(
+        tray,
+        { entry: 'tray.s', quote: 'Kabelrinne', limitQuote: null },
+        TABLE,
+      ),
+    ).toMatchObject({ status: 'review', reason: 'limit' })
+    const breaker = {
+      shortText: 'Leistungsschalter 1.250 A, 3-polig',
+      longText: 'Leistungsschalter, Bemessungsstrom 1.250 A.',
+      unit: 'St',
+    }
+    expect(
+      assessLabor(
+        breaker,
+        {
+          entry: 'mccb.small',
+          quote: 'Leistungsschalter',
+          limitQuote: 'Bemessungsstrom 1.250 A',
+        },
+        TABLE,
+      ),
+    ).toMatchObject({ status: 'review', reason: 'limit' })
   })
 
   it('refuses an entry by the piece for a position by the metre', () => {
