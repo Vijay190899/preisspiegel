@@ -66,6 +66,12 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: ReactNode }) {
   const locale = useLocale()
+  // Says the page answers input now; until React has hydrated, a click on
+  // server-rendered markup does nothing. Scripts that drive the page wait
+  // for it.
+  useEffect(() => {
+    document.documentElement.dataset.hydrated = 'true'
+  }, [])
   return (
     // The boot script applies a stored theme before React hydrates, so the
     // attribute on <html> can legitimately differ from what the server rendered.

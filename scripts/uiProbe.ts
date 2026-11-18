@@ -43,8 +43,26 @@ const listWidth = (page: Page) =>
  * Waits until the position on the page has arrived. Against a deployment a
  * position opened in the browser can take seconds, not milliseconds.
  */
-const shown = (page: Page) =>
-  page.locator('main h1').first().waitFor({ timeout: 20_000 })
+const shown = (page: Page, oz?: string) =>
+  oz === undefined
+    ? page.locator('main h1').first().waitFor({ timeout: 20_000 })
+    : page
+        .locator('main p.code', { hasText: new RegExp(`^${oz}$`) })
+        .first()
+        .waitFor({ timeout: 20_000 })
+
+/**
+ * Opens a page and waits until it answers input: the server-rendered markup
+ * arrives first, and a click lands only once React has hydrated it.
+ */
+async function open(
+  page: Page,
+  url: string,
+  options?: Parameters<Page['goto']>[1],
+): Promise<void> {
+  await page.goto(url, options)
+  await page.locator('html[data-hydrated]').waitFor({ timeout: 30_000 })
+}
 
 async function main(): Promise<void> {
   const browser = await chromium.launch({ channel: 'chrome' })
@@ -56,9 +74,9 @@ async function main(): Promise<void> {
     watch(page, 'desktop')
 
     console.log('Positions workspace')
-    await page.goto(`${base}/positionen`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/positionen`, { waitUntil: 'networkidle' })
     await page.waitForURL(/\/positionen\/01\.01\.0010/)
-    await shown(page)
+    await shown(page, '01.01.0010')
     check('a wide screen opens the first position', true)
 
     // The list is one Tab stop, so the numbers are a few presses away.
@@ -79,7 +97,7 @@ async function main(): Promise<void> {
     await page.locator('[data-position-list] a[data-selected]').focus()
     await page.keyboard.press('ArrowDown')
     await page.waitForURL(/01\.01\.0020/)
-    await shown(page)
+    await shown(page, '01.01.0020')
     await settle(page, 200)
     const focused = await page.evaluate(() =>
       document.activeElement?.getAttribute('href'),
@@ -92,11 +110,12 @@ async function main(): Promise<void> {
 
     await page.locator('h1').click()
     await page.keyboard.press('j')
-    await settle(page, 500)
+    await shown(page, '01.01.0030')
+    await settle(page, 300)
     const afterJ = path(page)
     await page.keyboard.press('k')
-    await settle(page, 500)
-    await shown(page)
+    await shown(page, '01.01.0020')
+    await settle(page, 300)
     check(
       'J and K step through the list',
       afterJ === '/positionen/01.01.0030' &&
@@ -167,7 +186,7 @@ async function main(): Promise<void> {
     )
 
     console.log('Hand-typed addresses')
-    await page.goto(`${base}/positionen/01.01.0020?quelle=123`, {
+    await open(page, `${base}/positionen/01.01.0020?quelle=123`, {
       waitUntil: 'networkidle',
     })
     await settle(page, 500)
@@ -177,7 +196,9 @@ async function main(): Promise<void> {
         (await page.locator('[role="alert"]').count()) === 0,
       path(page),
     )
-    await page.goto(`${base}/positionen?titel=10`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/positionen?titel=10`, {
+      waitUntil: 'networkidle',
+    })
     await page.waitForURL(/\/positionen\/10\./)
     const count = await page
       .locator('[data-position-list] [aria-live]')
@@ -187,7 +208,7 @@ async function main(): Promise<void> {
       count.startsWith('73'),
       count,
     )
-    await page.goto(`${base}/positionen/99.99.9999`, {
+    await open(page, `${base}/positionen/99.99.9999`, {
       waitUntil: 'networkidle',
     })
     check(
@@ -196,7 +217,7 @@ async function main(): Promise<void> {
     )
 
     console.log('Decisions')
-    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/`, { waitUntil: 'networkidle' })
     const lead = (await page.locator('main p.statement').innerText()).replace(
       /\s+/g,
       ' ',
@@ -254,7 +275,7 @@ async function main(): Promise<void> {
         .catch(() => false),
     )
 
-    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/`, { waitUntil: 'networkidle' })
     await settle(page, 600)
     await page.getByRole('button', { name: 'Noch einmal lesen' }).focus()
     await page.keyboard.press('Tab')
@@ -275,7 +296,7 @@ async function main(): Promise<void> {
         path(page) === `/positionen/${chosenOz}`,
       { onFront, chosenOz, at: path(page) },
     )
-    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/`, { waitUntil: 'networkidle' })
 
     await page.getByRole('link', { name: 'Entscheidungen öffnen' }).click()
     await page.waitForURL(/offen=true/)
@@ -322,7 +343,7 @@ async function main(): Promise<void> {
       path(page),
     )
 
-    await page.goto(`${base}/positionen/01.01.0020`, {
+    await open(page, `${base}/positionen/01.01.0020`, {
       waitUntil: 'networkidle',
     })
     const featured = await page.locator('article').innerText()
@@ -353,7 +374,7 @@ async function main(): Promise<void> {
       )
     const verdict = async () =>
       (await page.locator('.verdict').innerText()).replace(/\s+/g, ' ')
-    await page.goto(`${base}/positionen/01.01.0020?offen=true`, {
+    await open(page, `${base}/positionen/01.01.0020?offen=true`, {
       waitUntil: 'networkidle',
     })
     await settle(page, 600)
@@ -367,7 +388,7 @@ async function main(): Promise<void> {
         (await openCountNow()) === stillOpen - 1,
       { verdict: await verdict(), stillOpen, now: await openCountNow() },
     )
-    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/`, { waitUntil: 'networkidle' })
     await settle(page, 3000)
     const after = (await page.locator('main p.statement').innerText()).replace(
       /\s+/g,
@@ -382,7 +403,7 @@ async function main(): Promise<void> {
           stillOpen - 1,
       after,
     )
-    await page.goto(`${base}/positionen/01.01.0020?offen=true`, {
+    await open(page, `${base}/positionen/01.01.0020?offen=true`, {
       waitUntil: 'networkidle',
     })
     await settle(page, 500)
@@ -420,10 +441,10 @@ async function main(): Promise<void> {
         total: figures.at(-1) ?? 0,
       }
     }
-    await page.goto(`${base}/kalkulation`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/kalkulation`, { waitUntil: 'networkidle' })
     await settle(page, 400)
     const withOwnPrice = await sum()
-    await page.goto(`${base}/positionen/01.01.0020?offen=true`, {
+    await open(page, `${base}/positionen/01.01.0020?offen=true`, {
       waitUntil: 'networkidle',
     })
     await settle(page, 500)
@@ -433,7 +454,7 @@ async function main(): Promise<void> {
     await settle(page, 600)
 
     console.log('Costing')
-    await page.goto(`${base}/kalkulation`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/kalkulation`, { waitUntil: 'networkidle' })
     await settle(page, 400)
     const atFirst = await sum()
     check(
@@ -484,7 +505,7 @@ async function main(): Promise<void> {
       .locator('xpath=following-sibling::ol[1]//a')
       .first()
     const openOz = (await openLabor.innerText()).match(/\d\d\.\d\d\.\d{4}/)?.[0]
-    await page.goto(`${base}/positionen/04.04.0100`, {
+    await open(page, `${base}/positionen/04.04.0100`, {
       waitUntil: 'networkidle',
     })
     await settle(page, 600)
@@ -510,7 +531,7 @@ async function main(): Promise<void> {
           0,
       { laborText, minutes, quantity, hours, rate, cost },
     )
-    await page.goto(`${base}/positionen/${openOz ?? 'none'}`, {
+    await open(page, `${base}/positionen/${openOz ?? 'none'}`, {
       waitUntil: 'networkidle',
     })
     await settle(page, 600)
@@ -525,7 +546,7 @@ async function main(): Promise<void> {
     )
 
     console.log('Measured')
-    await page.goto(`${base}/messung`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/messung`, { waitUntil: 'networkidle' })
     await settle(page, 300)
     // The page leads with the newest unseen tender, and what it says is
     // what that run's committed files say.
@@ -568,7 +589,7 @@ async function main(): Promise<void> {
     )
 
     console.log('Reading again')
-    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/`, { waitUntil: 'networkidle' })
     await settle(page, 600)
     const stands = async () =>
       (await page.locator('p.statement').first().innerText()).replace(
@@ -625,7 +646,7 @@ async function main(): Promise<void> {
     )
 
     console.log('Overview, below the picture')
-    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/`, { waitUntil: 'networkidle' })
     // What a line is about: its article and the reason beside the lamp.
     const ledger = await page.locator('a.ledger-row').evaluateAll((rows) =>
       rows.map((row) => ({
@@ -708,7 +729,7 @@ async function main(): Promise<void> {
     await page.waitForURL(/\/positionen\/07\./)
     check('a title named under the picture opens its positions', true)
 
-    await page.goto(`${base}/positionen/01.01.0020`, {
+    await open(page, `${base}/positionen/01.01.0020`, {
       waitUntil: 'networkidle',
     })
     const columnTops = () =>
@@ -720,7 +741,7 @@ async function main(): Promise<void> {
           ),
         )
     const besideEachOther = new Set(await columnTops()).size === 1
-    await page.goto(`${base}/positionen/01.01.0020?quelle=lv.qty`, {
+    await open(page, `${base}/positionen/01.01.0020?quelle=lv.qty`, {
       waitUntil: 'networkidle',
     })
     await settle(page, 900)
@@ -732,7 +753,7 @@ async function main(): Promise<void> {
     )
 
     console.log('Units')
-    await page.goto(`${base}/positionen?offen=true`, {
+    await open(page, `${base}/positionen?offen=true`, {
       waitUntil: 'networkidle',
     })
     await page.locator('[data-position-list] input').fill('')
@@ -783,7 +804,7 @@ async function main(): Promise<void> {
     )
     // In English the page is English: its own words, the tender's sections
     // and item names, and the figures.
-    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await open(page, `${base}/`, { waitUntil: 'networkidle' })
     await settle(page, 300)
     const english = (await page.locator('main').innerText()).replace(
       /\s+/g,
@@ -800,7 +821,7 @@ async function main(): Promise<void> {
         ),
       english.slice(0, 300),
     )
-    await page.goto(`${base}/positionen/01.01.0020`, {
+    await open(page, `${base}/positionen/01.01.0020`, {
       waitUntil: 'networkidle',
     })
     const item = (await page.locator('article').innerText()).replace(
@@ -825,7 +846,7 @@ async function main(): Promise<void> {
     })
     const calmPage = await calm.newPage()
     watch(calmPage, 'reduced motion')
-    await calmPage.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await open(calmPage, `${base}/`, { waitUntil: 'networkidle' })
     await settle(calmPage, 300)
     // Nothing may wait for an animation: every window, the light around
     // them and the picture in the water are there at once.
@@ -855,14 +876,14 @@ async function main(): Promise<void> {
     })
     const phonePage = await phone.newPage()
     watch(phonePage, 'phone')
-    await phonePage.goto(`${base}/positionen`, { waitUntil: 'networkidle' })
+    await open(phonePage, `${base}/positionen`, { waitUntil: 'networkidle' })
     await settle(phonePage, 400)
     check(
       'a phone shows the list and opens no position by itself',
       path(phonePage) === '/positionen',
       path(phonePage),
     )
-    await phonePage.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await open(phonePage, `${base}/`, { waitUntil: 'networkidle' })
     await settle(phonePage, 600)
     const tabs = await phonePage
       .getByRole('navigation', { name: 'Hauptnavigation' })
@@ -898,9 +919,13 @@ async function main(): Promise<void> {
       (await upright.getByRole('link', { name: 'Position öffnen' }).count()) ===
         1,
     )
-    await phonePage.goto(`${base}/positionen/01.01.0020?quelle=a.0.unitPrice`, {
-      waitUntil: 'networkidle',
-    })
+    await open(
+      phonePage,
+      `${base}/positionen/01.01.0020?quelle=a.0.unitPrice`,
+      {
+        waitUntil: 'networkidle',
+      },
+    )
     await settle(phonePage, 1500)
     const scrolled = await phonePage.evaluate(
       () =>
