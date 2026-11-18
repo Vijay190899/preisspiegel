@@ -1,17 +1,19 @@
 # Demo Script — 2 minutes
 
-Status: this is the target walkthrough. It is verified step by step at the M3 gate, and timings are filled in then.
+Verified end to end at the M3 gate in Chrome at 1440 px, on the local deployment, with an assertion for each step and no console errors. Times are the pace to aim for, not measured.
 
-| Time | Screen                      | Say                                                                                                                                                |
-| ---- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0:00 | Overview                    | "One tender, 1,170 positions, three supplier offers. This is what an estimator spends days on."                                                    |
-| 0:15 | Overview, the split         | "Most of it is priced. This smaller part needs a decision, sorted by what it costs to get wrong."                                                  |
-| 0:30 | Review queue, first item    | "A supplier offered a 138 kVA cabinet where the tender asks for 250 A. At 400 V that is 199 A. The system shows the arithmetic; it did not guess." |
-| 0:55 | Position detail             | "The tender text, the three offers side by side, and why each passed or failed."                                                                   |
-| 1:10 | Source viewer               | "Click the price. That is the line in the supplier's PDF it came from."                                                                            |
-| 1:25 | Kalkulation, copper control | "Cable is quoted on a copper base. Move the notation and the total moves by five figures."                                                         |
-| 1:40 | Overview, "Read it again"   | "The house goes dark and is read again: the stored answers, each checked against its source again. No model is called; a live run needs a code."   |
-| 1:50 | Measured                    | "Measured against ground truth: how much was automated, how often that was right, which traps were caught."                                        |
+| Time | Screen                                | Do                         | Say                                                                                                                                                     |
+| ---- | ------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0:00 | Overview                              | Let the lights come on     | "One tender, 1,170 positions, three supplier offers. Every window is a position. This is what an estimator spends days on."                             |
+| 0:12 | Overview, the sentence                | Point at the red windows   | "1,078 are priced. 92 wait for a decision, and 19,621.76 € rest on them. Red means a person decides; nothing else is red."                              |
+| 0:25 | The costliest decisions, `01.01.0020` | Open the cabinet           | "The tender asks for 250 A. One supplier offers 138 kVA. At 400 V that is 199 A, and the page shows the arithmetic. Code found it, not the model."      |
+| 0:45 | The same position, the offers         | Point at the three columns | "The three suppliers side by side, each price on one scale, and what was found on each."                                                                |
+| 0:55 | Source                                | Click the price            | "Every underlined number opens the document it was read from, at the place."                                                                            |
+| 1:05 | Deciding                              | Press 3, then U            | "The estimator takes the clean offer with one key; the window goes from red to lit and the sums follow. U takes it back."                               |
+| 1:15 | Labor, on the same position           | Scroll to Montage          | "Labor comes from the contractor's own time table. The model names the kind of work; code checks the size and takes the minutes from the table."        |
+| 1:25 | Kalkulation                           | Move the copper control    | "Material, labor and the copper surcharge. Cable is quoted on a copper base: move the day's notation and the bid moves by five figures."                |
+| 1:40 | Overview, "Noch einmal lesen"         | Press it                   | "The house goes dark and is read again from the stored answers, each checked against its source again. No model is called; a live run needs a code."    |
+| 1:50 | Messung                               | Point at the first column  | "Measured against ground truth on a tender it had never seen: what was priced without a person, how often rightly, which traps were caught, and labor." |
 
 ## Likely questions
 
