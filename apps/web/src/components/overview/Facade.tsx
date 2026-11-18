@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   BLOCK,
   TOWER,
@@ -160,6 +160,12 @@ function Elevation({
   }, [placed, states])
 
   const total = layout.panes.length
+  // The lights cross the front once. A window that changes later, because
+  // a run moved on or a position was decided, comes on without waiting.
+  const up = useRef(false)
+  useEffect(() => {
+    up.current = true
+  }, [])
   const { wall } = layout
   const base = layout.height
   const water = base * MIRROR
@@ -370,8 +376,9 @@ function Elevation({
               {layout.panes.map((p) => {
                 const s = states[p.index]
                 if (s === undefined || s === 'off') return null
-                const at =
-                  s === 'read'
+                const at = up.current
+                  ? 0
+                  : s === 'read'
                     ? (p.index % 30) * 14
                     : LEAD_MS + (p.index / total) * SWEEP_MS
                 return (

@@ -336,6 +336,23 @@ export default defineSchema({
     .index('by_runId_and_oz', ['runId', 'oz'])
     .index('by_runId_and_status_and_weight', ['runId', 'status', 'weight']),
 
+  // What an estimator settled for a position that needed a person: one of
+  // the offers as it stands, or a price of their own. There are no accounts
+  // in the demo, so a decision belongs to the browser that made it, named
+  // by an id it keeps; two visitors do not see each other's.
+  decisions: defineTable({
+    tenderSlug: v.string(),
+    session: v.string(),
+    oz: v.string(),
+    seq: v.number(),
+    /** The offer taken, or `null` where the estimator set a price. */
+    offerId: v.union(v.string(), v.null()),
+    supplierKey: v.union(v.string(), v.null()),
+    /** For one unit of the tender. Read from the offer, or typed in. */
+    unitPrice: v.number(),
+    at: v.number(),
+  }).index('by_tenderSlug_and_session_and_oz', ['tenderSlug', 'session', 'oz']),
+
   // What a model answered to a question, kept by the question's hash. The
   // same position text against the same lines is read once, ever.
   matchCache: defineTable({

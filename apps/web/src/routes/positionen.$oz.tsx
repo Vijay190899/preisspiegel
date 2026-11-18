@@ -9,6 +9,7 @@ import { ChevronLeft } from 'lucide-react'
 import { useCallback, useEffect, useMemo } from 'react'
 import { PositionView } from '~/components/positions/PositionView'
 import { SourcePanel } from '~/components/source/SourcePanel'
+import { settleQueue } from '~/lib/decisions'
 import { useT } from '~/lib/i18n'
 import { filterPositions } from '~/lib/positionSearch'
 import {
@@ -20,6 +21,7 @@ import {
 } from '~/lib/queries'
 import { searchText } from '~/lib/searchParams'
 import { resolveSource } from '~/lib/sources'
+import { useDecisions } from '~/lib/useDecisions'
 
 export const Route = createFileRoute('/positionen/$oz')({
   /** `quelle` names the value whose source is open, e.g. `a.0.unitPrice`. */
@@ -52,6 +54,13 @@ function PositionPage() {
   const { data: detail } = useSuspenseQuery(positionQuery(oz))
   const { data: match } = useSuspenseQuery(matchQuery(oz))
   const { data: queue } = useQuery({ ...reviewQueueQuery, enabled: offen })
+  const { decided, decide, reopen } = useDecisions()
+  const onDecide = useCallback(
+    (offerId: string | null, unitPrice?: number) =>
+      decide(oz, offerId, unitPrice),
+    [decide, oz],
+  )
+  const onReopen = useCallback(() => reopen(oz), [reopen, oz])
 
   const closeSource = useCallback(() => {
     void navigate({
@@ -78,11 +87,11 @@ function PositionPage() {
   const siblings = useMemo(
     () =>
       offen
-        ? (queue ?? [])
+        ? settleQueue(queue ?? [], decided)
             .filter((item) => titel === undefined || item.oz.startsWith(titel))
             .map((item) => item.oz)
         : filterPositions(rows, '', titel).map((row) => row.oz),
-    [offen, queue, rows, titel],
+    [offen, queue, rows, titel, decided],
   )
 
   if (tender === null || detail === null) {
@@ -126,6 +135,9 @@ function PositionPage() {
           tender={tender}
           detail={detail}
           match={match}
+          decision={decided.get(oz)}
+          onDecide={onDecide}
+          onReopen={onReopen}
           source={source === null ? undefined : quelle}
           previous={index === -1 ? undefined : siblings[index - 1]}
           next={index === -1 ? undefined : siblings[index + 1]}

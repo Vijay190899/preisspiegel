@@ -111,6 +111,18 @@ const de = {
   'pos.wording': 'Im Wortlaut des Leistungsverzeichnisses.',
   'pos.where': 'Wo die Position im Gebäude liegt: {where}. Zur Übersicht.',
 
+  'decision.decided': 'Entschieden',
+  'decision.decided.offer':
+    'Kalkuliert mit {supplier}: {price} € je {unit}, zusammen {total}.',
+  'decision.decided.own':
+    'Kalkuliert mit einem eigenen Preis: {price} € je {unit}, zusammen {total}.',
+  'decision.undo': 'Entscheidung zurücknehmen',
+  'decision.take': 'Damit kalkulieren',
+  'decision.taken': 'Damit kalkuliert',
+  'decision.own.label': 'Eigener Preis je {unit}, in €',
+  'decision.own.submit': 'Mit diesem Preis kalkulieren',
+  'decision.keys':
+    'Die Tasten 1 bis {n} nehmen das Angebot der Spalte, U nimmt eine Entscheidung zurück.',
   'decision.auto': 'Ohne Rückfrage kalkuliert',
   'decision.auto.body':
     '{supplier} bietet am günstigsten an: {price} € je {unit}, zusammen {total} €.',
@@ -305,6 +317,18 @@ const en: Record<MessageKey, string> = {
   'pos.wording': "In the tender's own words, which are German.",
   'pos.where': 'Where the item is in the building: {where}. To the overview.',
 
+  'decision.decided': 'Decided',
+  'decision.decided.offer':
+    'Priced with {supplier}: {price} € per {unit}, {total} in all.',
+  'decision.decided.own':
+    'Priced with a price of your own: {price} € per {unit}, {total} in all.',
+  'decision.undo': 'Take the decision back',
+  'decision.take': 'Price with this offer',
+  'decision.taken': 'Priced with this offer',
+  'decision.own.label': 'Your own price per {unit}, in €',
+  'decision.own.submit': 'Price with this',
+  'decision.keys':
+    'Keys 1 to {n} take the offer in that column, U takes a decision back.',
   'decision.auto': 'Priced without asking',
   'decision.auto.body':
     '{supplier} offers the lowest price: {price} € per {unit}, {total} € in all.',

@@ -333,6 +333,72 @@ async function main(): Promise<void> {
         .count()) === 1,
     )
 
+    console.log('Deciding')
+    const openCountNow = async () =>
+      Number(
+        (
+          await page.locator('[data-position-list] [aria-live]').innerText()
+        ).split(' ')[0],
+      )
+    const verdict = async () =>
+      (await page.locator('.verdict').innerText()).replace(/\s+/g, ' ')
+    await page.goto(`${base}/positionen/01.01.0020?offen=true`, {
+      waitUntil: 'networkidle',
+    })
+    await settle(page, 600)
+    const stillOpen = await openCountNow()
+    await page.locator('h1').click()
+    await page.keyboard.press('3')
+    await settle(page, 900)
+    check(
+      'a key takes the offer in that column, and the position leaves the queue',
+      (await verdict()).startsWith('Entschieden. Kalkuliert mit Osterholt') &&
+        (await openCountNow()) === stillOpen - 1,
+      { verdict: await verdict(), stillOpen, now: await openCountNow() },
+    )
+    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await settle(page, 3000)
+    const after = (await page.locator('main p.statement').innerText()).replace(
+      /\s+/g,
+      ' ',
+    )
+    check(
+      'the overview counts the decision in and its window is no longer red',
+      after.includes(`${stillOpen - 1} warten`) &&
+        (await page
+          .locator('svg.front:visible rect.pane[data-s="open"]')
+          .count()) ===
+          stillOpen - 1,
+      after,
+    )
+    await page.goto(`${base}/positionen/01.01.0020?offen=true`, {
+      waitUntil: 'networkidle',
+    })
+    await settle(page, 500)
+    await page.locator('h1').click()
+    await page.keyboard.press('u')
+    await settle(page, 800)
+    check(
+      'U takes the decision back',
+      (await verdict()).startsWith('Braucht eine Entscheidung') &&
+        (await openCountNow()) === stillOpen,
+      await verdict(),
+    )
+    await page.getByLabel(/Eigener Preis/).fill('4321,5')
+    await page
+      .getByRole('button', { name: 'Mit diesem Preis kalkulieren' })
+      .click()
+    await settle(page, 800)
+    check(
+      "a price of one's own settles a position too",
+      (await verdict()).includes('eigenen Preis: 4.321,50 €'),
+      await verdict(),
+    )
+    await page
+      .getByRole('button', { name: 'Entscheidung zurücknehmen' })
+      .click()
+    await settle(page, 600)
+
     console.log('Overview, below the picture')
     await page.goto(`${base}/`, { waitUntil: 'networkidle' })
     // What a line is about: its article and the reason beside the lamp.

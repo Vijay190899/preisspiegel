@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { BLOCK, layoutFacade, outline, paneStates, place } from '~/lib/facade'
+import { settleStatuses } from '~/lib/decisions'
 import { useT } from '~/lib/i18n'
 import { statusesQuery } from '~/lib/queries'
 import { useTenderText } from '~/lib/tenderText'
+import { useDecisions } from '~/lib/useDecisions'
 import type { Tender } from '~/lib/queries'
 
 const round = (value: number) => Math.round(value * 10) / 10
@@ -17,7 +19,9 @@ const round = (value: number) => Math.round(value * 10) / 10
 export function Locator({ tender, seq }: { tender: Tender; seq: number }) {
   const t = useT()
   const said = useTenderText()
-  const { data: statuses } = useQuery(statusesQuery)
+  const { data: runStatuses } = useQuery(statusesQuery)
+  const { decided } = useDecisions()
+  const statuses = settleStatuses(runStatuses ?? null, decided)
   const input = useMemo(
     () => ({
       titles: tender.titles,
@@ -28,7 +32,7 @@ export function Locator({ tender, seq }: { tender: Tender; seq: number }) {
   )
   const layout = useMemo(() => layoutFacade(input, BLOCK), [input])
   const drawn = useMemo(() => {
-    const states = paneStates(layout.panes.length, statuses ?? null, null)
+    const states = paneStates(layout.panes.length, statuses, null)
     return {
       all: outline(layout.panes),
       lit: outline(layout.panes.filter((p) => states[p.index] === 'priced')),
