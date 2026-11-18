@@ -2,10 +2,12 @@ import { useConvexMutation } from '@convex-dev/react-query'
 import { api } from '@preisspiegel/backend/api'
 import { useCallback, useState } from 'react'
 import { TENDER_SLUG } from './queries'
+import { useSession } from './session'
 import type { FunctionReturnType } from 'convex/server'
 
 export type Admission = FunctionReturnType<typeof api.runs.start>
-export type Refusal = Extract<Admission, { ok: false }>['reason']
+/** Why a start was refused, or `failed` when the request did not get through. */
+export type Refusal = Extract<Admission, { ok: false }>['reason'] | 'failed'
 
 /**
  * Starts a run of the tender. Without a code the stored answers are read
@@ -18,22 +20,27 @@ export function useStartRun(): {
   refused: Refusal | null
   asking: boolean
 } {
+  const session = useSession()
   const send = useConvexMutation(api.runs.start)
   const [refused, setRefused] = useState<Refusal | null>(null)
   const [asking, setAsking] = useState(false)
 
   const start = useCallback(
     async (code?: string) => {
+      if (session === null) return false
       setAsking(true)
       try {
-        const admission = await send({ slug: TENDER_SLUG, code })
+        const admission = await send({ slug: TENDER_SLUG, session, code })
         setRefused(admission.ok ? null : admission.reason)
         return admission.ok
+      } catch {
+        setRefused('failed')
+        return false
       } finally {
         setAsking(false)
       }
     },
-    [send],
+    [send, session],
   )
   return { start, refused, asking }
 }

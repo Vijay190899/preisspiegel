@@ -6,7 +6,12 @@ import { Shares } from '~/components/overview/Breakdown'
 import { Decisions, groupDecisions } from '~/components/overview/Decisions'
 import { Facade } from '~/components/overview/Facade'
 import { PictureKey } from '~/components/overview/PictureKey'
-import { Reading, RunLine, isUnderWay } from '~/components/overview/RunLine'
+import {
+  REFUSED,
+  Reading,
+  RunLine,
+  isUnderWay,
+} from '~/components/overview/RunLine'
 import { Scenery } from '~/components/overview/Scenery'
 import { formatMoney, formatQty } from '~/lib/format'
 import { settleCounts, settleQueue, settleStatuses } from '~/lib/decisions'
@@ -51,7 +56,7 @@ function Overview() {
   const { decided: mine } = useDecisions()
   const queue = settleQueue(wholeQueue, mine)
   const [pointing, setPointing] = useState<Pointing>(null)
-  const { start, asking } = useStartRun()
+  const { start, asking, refused } = useStartRun()
 
   if (tender === null) {
     return (
@@ -179,6 +184,11 @@ function Overview() {
                     </button>
                   )}
                 </div>
+                {refused !== null && (
+                  <p role="alert" className="caption mt-3 text-open-ink">
+                    {t(REFUSED[refused])}
+                  </p>
+                )}
               </motion.div>
             </div>
           </div>

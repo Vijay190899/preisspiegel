@@ -61,7 +61,12 @@ export function GaebSource({
 
   const firstMarked = Math.min(...excerpt.marked)
   return (
-    <div className="h-full overflow-auto p-4">
+    <div
+      tabIndex={0}
+      role="region"
+      aria-label={t('source.title')}
+      className="h-full overflow-auto p-4"
+    >
       <ol className="code module overflow-hidden bg-surface-raised py-3 text-[0.8rem] leading-[1.75]">
         {excerpt.lines.map((line, index) => {
           const isMarked = excerpt.marked.has(index)

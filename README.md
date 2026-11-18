@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/banner.png" alt="preisspiegel: tender pricing for electrical contractors, shown beside the tender as a building at night, one lit window per item and a red one for each that needs a person" width="100%"></p>
+
 # Preisspiegel
 
 [![CI](https://github.com/Vijay190899/preisspiegel/actions/workflows/ci.yml/badge.svg)](https://github.com/Vijay190899/preisspiegel/actions/workflows/ci.yml)
@@ -7,6 +9,10 @@
 **Tender pricing where every number points at its source.** An electrical contractor's tender arrives as a Leistungsverzeichnis with around 1,170 positions and a handful of supplier offers. Preisspiegel matches each position to an offer, prices it, and shows the estimator only the positions that need a decision, with the reason and the arithmetic.
 
 > An independent portfolio project. The contractor, the suppliers and the tender are fictional, and all data is synthetic ([docs/DATA.md](docs/DATA.md)).
+
+<p align="center"><picture><source srcset="docs/assets/showcase.avif" type="image/avif"><img src="docs/assets/showcase.webp" width="100%" alt="The demo in English: the tender as a building at night whose windows light up, one per item; a reason picks its red windows out; the site distribution cabinet where 250 A was asked and 138 kVA offered, 199 A by the arithmetic shown; its price opened in the supplier's PDF at the line it was read from; a key takes the clean offer; the copper notation moves the bid by close to 90,000 €; then the tender read again from the stored answers, without a model"></picture></p>
+
+<sub>Recorded from the app in replay mode with [`scripts/showcase.ts`](scripts/showcase.ts) and [`scripts/encode_showcase.py`](scripts/encode_showcase.py); the read-back is shown at 3&times; speed.</sub>
 
 **Status: in progress.** Built so far: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; a GAEB reader and a PDF table reader that keep the source of every number; the matching pipeline with its agent runtime; the benchmarks below; and an interface that shows the tender as the building it is for, one window per position, lit when it is priced and red when it needs a decision; lists what needs a decision by the euros at stake; sets the suppliers side by side; and opens the supplier's PDF at the place a price was read. A position that needs a person can be decided by key; every position is tied to an entry of the contractor's labor time table; a costing page adds labor and moves the bid with the copper notation; and the overview can read the tender again in view from the stored answers, without calling a model. The benchmark results are a page of their own, read from the committed files. The public demo follows in M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
 
@@ -59,7 +65,7 @@ flowchart LR
   BENCH["bench"] -->|"scores against truth"| CVX
 ```
 
-Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Product: [docs/PRD.md](docs/PRD.md) · Plan: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) · Decisions: [docs/DECISIONS.md](docs/DECISIONS.md)
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Product: [docs/PRD.md](docs/PRD.md) · Plan: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) · Decisions: [docs/DECISIONS.md](docs/DECISIONS.md) · Production readiness: [docs/PRODUCTION.md](docs/PRODUCTION.md)
 
 ## Models (swappable)
 

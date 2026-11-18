@@ -10,18 +10,21 @@ export type RunMode = 'live' | 'replay'
 
 export type Admission =
   | { ok: true; mode: RunMode }
-  | { ok: false; reason: 'running' | 'code' | 'locked' | 'closed' }
+  | { ok: false; reason: 'running' | 'code' | 'locked' | 'closed' | 'busy' }
 
-/** Wrong codes allowed inside `LOCK_WINDOW_MS` before the code is refused unread. */
-export const WRONG_CODES_ALLOWED = 5
-export const LOCK_WINDOW_MS = 10 * 60 * 1000
+/**
+ * The shortest access code a deployment may set. A shorter one leaves live
+ * runs closed: the limits on wrong codes slow guessing down, the length is
+ * what makes it hopeless.
+ */
+export const MIN_CODE_LENGTH = 16
 
-/** A code nobody has set, or the placeholder from `.env.example`. */
+/** A code nobody has set, the placeholder from `.env.example`, or one too short. */
 function unset(configured: string | undefined): boolean {
   return (
     configured === undefined ||
-    configured.trim() === '' ||
-    configured === 'change-me'
+    configured === 'change-me' ||
+    configured.trim().length < MIN_CODE_LENGTH
   )
 }
 
@@ -43,22 +46,28 @@ export function admit(request: {
   configured: string | undefined
   /** Whether a run of this tender is under way. */
   running: boolean
-  /** Wrong codes given in the last `LOCK_WINDOW_MS`. */
-  wrongCodes: number
+  /** Whether this browser gave too many wrong codes: its codes are not read. */
+  locked: boolean
+  /**
+   * Whether everyone together gave too many wrong codes. A wrong code is
+   * then answered as locked, but the right one is still let in.
+   */
+  crowded: boolean
+  /** Whether this browser may have the answers read back once more. */
+  replayAllowed: boolean
 }): Admission {
   if (request.code === undefined) {
-    return request.running
-      ? { ok: false, reason: 'running' }
-      : { ok: true, mode: 'replay' }
+    if (request.running) return { ok: false, reason: 'running' }
+    return request.replayAllowed
+      ? { ok: true, mode: 'replay' }
+      : { ok: false, reason: 'busy' }
   }
   // The code is judged before anything else is said, so a wrong one learns
   // nothing about the deployment's state.
   if (unset(request.configured)) return { ok: false, reason: 'closed' }
-  if (request.wrongCodes >= WRONG_CODES_ALLOWED) {
-    return { ok: false, reason: 'locked' }
-  }
+  if (request.locked) return { ok: false, reason: 'locked' }
   if (!sameCode(request.code, request.configured ?? '')) {
-    return { ok: false, reason: 'code' }
+    return { ok: false, reason: request.crowded ? 'locked' : 'code' }
   }
   return request.running
     ? { ok: false, reason: 'running' }

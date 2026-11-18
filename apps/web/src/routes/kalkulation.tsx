@@ -6,15 +6,18 @@ import {
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useId, useMemo, useState } from 'react'
+import { settleMaterial } from '~/lib/decisions'
 import { formatMoney, formatQty, unitLabel } from '~/lib/format'
-import { useT } from '~/lib/i18n'
+import { pageTitle, useT } from '~/lib/i18n'
 import {
   laborQuery,
   positionsQuery,
+  reviewQueueQuery,
   runQuery,
   tenderQuery,
 } from '~/lib/queries'
 import { useTenderText } from '~/lib/tenderText'
+import { useDecisions } from '~/lib/useDecisions'
 import type { LaborSummary } from '~/lib/queries'
 
 /** The range the control covers, in EUR per 100 kg of copper. */
@@ -26,12 +29,14 @@ const AT_FIRST = 950
 const LISTED = 8
 
 export const Route = createFileRoute('/kalkulation')({
+  head: () => ({ meta: [{ title: pageTitle('nav.costing') }] }),
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(tenderQuery),
       context.queryClient.ensureQueryData(runQuery),
       context.queryClient.ensureQueryData(positionsQuery),
       context.queryClient.ensureQueryData(laborQuery),
+      context.queryClient.ensureQueryData(reviewQueueQuery),
     ]),
   component: Costing,
 })
@@ -49,11 +54,16 @@ function Costing() {
   const { data: run } = useSuspenseQuery(runQuery)
   const { data: rows } = useSuspenseQuery(positionsQuery)
   const { data: labor } = useSuspenseQuery(laborQuery)
+  const { data: queue } = useSuspenseQuery(reviewQueueQuery)
+  // What the estimator decided replaces what the run assumed for it.
+  const { decided } = useDecisions()
   const [notation, setNotation] = useState(AT_FIRST)
 
   const cables = useMemo(() => cableLines(rows), [rows])
   const surcharge = copperSurcharge(cables, notation)
-  const material = run.done?.materialTotal ?? null
+  const runMaterial = run.done?.materialTotal ?? null
+  const material =
+    runMaterial === null ? null : settleMaterial(runMaterial, queue, decided)
   const kilometres = cables.reduce((sum, line) => sum + line.metres, 0) / 1000
   const tonnes = cables.reduce((sum, line) => sum + line.copperKg, 0) / 1000
   const heaviest = useMemo(

@@ -7,6 +7,7 @@ import {
   useSearch,
 } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef } from 'react'
+import { pageTitle } from '~/lib/i18n'
 import { PositionList } from '~/components/positions/PositionList'
 import { settleQueue, settleStatuses } from '~/lib/decisions'
 import {
@@ -19,6 +20,7 @@ import { searchFlag, searchText } from '~/lib/searchParams'
 import { useDecisions } from '~/lib/useDecisions'
 
 export const Route = createFileRoute('/positionen')({
+  head: () => ({ meta: [{ title: pageTitle('nav.positions') }] }),
   /**
    * `titel` shows one title of the Leistungsverzeichnis only. `offen` shows
    * only the positions that need a decision, the costliest first.
@@ -99,7 +101,7 @@ function Positions() {
     <div className="workspace" data-focused={oz !== undefined && sourceOpen}>
       <aside
         data-position-list
-        className={`workspace-list min-h-0 bg-surface max-lg:h-[calc(100dvh-57px)] ${
+        className={`workspace-list min-h-0 bg-surface max-lg:h-[calc(100dvh-var(--header-h))] ${
           oz === undefined ? '' : 'max-lg:hidden'
         }`}
       >

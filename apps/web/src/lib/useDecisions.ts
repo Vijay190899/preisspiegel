@@ -3,6 +3,7 @@ import { api } from '@preisspiegel/backend/api'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo } from 'react'
 import { byOz } from './decisions'
+import { say } from './notice'
 import { TENDER_SLUG } from './queries'
 import { useSession } from './session'
 import type { DecidedByOz } from './decisions'
@@ -36,14 +37,18 @@ export function useDecisions(): {
   const decide = useCallback(
     (oz: string, offerId: string | null, unitPrice?: number) => {
       if (session === null) return
-      void send({ slug: TENDER_SLUG, session, oz, offerId, unitPrice })
+      send({ slug: TENDER_SLUG, session, oz, offerId, unitPrice }).catch(() =>
+        say('decision.failed'),
+      )
     },
     [send, session],
   )
   const reopen = useCallback(
     (oz: string) => {
       if (session === null) return
-      void undo({ slug: TENDER_SLUG, session, oz })
+      undo({ slug: TENDER_SLUG, session, oz }).catch(() =>
+        say('decision.failed'),
+      )
     },
     [undo, session],
   )

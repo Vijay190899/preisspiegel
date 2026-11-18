@@ -1,3 +1,4 @@
+import rateLimiter from '@convex-dev/rate-limiter/convex.config.js'
 import { defineApp } from 'convex/server'
 import { v } from 'convex/values'
 
@@ -32,5 +33,8 @@ const app = defineApp({
     DEMO_ACCESS_CODE: v.optional(v.string()),
   },
 })
+
+// Per-browser and overall limits on what the public functions may do (limits.ts).
+app.use(rateLimiter)
 
 export default app

@@ -1,0 +1,23 @@
+# Weekly dependency updates, grouped so a week brings one pull request per
+# ecosystem rather than one per package. Dependabot writes the lockfile
+# itself, so it keeps its own cooldown to match pnpm's minimum release age.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 2
+    open-pull-requests-limit: 5
+    groups:
+      dependencies:
+        patterns: ['*']
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

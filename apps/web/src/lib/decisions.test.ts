@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { byOz, settleCounts, settleQueue, settleStatuses } from './decisions'
+import {
+  byOz,
+  settleCounts,
+  settleMaterial,
+  settleQueue,
+  settleStatuses,
+} from './decisions'
 import type { Decided } from './decisions'
 
 const decision = (oz: string, seq: number): Decided => ({
@@ -57,5 +63,36 @@ describe('decisions laid over a run', () => {
     expect(settleCounts(run, queue, byOz([decision('99.99.9999', 9)]))).toEqual(
       { auto: 10, review: 3, atRisk: 100, decided: 0 },
     )
+  })
+})
+
+describe('the material total with decisions in it', () => {
+  const queue = [
+    // Priced by the run at its cheapest clean offer, 12.50 a piece.
+    { oz: '01.01.0020', qty: 4, best: { unitPrice: 12.5 } },
+    // No clean offer: the run left it out of the total.
+    { oz: '03.01.0010', qty: 10, best: null },
+  ]
+  const priced = (oz: string, unitPrice: number): Decided => ({
+    ...decision(oz, 0),
+    unitPrice,
+  })
+
+  it('puts the decided price in place of the one the run used', () => {
+    expect(settleMaterial(1000, queue, byOz([priced('01.01.0020', 20)]))).toBe(
+      1030,
+    )
+  })
+
+  it('adds a position the run could not price', () => {
+    expect(
+      settleMaterial(1000, queue, byOz([priced('03.01.0010', 3.335)])),
+    ).toBe(1033.35)
+  })
+
+  it("is the run's total when nothing is decided", () => {
+    expect(settleMaterial(1000, queue, new Map())).toBe(1000)
+    // A decision for a position not in the queue changes nothing.
+    expect(settleMaterial(1000, queue, byOz([priced('x', 99)]))).toBe(1000)
   })
 })

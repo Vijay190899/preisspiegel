@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { WRONG_CODES_ALLOWED, admit, sameCode } from './gate'
+import { MIN_CODE_LENGTH, admit, sameCode } from './gate'
 
-const base = { configured: 'weide-7Q', running: false, wrongCodes: 0 }
+const base = {
+  configured: 'weide-7Q-hafen-2031',
+  running: false,
+  locked: false,
+  crowded: false,
+  replayAllowed: true,
+}
 
 describe('admit', () => {
   it('reads the stored answers back for anyone', () => {
@@ -16,17 +22,24 @@ describe('admit', () => {
   })
 
   it('lets the model read only with the code', () => {
-    expect(admit({ ...base, code: 'weide-7Q' })).toEqual({
+    expect(admit({ ...base, code: 'weide-7Q-hafen-2031' })).toEqual({
       ok: true,
       mode: 'live',
     })
-    for (const code of ['', 'weide-7q', 'weide-7Q ', 'weide', 'x']) {
+    for (const code of [
+      '',
+      'weide-7q-hafen-2031',
+      'weide-7Q-hafen-2031 ',
+      'weide',
+      'x',
+    ]) {
       expect(admit({ ...base, code })).toEqual({ ok: false, reason: 'code' })
     }
   })
 
   it('has no live runs where no code is set', () => {
-    for (const configured of [undefined, '', '  ', 'change-me']) {
+    const short = 'x'.repeat(MIN_CODE_LENGTH - 1)
+    for (const configured of [undefined, '', '  ', 'change-me', short]) {
       expect(admit({ ...base, configured, code: configured ?? '' })).toEqual({
         ok: false,
         reason: 'closed',
@@ -36,10 +49,31 @@ describe('admit', () => {
 
   it('stops reading codes after too many wrong ones, the right one included', () => {
     expect(
-      admit({ ...base, code: 'weide-7Q', wrongCodes: WRONG_CODES_ALLOWED }),
-    ).toEqual({ ok: false, reason: 'locked' })
+      admit({ ...base, code: 'weide-7Q-hafen-2031', locked: true }),
+    ).toEqual({
+      ok: false,
+      reason: 'locked',
+    })
+  })
+
+  it('past the overall ceiling answers a wrong code as locked, and still lets the right one in', () => {
+    expect(admit({ ...base, code: 'guess', crowded: true })).toEqual({
+      ok: false,
+      reason: 'locked',
+    })
     expect(
-      admit({ ...base, code: 'weide-7Q', wrongCodes: WRONG_CODES_ALLOWED - 1 }),
+      admit({ ...base, code: 'weide-7Q-hafen-2031', crowded: true }),
+    ).toEqual({ ok: true, mode: 'live' })
+  })
+
+  it('reads the answers back only as often as the limit allows', () => {
+    expect(admit({ ...base, code: undefined, replayAllowed: false })).toEqual({
+      ok: false,
+      reason: 'busy',
+    })
+    // The limit on read-backs does not touch a run with the code.
+    expect(
+      admit({ ...base, code: 'weide-7Q-hafen-2031', replayAllowed: false }),
     ).toEqual({ ok: true, mode: 'live' })
   })
 
@@ -48,7 +82,9 @@ describe('admit', () => {
       ok: false,
       reason: 'running',
     })
-    expect(admit({ ...base, code: 'weide-7Q', running: true })).toEqual({
+    expect(
+      admit({ ...base, code: 'weide-7Q-hafen-2031', running: true }),
+    ).toEqual({
       ok: false,
       reason: 'running',
     })

@@ -100,6 +100,19 @@
     background-color: var(--t-bg);
   }
 
+  /* How tall the sticky header is: one row, or two on a phone, where the
+     tabs have a row of their own. Layouts that fill the screen under it
+     subtract this. */
+  :root {
+    --header-h: 57px;
+  }
+
+  @media (max-width: 639.98px) {
+    :root {
+      --header-h: 101px;
+    }
+  }
+
   :focus-visible {
     outline: 2px solid var(--t-focus);
     outline-offset: 2px;
@@ -589,14 +602,6 @@
   }
 
   /* The tabs can be pushed sideways on a phone; no bar is drawn for it. */
-  .tabs {
-    scrollbar-width: none;
-  }
-
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-
   /* The control for the day's copper price: the page's one instrument. */
   .copper-control {
     height: 2rem;
@@ -771,7 +776,7 @@
   @media (min-width: 1024px) {
     .workspace {
       flex: none;
-      height: calc(100dvh - 57px);
+      height: calc(100dvh - var(--header-h));
       grid-template-columns: 320px minmax(0, 1fr);
       grid-template-rows: minmax(0, 1fr);
       transition: grid-template-columns var(--t-dur-slide) var(--t-ease);

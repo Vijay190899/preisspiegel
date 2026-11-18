@@ -1,6 +1,11 @@
 import { useSyncExternalStore } from 'react'
 import { formatQty } from './format'
-import { LOCALE_COOKIE, noteLocale, requestedLocale } from './locale'
+import {
+  LOCALE_COOKIE,
+  activeLocale,
+  noteLocale,
+  requestedLocale,
+} from './locale'
 import type { Locale } from './locale'
 
 export type { Locale } from './locale'
@@ -23,6 +28,7 @@ const de = {
   'nav.jump': 'Position suchen',
   'nav.costing': 'Kalkulation',
   'nav.measured': 'Messung',
+  'pos.title': 'Position {oz}',
   'measured.title': 'Was gemessen ist',
   'measured.s1':
     'Auf einer Ausschreibung, die das System nie gesehen hatte, hat es',
@@ -132,7 +138,7 @@ const de = {
   'costing.col.copper': 'Kupferzahl',
   'costing.col.surcharge': 'Zuschlag',
   'costing.note':
-    'Angenommen ist, was Preislisten für Kabel üblicherweise enthalten: Kupfer zu 150 € je 100 kg steckt im Preis, auf die Notierung kommt 1 % Bezugskosten. Die Kupferzahl ist hier Aderzahl mal Querschnitt mal 9,6 kg je km. Die Angebote der Demo nennen keine Kupferbasis. Die Montage rechnet mit den Minuten der Zeitwerttabelle und einem Stundensatz, beide für die Demo erfunden; Zuschläge für Baustelle, Gemeinkosten und Gewinn sind nicht enthalten.',
+    'Angenommen ist, was Preislisten für Kabel üblicherweise enthalten: Kupfer zu 150 € je 100 kg steckt im Preis, auf die Notierung kommt 1 % Bezugskosten. Die Kupferzahl ist hier Aderzahl mal Querschnitt mal 9,6 kg je km. Die Angebote der Demo nennen keine Kupferbasis. Die Montage rechnet mit den Minuten der Zeitwerttabelle und einem Stundensatz, beide für die Demo erfunden; Zuschläge für Baustelle, Gemeinkosten und Gewinn sind nicht enthalten. Eine Position, die eine Person entscheidet, zählt zum günstigsten sauberen Angebot, bis sie entschieden ist, danach zum entschiedenen Preis.',
   'nav.main': 'Hauptnavigation',
 
   'theme.toLight': 'Helles Design einschalten',
@@ -206,6 +212,10 @@ const de = {
   'run.refused.closed':
     'Hier ist kein Zugangscode gesetzt. Das Modell liest auf dieser Installation nur von der Kommandozeile.',
   'run.refused.running': 'Es ist gerade ein Lauf unterwegs.',
+  'run.refused.busy':
+    'Die Antworten wurden eben schon mehrmals neu gelesen. In ein paar Minuten geht es wieder.',
+  'run.refused.failed':
+    'Die Anfrage kam nicht durch. Bitte noch einmal versuchen.',
   'run.deciding':
     'Alles gelesen. Die Positionen werden geprüft und entschieden.',
   'run.stopped': 'Der letzte Lauf wurde angehalten: {note}',
@@ -345,9 +355,17 @@ const de = {
 
   'error.title': 'Etwas ist schiefgelaufen',
   'error.notFound': 'Seite nicht gefunden',
+  'error.retry': 'Noch einmal versuchen',
+  'error.body':
+    'Die Seite konnte nicht geladen werden. Meist hilft es, es noch einmal zu versuchen.',
+  'notice.dismiss': 'Schließen',
+  'decision.failed':
+    'Die Entscheidung kam nicht durch. Die Position ist unverändert; bitte noch einmal.',
 } as const
 
 export type MessageKey = keyof typeof de
+
+const APP_NAME = 'Preisspiegel'
 
 const en: Record<MessageKey, string> = {
   'app.skipToContent': 'Skip to content',
@@ -359,6 +377,7 @@ const en: Record<MessageKey, string> = {
   'nav.jump': 'Find an item',
   'nav.costing': 'Costing',
   'nav.measured': 'Measured',
+  'pos.title': 'Item {oz}',
   'measured.title': 'What was measured',
   'measured.s1': 'On a tender the system had never seen, it priced',
   'measured.s2': 'of {total} items without a person,',
@@ -465,7 +484,7 @@ const en: Record<MessageKey, string> = {
   'costing.col.copper': 'Copper number',
   'costing.col.surcharge': 'Surcharge',
   'costing.note':
-    'Assumed is what price lists for cable usually hold: copper at 150 € per 100 kg is in the price, and 1% procurement costs are added to the notation. The copper number here is cores times cross-section times 9.6 kg per km. The offers in the demo state no copper base. Labor uses the minutes of the labor time table and an hourly rate, both invented for the demo; site, overhead and profit mark-ups are not included.',
+    'Assumed is what price lists for cable usually hold: copper at 150 € per 100 kg is in the price, and 1% procurement costs are added to the notation. The copper number here is cores times cross-section times 9.6 kg per km. The offers in the demo state no copper base. Labor uses the minutes of the labor time table and an hourly rate, both invented for the demo; site, overhead and profit mark-ups are not included. An item a person decides counts at its cheapest clean offer until it is decided, and at the decided price after that.',
   'nav.main': 'Main navigation',
 
   'theme.toLight': 'Switch to the light theme',
@@ -537,6 +556,9 @@ const en: Record<MessageKey, string> = {
   'run.refused.closed':
     'No access code is set here. On this deployment the model reads only from the command line.',
   'run.refused.running': 'A run is under way.',
+  'run.refused.busy':
+    'The answers have just been read back several times. Try again in a few minutes.',
+  'run.refused.failed': 'The request did not get through. Please try again.',
   'run.deciding':
     'Everything is read. The items are being checked and decided.',
   'run.stopped': 'The last run was stopped: {note}',
@@ -676,6 +698,11 @@ const en: Record<MessageKey, string> = {
 
   'error.title': 'Something went wrong',
   'error.notFound': 'Page not found',
+  'error.retry': 'Try again',
+  'error.body': 'The page could not be loaded. Trying again usually helps.',
+  'notice.dismiss': 'Close',
+  'decision.failed':
+    'The decision did not get through. The item is unchanged; please try again.',
 }
 
 const messages: Record<Locale, Record<MessageKey, string>> = { de, en }
@@ -734,6 +761,23 @@ export function useT(): Translate {
     }
     return text
   }
+}
+
+/**
+ * The document title of a page: what the page is, then the app. Route heads
+ * are not components, so this reads the language of the request (on the
+ * server) or of the cookie (in the browser) instead of a hook.
+ */
+export function pageTitle(
+  page?: MessageKey,
+  values?: Record<string, string | number>,
+): string {
+  if (page === undefined) return APP_NAME
+  let name: string = messages[activeLocale()][page]
+  for (const [key, value] of Object.entries(values ?? {})) {
+    name = name.replaceAll(`{${key}}`, String(value))
+  }
+  return `${name} · ${APP_NAME}`
 }
 
 /** "1 Position", "1.170 Positionen": the count with its noun in the right number. */

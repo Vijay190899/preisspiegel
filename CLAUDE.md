@@ -13,7 +13,7 @@ Tender pricing for electrical contractors: a Leistungsverzeichnis and supplier o
 | Parser or generator                             | round-trip test; same seed gives byte-identical output                                                                                                                                              |
 | Pipeline or agent step                          | unit test in `packages/core`, then `pnpm bench:replay` (stored answers, no model). A trial run: `convex run agent/run:start '{"slug":"demo","limit":120}'`; check reason codes and the ledger total |
 | LLM code                                        | one real call: check `stop_reason`, tokens and $ in the ledger, `cache_read_input_tokens > 0` on the repeat call                                                                                    |
-| UI                                              | `pnpm shots <path>` (four widths, light and dark, zero console errors, no overflow), then look at the images. `pnpm probe:ui` for behaviour                                                         |
+| UI                                              | `pnpm shots <path>` (four widths, light and dark, zero console errors, no overflow), then look at the images. `pnpm probe:ui` for behaviour, `pnpm probe:a11y` for WCAG 2.2 AA (axe)                |
 | Docs or config                                  | links resolve, JSON and YAML parse                                                                                                                                                                  |
 
 Rules:
@@ -39,7 +39,7 @@ Rules:
 - `services/backend`: Convex (functions in `convex/`).
 - `packages/core`: pure logic shared by backend, bench and generator. No runtime-specific imports.
 - `data`: seeded tender generator. `bench`: benchmarks and the provider probe.
-- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm seed` · `pnpm shots` · `pnpm probe:ui` · `pnpm probe:llm` · `pnpm env:push` · `pnpm demo:reset` · `pnpm bench` · `pnpm bench:replay` · `pnpm bench:heldout` · `pnpm bench:seeds` · `pnpm bench:labor`.
+- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm seed` · `pnpm shots` · `pnpm banner` · `pnpm showcase` · `pnpm probe:ui` · `pnpm probe:a11y` · `pnpm probe:llm` · `pnpm env:push` · `pnpm demo:reset` · `pnpm bench` · `pnpm bench:replay` · `pnpm bench:heldout` · `pnpm bench:seeds` · `pnpm bench:labor`.
 - `pnpm seed generate` rewrites `data/seed/` and must be re-run whenever the generator changes; a test fails if the committed files are stale. `pnpm seed load` needs `pnpm dev` running.
 - Convex runs as a local deployment with no account in development. In a shell without a Convex login, set `CONVEX_AGENT_MODE=anonymous` for the first `convex dev`.
 
