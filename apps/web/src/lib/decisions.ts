@@ -66,3 +66,29 @@ export function settleCounts(
     decided: closed.length,
   }
 }
+
+const cents = (value: number) => Math.round(value * 100) / 100
+
+/**
+ * The material total once the decisions are counted in. The run prices a
+ * position that needs a person at its cheapest clean offer, if it has one;
+ * a decision puts the chosen price in that one's place.
+ */
+export function settleMaterial(
+  runTotal: number,
+  queue: ReadonlyArray<{
+    oz: string
+    qty: number
+    best: { unitPrice: number } | null
+  }>,
+  decided: DecidedByOz,
+): number {
+  let total = runTotal
+  for (const item of queue) {
+    const decision = decided.get(item.oz)
+    if (decision === undefined) continue
+    if (item.best !== null) total -= cents(item.qty * item.best.unitPrice)
+    total += cents(item.qty * decision.unitPrice)
+  }
+  return cents(total)
+}
