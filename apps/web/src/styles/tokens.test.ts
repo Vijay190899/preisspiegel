@@ -94,6 +94,8 @@ const MARKS: Array<[string, string]> = [
   // A priced position as a mark on the page: a bar, a line.
   ['pane', 'bg'],
   ['pane', 'surface'],
+  ['copper', 'bg'],
+  ['copper', 'surface'],
   ['open', 'bg'],
   ['open', 'surface'],
   ['marker', 'paper'],

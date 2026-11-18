@@ -226,6 +226,9 @@ importers:
       '@preisspiegel/backend':
         specifier: workspace:*
         version: link:../../services/backend
+      '@preisspiegel/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.107.1(@types/react@19.3.0)(react@19.3.1)

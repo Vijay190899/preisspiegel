@@ -159,6 +159,20 @@ On seed 501, run before the second fix, seven positions were priced at a valid o
 - **B3 covers what the readers took from the files:** quantity, price, price unit, list price, discount and total of every offer line, and every position's quantity. A rectangle has to hold the number and nothing else. It is the same for any run. Figures worked out from those (a price per metre from a price per 100 m, a total for the tender's quantity, the euros at stake) are not covered, and neither are the values the model compared.
 - **Labor is not priced yet.** The run prices material. The labor time table is loaded and waits for M3.
 
+## The copper surcharge
+
+The costing page works out what the price of copper adds to the bid (ADR-55). The formula and its inputs are the ones cable suppliers publish:
+
+- **Formula:** surcharge per km = copper number (kg/km) ÷ 100 × (notation + procurement costs − copper base), all prices in EUR per 100 kg. Lapp's explanation of metal surcharges and Letronic's of the copper surcharge both give it, and each has a worked example; both examples are tests.
+- **Copper base:** the amount of copper already in the list price, commonly 150 EUR per 100 kg (Letronic: "in der Regel"). The page assumes it.
+- **Procurement costs:** 1% on the notation in Lapp's version, 2% in Letronic's. The page uses 1%.
+- **Copper number:** a figure agreed for the calculation, not the weight of the metal (LEONI's glossary of the metal business says so in terms). For installation cable it is cores times cross-section times 9.6 kg per km, which gives the 43 kg/km printed for a 3x1.5 mm² cable.
+- **Notation:** the DEL notation was suspended on 14 February 2022; suppliers have since named their own reference, often the LME price. The control therefore says "the day's notation" and starts at 950 EUR per 100 kg, about where published indices stood in late 2025.
+
+What is assumed and not read from any document: that the demo's offers are priced on a base of 150. They state none.
+
+Sources: [Lapp, calculating metal surcharges](https://t3.lappcdn.com/fileadmin/DAM/Miltronic_Sweden/4_Servicecenter/1_Kunskapscenter/Tekniska_dokument_2019/T17_Calculating_metal_surcharges.pdf) · [Letronic, Berechnung vom Kupferzuschlag](https://www.letronic.de/themes/letronic/assets/pdf/Berechnung%20vom%20Kupferzuschlag.pdf) · [LEONI, Glossar Metallgeschäft](https://d3ga0yfowtcnef.cloudfront.net/fileadmin/acs/files/publications/metal_business/Glossar_Metallgeschaeft.pdf) · [Rittal on the suspended DEL listing](https://www.rittal.com/gr-en/News/Copper_listing) · [VEM, DEL quotation](https://www.vem-group.com/del-quotation)
+
 ## Honesty notes
 
 - **The tender is not real.** Texts are written to read like an electrical LV, but the building, the contractor, the suppliers and the brands do not exist. Each invented name was put through a web search on 2026-11-16, and three were replaced because they came too close to a real business. No business was found under the exact names used; a common surname such as Osterholt will have namesakes. Any resemblance is coincidental.

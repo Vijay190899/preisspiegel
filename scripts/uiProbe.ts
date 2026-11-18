@@ -399,6 +399,38 @@ async function main(): Promise<void> {
       .click()
     await settle(page, 600)
 
+    console.log('Costing')
+    await page.goto(`${base}/kalkulation`, { waitUntil: 'networkidle' })
+    await settle(page, 400)
+    const sum = async () => {
+      const text = (await page.locator('main p.statement').innerText()).replace(
+        /\s+/g,
+        ' ',
+      )
+      const figures = [...text.matchAll(/([\d.]+,\d\d) €/g)].map((found) =>
+        Number((found[1] ?? '').replaceAll('.', '').replace(',', '.')),
+      )
+      return { text, surcharge: figures[1] ?? 0, total: figures[2] ?? 0 }
+    }
+    const atFirst = await sum()
+    await page.locator('input[type="range"]').focus()
+    await page.keyboard.press('End')
+    await settle(page, 300)
+    const atMost = await sum()
+    await page.keyboard.press('Home')
+    await settle(page, 300)
+    const atLeast = await sum()
+    check(
+      'the copper control moves the bid by five figures',
+      atFirst.surcharge > 10000 &&
+        atMost.total - atLeast.total > 10000 &&
+        atMost.total - atLeast.total < 1000000 &&
+        Math.abs(
+          atMost.total - atMost.surcharge - (atFirst.total - atFirst.surcharge),
+        ) < 0.02,
+      { atFirst, atMost, atLeast },
+    )
+
     console.log('Overview, below the picture')
     await page.goto(`${base}/`, { waitUntil: 'networkidle' })
     // What a line is about: its article and the reason beside the lamp.

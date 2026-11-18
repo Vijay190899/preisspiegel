@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as KalkulationRouteImport } from './routes/kalkulation'
 import { Route as PositionenRouteImport } from './routes/positionen'
 import { Route as PositionenIndexRouteImport } from './routes/positionen.index'
 import { Route as PositionenOzRouteImport } from './routes/positionen.$oz'
@@ -17,6 +18,11 @@ import { Route as PositionenOzRouteImport } from './routes/positionen.$oz'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KalkulationRoute = KalkulationRouteImport.update({
+  id: '/kalkulation',
+  path: '/kalkulation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PositionenRoute = PositionenRouteImport.update({
@@ -37,32 +43,43 @@ const PositionenOzRoute = PositionenOzRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/kalkulation': typeof KalkulationRoute
   '/positionen': typeof PositionenRouteWithChildren
   '/positionen/$oz': typeof PositionenOzRoute
   '/positionen/': typeof PositionenIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/kalkulation': typeof KalkulationRoute
   '/positionen/$oz': typeof PositionenOzRoute
   '/positionen': typeof PositionenIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/kalkulation': typeof KalkulationRoute
   '/positionen': typeof PositionenRouteWithChildren
   '/positionen/$oz': typeof PositionenOzRoute
   '/positionen/': typeof PositionenIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/positionen' | '/positionen/$oz' | '/positionen/'
+  fullPaths:
+    '/' | '/kalkulation' | '/positionen' | '/positionen/$oz' | '/positionen/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/positionen/$oz' | '/positionen'
-  id: '__root__' | '/' | '/positionen' | '/positionen/$oz' | '/positionen/'
+  to: '/' | '/kalkulation' | '/positionen/$oz' | '/positionen'
+  id:
+    | '__root__'
+    | '/'
+    | '/kalkulation'
+    | '/positionen'
+    | '/positionen/$oz'
+    | '/positionen/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  KalkulationRoute: typeof KalkulationRoute
   PositionenRoute: typeof PositionenRouteWithChildren
 }
 
@@ -73,6 +90,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kalkulation': {
+      id: '/kalkulation'
+      path: '/kalkulation'
+      fullPath: '/kalkulation'
+      preLoaderRoute: typeof KalkulationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/positionen': {
@@ -115,6 +139,7 @@ const PositionenRouteWithChildren = PositionenRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  KalkulationRoute: KalkulationRoute,
   PositionenRoute: PositionenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
