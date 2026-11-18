@@ -26,6 +26,7 @@
     "probe:llm": "tsx bench/src/probe.ts",
     "shots": "tsx scripts/screenshot.ts",
     "banner": "tsx scripts/banner.ts",
+    "showcase": "tsx scripts/showcase.ts && python3 scripts/encode_showcase.py",
     "probe:ui": "tsx scripts/uiProbe.ts",
     "probe:a11y": "tsx scripts/a11yProbe.ts"
   },

@@ -39,7 +39,7 @@ Rules:
 - `services/backend`: Convex (functions in `convex/`).
 - `packages/core`: pure logic shared by backend, bench and generator. No runtime-specific imports.
 - `data`: seeded tender generator. `bench`: benchmarks and the provider probe.
-- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm seed` · `pnpm shots` · `pnpm banner` · `pnpm probe:ui` · `pnpm probe:a11y` · `pnpm probe:llm` · `pnpm env:push` · `pnpm demo:reset` · `pnpm bench` · `pnpm bench:replay` · `pnpm bench:heldout` · `pnpm bench:seeds` · `pnpm bench:labor`.
+- Root scripts are the only entry points: `pnpm check` · `pnpm dev` · `pnpm build` · `pnpm seed` · `pnpm shots` · `pnpm banner` · `pnpm showcase` · `pnpm probe:ui` · `pnpm probe:a11y` · `pnpm probe:llm` · `pnpm env:push` · `pnpm demo:reset` · `pnpm bench` · `pnpm bench:replay` · `pnpm bench:heldout` · `pnpm bench:seeds` · `pnpm bench:labor`.
 - `pnpm seed generate` rewrites `data/seed/` and must be re-run whenever the generator changes; a test fails if the committed files are stale. `pnpm seed load` needs `pnpm dev` running.
 - Convex runs as a local deployment with no account in development. In a shell without a Convex login, set `CONVEX_AGENT_MODE=anonymous` for the first `convex dev`.
 

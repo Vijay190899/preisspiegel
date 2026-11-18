@@ -10,6 +10,10 @@
 
 > An independent portfolio project. The contractor, the suppliers and the tender are fictional, and all data is synthetic ([docs/DATA.md](docs/DATA.md)).
 
+<p align="center"><picture><source srcset="docs/assets/showcase.avif" type="image/avif"><img src="docs/assets/showcase.webp" width="100%" alt="The demo in English: the tender as a building at night whose windows light up, one per item; a reason picks its red windows out; the site distribution cabinet where 250 A was asked and 138 kVA offered, 199 A by the arithmetic shown; its price opened in the supplier's PDF at the line it was read from; a key takes the clean offer; the copper notation moves the bid by about a hundred thousand euros; then the tender read again from the stored answers, without a model"></picture></p>
+
+<sub>Recorded from the app in replay mode with [`scripts/showcase.ts`](scripts/showcase.ts) and [`scripts/encode_showcase.py`](scripts/encode_showcase.py); the read-back is shown at 3&times; speed.</sub>
+
 **Status: in progress.** Built so far: a seeded tender of 1,170 positions with three supplier offers and 60 planted traps; a GAEB reader and a PDF table reader that keep the source of every number; the matching pipeline with its agent runtime; the benchmarks below; and an interface that shows the tender as the building it is for, one window per position, lit when it is priced and red when it needs a decision; lists what needs a decision by the euros at stake; sets the suppliers side by side; and opens the supplier's PDF at the place a price was read. A position that needs a person can be decided by key; every position is tied to an entry of the contractor's labor time table; a costing page adds labor and moves the bid with the copper notation; and the overview can read the tender again in view from the stored answers, without calling a model. The benchmark results are a page of their own, read from the committed files. The public demo follows in M4. [docs/HANDOVER.md](docs/HANDOVER.md) has the current state and [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) the gates.
 
 ## What it will demonstrate
