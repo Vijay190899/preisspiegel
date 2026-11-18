@@ -464,6 +464,30 @@ async function main(): Promise<void> {
     await settle(page, 200)
     const held = await picked()
     await page.getByRole('button', { name: /^Kein Angebot/ }).click()
+    // While windows are picked out and when they are let go, none goes
+    // dark: a dark window would say "not read".
+    const dark = () =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll('svg.front rect.pane')].filter(
+            (pane) =>
+              pane.closest('svg')?.getClientRects().length !== 0 &&
+              Number(getComputedStyle(pane).opacity) < 0.4,
+          ).length,
+      )
+    await page.getByRole('link', { name: /^03\s/ }).hover()
+    await settle(page, 40)
+    const whilePicked = await dark()
+    await page.getByRole('link', { name: /^07\s*Beleuchtung$/ }).hover()
+    await settle(page, 40)
+    const whileMoved = await dark()
+    await page.mouse.move(5, 300)
+    await settle(page, 30)
+    check(
+      'no window goes dark when titles are pointed at or let go',
+      whilePicked === 0 && whileMoved === 0 && (await dark()) === 0,
+      { whilePicked, whileMoved },
+    )
     check(
       'pointing at a title shows its windows; a reason stays shown once clicked',
       ofTitle === 171 && released === 0 && held === 41,
@@ -538,6 +562,14 @@ async function main(): Promise<void> {
       'the document language follows the stored choice',
       lang === 'en',
       lang,
+    )
+    // The server sends English from the first byte, not German that turns.
+    const sent = await (await context.request.get(`${base}/`)).text()
+    check(
+      'the server renders the page in the language chosen',
+      /<html[^>]*lang="en"/.test(sent) &&
+        sent.includes('New office building') &&
+        !sent.includes('Positionen sind kalkuliert'),
     )
     // In English the page is English: its own words, the tender's sections
     // and item names, and the figures.

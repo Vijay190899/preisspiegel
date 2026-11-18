@@ -90,6 +90,9 @@ const MARKS: Array<[string, string]> = [
   ['glass', 'glass-off'],
   ['glass-open', 'glass-off'],
   ['on-wall', 'wall'],
+  // The house's name on the roof, against the sky behind it.
+  ['sign', 'sky'],
+  ['sign', 'sky-top'],
   ['wall-focus', 'wall'],
   // A priced position as a mark on the page: a bar, a line.
   ['pane', 'bg'],

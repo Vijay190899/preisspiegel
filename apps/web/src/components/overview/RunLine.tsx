@@ -1,7 +1,7 @@
 import NumberFlow from '@number-flow/react'
 import { motion } from 'motion/react'
 import { formatDate, formatMoney, formatQty } from '~/lib/format'
-import { useT } from '~/lib/i18n'
+import { useLocale, useT } from '~/lib/i18n'
 import type { RunSummary } from '~/lib/queries'
 
 /**
@@ -17,6 +17,7 @@ export function RunLine({
   done: RunSummary | null
 }) {
   const t = useT()
+  const locale = useLocale()
   if (current === null) return <p className="caption">{t('run.none')}</p>
 
   const running = current.status === 'preparing' || current.status === 'reading'
@@ -36,7 +37,7 @@ export function RunLine({
               {t('run.reading.before')}{' '}
               <NumberFlow
                 value={current.read}
-                locales="de-DE"
+                locales={locale === 'en' ? 'en-GB' : 'de-DE'}
                 className="num font-medium text-ink"
               />{' '}
               {t('run.reading.after', { total: formatQty(current.positions) })}

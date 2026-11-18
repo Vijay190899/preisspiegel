@@ -3,6 +3,7 @@ import { Moon, Search, Sun } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect } from 'react'
 import { setLocale, useLocale, useT } from '~/lib/i18n'
+import { LOCALE_COOKIE } from '~/lib/locale'
 import { setTheme, useTheme } from '~/lib/theme'
 import { CommandPalette, openPalette } from './CommandPalette'
 import type { ReactNode } from 'react'
@@ -27,9 +28,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     select: (state) => state.location.pathname,
   })
 
-  // The server renders German; a stored choice of English arrives on the client.
   useEffect(() => {
     document.documentElement.lang = locale
+    // A choice from before the cookie existed is carried over, so the next
+    // page comes from the server in this language.
+    document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`
   }, [locale])
   const active = pathname.startsWith('/positionen')
     ? '/positionen'

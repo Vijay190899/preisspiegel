@@ -43,7 +43,7 @@ export function findingText(
     case 'UNIT_BASIS':
       return {
         text: t('finding.UNIT_BASIS', {
-          lineUnit: String(detail.lineUnit ?? ''),
+          lineUnit: unitLabel(String(detail.lineUnit ?? '')),
           tenderUnit: unitLabel(String(detail.tenderUnit ?? '')),
         }),
       }

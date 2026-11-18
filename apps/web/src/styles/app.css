@@ -284,15 +284,17 @@
     pointer-events: none;
   }
 
-  /* The moon by night, the sun by day, with the light around it. */
+  /*
+   * The moon by night, the sun by day, in the corner of the sky, clear of
+   * what is written, with a little light around it.
+   */
   .orb {
     position: absolute;
-    top: 0.6rem;
-    right: 5%;
-    width: 1.6rem;
-    height: 1.6rem;
-    filter: drop-shadow(0 0 14px var(--t-orb-glow))
-      drop-shadow(0 0 46px var(--t-orb-glow));
+    top: 0.45rem;
+    right: 3%;
+    width: 1.4rem;
+    height: 1.4rem;
+    filter: drop-shadow(0 0 8px var(--t-orb-glow));
   }
 
   .orb::before {
@@ -303,18 +305,20 @@
     background: var(--t-orb);
   }
 
+  @media (min-width: 1024px) {
+    .orb {
+      top: 0.9rem;
+      right: 2.2%;
+      width: 2.2rem;
+      height: 2.2rem;
+      filter: drop-shadow(0 0 12px var(--t-orb-glow))
+        drop-shadow(0 0 28px var(--t-orb-glow));
+    }
+  }
+
   /* By night it is a sickle: the disc with a bite taken out of it. */
   :root[data-theme='dark'] .orb::before {
     mask: radial-gradient(circle at 72% 34%, transparent 0 58%, #000 59%);
-  }
-
-  @media (min-width: 1024px) {
-    .orb {
-      top: 1.6rem;
-      right: 5.5%;
-      width: 2.6rem;
-      height: 2.6rem;
-    }
   }
 
   /* The name on the roof: lit letters by night, dark ones against the day sky. */
@@ -327,6 +331,11 @@
 
   .star {
     fill: var(--t-star);
+  }
+
+  :root[data-theme='dark'] .cloud,
+  :root:not([data-theme='dark']) .star {
+    display: none;
   }
 
   .star[data-twinkle] {
@@ -382,16 +391,17 @@
 
   /*
    * When a title or a reason is pointed at, its windows stay as they are
-   * and all the others step back.
+   * and all the others step back. The stepping back is done on the fill
+   * alone: the lights' own animation is on opacity and must not be touched,
+   * or every window would go dark and come on again, and a dark window
+   * means "not read".
    */
   .front[data-pointing='true'] .pane:not([data-on]) {
-    animation: none;
-    opacity: 0.16;
+    fill-opacity: 0.14;
   }
 
   .front[data-pointing='true'] .halo {
-    animation: none;
-    opacity: 0.1;
+    visibility: hidden;
   }
 
   /* The water can only show what is lit: it comes last. */
@@ -471,6 +481,48 @@
     .cable-row {
       grid-template-columns: 6.25rem minmax(0, 1fr) 6rem 7rem 8rem;
       grid-template-areas: 'oz text length copper sum';
+    }
+  }
+
+  /*
+   * The key belongs with the picture it controls. Where a screen cannot
+   * hold both, the upright house or a low window, the key stays at the
+   * bottom edge while the house is in view, so a title can be pointed at
+   * and its windows seen at once. On a screen that holds both it sits
+   * under the water and covers nothing.
+   */
+  @media (max-width: 1279px), (max-height: 760px) {
+    .key-bar {
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+      background: color-mix(in oklab, var(--t-bg) 86%, transparent);
+      backdrop-filter: blur(12px);
+    }
+  }
+
+  /* A row that can be pushed sideways where it does not fit. */
+  .key-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem 1.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+
+  .key-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .key-row > * {
+    flex: none;
+  }
+
+  @media (min-width: 1280px) {
+    .key-row {
+      flex-wrap: wrap;
+      overflow: visible;
     }
   }
 

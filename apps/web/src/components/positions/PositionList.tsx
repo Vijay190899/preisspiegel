@@ -411,7 +411,7 @@ function ListItem({
       </span>
       <span className="num relative whitespace-nowrap text-right text-[0.84rem] text-ink-2">
         {formatQty(row.qty)}{' '}
-        <span className="text-ink-3">{unitLabel(row.unit)}</span>
+        <span className="text-ink-3">{unitLabel(row.unit, row.qty)}</span>
       </span>
     </Link>
   )

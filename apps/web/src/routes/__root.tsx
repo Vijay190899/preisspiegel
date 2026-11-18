@@ -6,7 +6,7 @@ import {
   createRootRouteWithContext,
 } from '@tanstack/react-router'
 import { AppShell } from '~/components/shell/AppShell'
-import { useT } from '~/lib/i18n'
+import { useLocale, useT } from '~/lib/i18n'
 import { themeBootScript } from '~/lib/theme'
 import appCss from '~/styles/app.css?url'
 import type { QueryClient } from '@tanstack/react-query'
@@ -48,10 +48,11 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
+  const locale = useLocale()
   return (
     // The boot script applies a stored theme before React hydrates, so the
     // attribute on <html> can legitimately differ from what the server rendered.
-    <html lang="de" data-theme="dark" suppressHydrationWarning>
+    <html lang={locale} data-theme="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
