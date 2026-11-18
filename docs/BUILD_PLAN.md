@@ -72,7 +72,7 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 - From the M2 audit, before labor is added on the same runtime: hash the prompt and the answer schema into the cache key; write ledger rows per group of calls and add a watchdog for a step that dies; match quoted values on word boundaries and require the attributes the long text states; score the reason of a review. _Done (ADR-57, 60)._
 - Run replay and the access code for live runs; `pnpm demo:reset`. _Built (ADR-57):_ "Read it again" on the overview reads the stored answers back in about 20 s without a model; a live run needs the access code; a watchdog fails a run whose step died.
 - `/bench` page. _Built (ADR-58) as `/messung`:_ the committed result files, side by side, led by the newest unseen tender.
-- The GAEB excerpt served from Convex instead of downloading the file. _Left:_ the files are 38 KB and 47 KB compressed and cached after the first item; checked at M4: Vercel serves them as XML with brotli, the tender at 20.9 KB.
+- The GAEB excerpt served from Convex instead of downloading the file. _Left:_ the files are 38 KB and 47 KB compressed and cached after the first item; checked at M4: Vercel serves them as XML with brotli, the tender at 33.9 KB and the larger offer at 43.1 KB.
 - **Gate:**
   - The [DEMO_SCRIPT](DEMO_SCRIPT.md) works end to end locally.
   - `pnpm shots` passes on every route.

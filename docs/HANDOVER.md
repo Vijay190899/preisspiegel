@@ -4,7 +4,7 @@
 
 **M0 to M4 are built: the demo is live at https://preis-spiegel.vercel.app, on a Convex production deployment and Vercel. M4 is at its gate.** Updated 2026-11-18.
 
-Everything through pull request 16 is on `main`: pull requests 1 and 2 merged on 2026-11-17, 3 to 16 on 2026-11-18, each at the owner's word. Work goes on a branch with a pull request (ADR-44); merging is the owner's call.
+Everything through pull request 16 is on `main`: pull requests 1 and 2 merged on 2026-11-17, 3 to 14 and 16 on 2026-11-18, each at the owner's word; 15 (a major bump of `@types/node`) was closed. Work goes on a branch with a pull request (ADR-44); merging is the owner's call.
 
 Built and verified:
 
@@ -61,8 +61,8 @@ pnpm check
 ### Production
 
 - **Live at https://preis-spiegel.vercel.app** (Vercel project `preisspiegel`, Hobby; production branch `main`). Checked on 2026-11-18: `pnpm probe:ui` 55 of 55, `pnpm probe:a11y` clean and `pnpm shots` clean against the live address; every response carries the security headers; `/demo/*.x83` arrives as brotli-compressed XML on Vercel too; production's model spend for the day stayed 0 calls and $0 through all of it.
-- Convex production deployment: `watchful-lapwing-32.convex.cloud`. Its deploy key lives in `services/backend/.env.production.local` (git-ignored, mode 600) beside the generated `DEMO_ACCESS_CODE`; never in `.env.local`, which the dev server and every local `convex` command read.
-- `pnpm prod <convex args>` runs the Convex CLI against production with that key, e.g. `pnpm prod run health:get`, `pnpm prod run demo:reset`, `pnpm prod deploy -y`.
+- Convex production deployment: `watchful-lapwing-32.convex.cloud`. Its deploy key lives in `services/backend/.convex-prod.env` (git-ignored, mode 600) beside the generated `DEMO_ACCESS_CODE`; never in `.env.local`, which the dev server and every local `convex` command read.
+- `pnpm prod <convex args>` runs the Convex CLI against production with that key, e.g. `pnpm prod run health:get` or `pnpm prod run demo:reset`; `deploy` and `import` run only from a clean `main` that matches GitHub (ADR-69). Vercel deploys the functions on every merge to `main`, so a change to `PROMPT_VERSION` or the labor prompt version leaves production's stored answers behind: a read-back there would then read almost nothing and send nearly every position to a person. Before merging such a change, plan a live run on production (with the access code) or a fresh import.
 - Production holds the local deployment's data as exported on 2026-11-18 (`convex export`, then `pnpm prod import --replace-all`): the tender, 3,668 stored match answers and 2,810 labor answers. A read-back there gives 1,078 / 92 / 19,621.76 € with 0 model calls.
 - Vercel builds from root directory `apps/web` with `cd ../../services/backend && pnpm exec convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'pnpm -C ../../apps/web build'`; Nitro writes Vercel's output. Needs `CONVEX_DEPLOY_KEY` (a deploy-only production key, Production scope), `ENABLE_EXPERIMENTAL_COREPACK=1` (pnpm 12 from `packageManager`) and `VITE_SITE_URL`, and Node 24.
 
@@ -129,7 +129,7 @@ The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likel
   - The answer cache is still keyed by a version kept by hand; a test now fails when the instructions or the schema change without it (ADR-60).
   - `decide` and the ground truth differ at the edges: an only offer with an unreadable price is priced at nothing, and a price is called an outlier against offers of other products.
 - **From the M2 audit, low:** (a review found for a right reason is now counted beside the plain count, ADR-60) the euro error of a wrongly automatic position is only the price difference; `score.ts` and `judges.ts` have no test; the review queue is cut at 300 without saying so. A price far off the only other one is a review in the ground truth but invisible to the pipeline when the other offer is not for the same product. A near match with no exact total is dropped without a note. The search field's focus is a 1 px border colour. Reloading the seed can race a run that is under way.
-- **The first batch of a run writes the prompt cache once per call.** Its eight calls start together, so each writes the 3,475-token prefix before any can read it (seen in the M4 ledger check: 8 writes, then reads). Sending one call first would save about seven writes a run, a few cents at most.
+- **The first batch of a run writes the prompt cache once per call.** Its eight calls start together, so each writes the 3,475-token prefix before any can read it (seen in the M4 ledger check: 9 writes and 3 reads over 12 calls; the first batch's eight calls all wrote it, and one call in the second batch did too). Sending one call first would save most of them, a few cents at most.
 - **B4 is not run** (matcher alone against matcher plus a larger model on the unsettled positions). The plan has it "if time allows"; it needs escalation wired into the run and a paid comparison.
 - **A model call that fails** leaves its lines unconfirmed; the position is still priced if another supplier answers it cleanly, and nothing on it says a line went unread.
 - **Labor (ADR-59):** the kind of work is the model's call; code checks only the unit and a size or count in the label. A cable manager (`Kabelrangierpanel`) is still timed as a patch panel. A position's verdict sentence speaks of the material only, so a position priced without asking can still have its labor decided by a person, said further down. Labor decisions cannot yet be overridden in the interface. No source viewer for the labor time table: its entry is named, not opened. The measured page shows B5 but the pooled perfect-reader sweeps are not in a committed file.

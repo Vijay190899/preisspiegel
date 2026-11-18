@@ -39,6 +39,13 @@ const listWidth = (page: Page) =>
     ),
   )
 
+/**
+ * Waits until the position on the page has arrived. Against a deployment a
+ * position opened in the browser can take seconds, not milliseconds.
+ */
+const shown = (page: Page) =>
+  page.locator('main h1').first().waitFor({ timeout: 20_000 })
+
 async function main(): Promise<void> {
   const browser = await chromium.launch({ channel: 'chrome' })
   try {
@@ -51,6 +58,7 @@ async function main(): Promise<void> {
     console.log('Positions workspace')
     await page.goto(`${base}/positionen`, { waitUntil: 'networkidle' })
     await page.waitForURL(/\/positionen\/01\.01\.0010/)
+    await shown(page)
     check('a wide screen opens the first position', true)
 
     // The list is one Tab stop, so the numbers are a few presses away.
@@ -71,6 +79,7 @@ async function main(): Promise<void> {
     await page.locator('[data-position-list] a[data-selected]').focus()
     await page.keyboard.press('ArrowDown')
     await page.waitForURL(/01\.01\.0020/)
+    await shown(page)
     await settle(page, 200)
     const focused = await page.evaluate(() =>
       document.activeElement?.getAttribute('href'),
@@ -87,6 +96,7 @@ async function main(): Promise<void> {
     const afterJ = path(page)
     await page.keyboard.press('k')
     await settle(page, 500)
+    await shown(page)
     check(
       'J and K step through the list',
       afterJ === '/positionen/01.01.0030' &&
