@@ -18,7 +18,7 @@ import { internal } from '../_generated/api'
 import { internalAction, internalMutation } from '../_generated/server'
 import { utcDay } from '../llm/call'
 import { llmCall, roleModel, spendLimits } from '../llm/client'
-import { beginRun } from './store'
+import { beginRun, runUnderWay } from './store'
 import {
   SYSTEM,
   answerSchema,
@@ -62,6 +62,11 @@ export const start = internalMutation({
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique()
     if (tender === null) throw new Error(`No tender "${slug}".`)
+    // One run of a tender at a time, from here as from the interface: two
+    // would write the same positions and each clear the other's when done.
+    if (await runUnderWay(ctx, slug)) {
+      throw new Error(`A run of "${slug}" is under way.`)
+    }
     const model = roleModel('match')
     if (model === null) throw new Error('The match role has no model.')
 

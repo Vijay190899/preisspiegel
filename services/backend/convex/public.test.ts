@@ -306,6 +306,15 @@ describe('starting a run', () => {
     expect(await start(t, ME)).toEqual({ ok: true, mode: 'replay' })
   })
 
+  it('starts no second run from the command line while one is under way', async () => {
+    const t = setup()
+    await seed(t)
+    await t.mutation(internal.agent.run.start, { slug: SLUG, limit: 2 })
+    await expect(
+      t.mutation(internal.agent.run.start, { slug: SLUG, limit: 2 }),
+    ).rejects.toThrow(/under way/)
+  })
+
   it('refuses a browser id it does not make', async () => {
     const t = setup()
     await seed(t)

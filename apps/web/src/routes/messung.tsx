@@ -119,7 +119,13 @@ function Measured() {
         <p className="mt-2 max-w-[64ch] text-ink-2">
           {t('measured.runs.body')}
         </p>
-        <div className="measure-scroll mt-7">
+        {/* Scrolls sideways on a narrow screen, so it takes focus. */}
+        <div
+          className="measure-scroll mt-7"
+          tabIndex={0}
+          role="region"
+          aria-labelledby="runs"
+        >
           <table className="measure">
             <thead>
               <tr>
@@ -286,7 +292,12 @@ function LaborRuns() {
         {t('measured.labor.title')}
       </h2>
       <p className="mt-2 max-w-[64ch] text-ink-2">{t('measured.labor.body')}</p>
-      <div className="measure-scroll mt-7">
+      <div
+        className="measure-scroll mt-7"
+        tabIndex={0}
+        role="region"
+        aria-labelledby="labor-runs"
+      >
         <table className="measure">
           <thead>
             <tr>

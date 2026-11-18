@@ -25,9 +25,11 @@
     "demo:reset": "pnpm -C services/backend exec convex run demo:reset",
     "probe:llm": "tsx bench/src/probe.ts",
     "shots": "tsx scripts/screenshot.ts",
-    "probe:ui": "tsx scripts/uiProbe.ts"
+    "probe:ui": "tsx scripts/uiProbe.ts",
+    "probe:a11y": "tsx scripts/a11yProbe.ts"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@convex-dev/eslint-plugin": "^5.0.1",
     "@edge-runtime/vm": "5.0.0",
     "@tanstack/eslint-config": "^0.5.0",

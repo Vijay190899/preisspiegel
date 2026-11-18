@@ -94,12 +94,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={openPalette}
-              aria-label={t('nav.jump')}
               className="hidden h-9 items-center gap-2 rounded-control border border-line bg-surface/70 px-2.5 text-[0.9rem] text-ink-3 transition-colors duration-150 hover:border-line-strong hover:text-ink sm:mr-1 sm:flex"
             >
               <Search size={15} aria-hidden />
-              <span className="hidden md:inline">{t('nav.jump')}</span>
-              <kbd className="ml-1 hidden rounded-[5px] border border-line bg-bg px-1.5 text-[0.75rem] font-medium text-ink-3 md:inline">
+              {/* The visible words are the name; under 768 px only a
+                  screen reader has them. */}
+              <span className="sr-only md:not-sr-only">{t('nav.jump')}</span>
+              <kbd
+                aria-hidden="true"
+                className="ml-1 hidden rounded-[5px] border border-line bg-bg px-1.5 text-[0.75rem] font-medium text-ink-3 md:inline"
+              >
                 ⌘K
               </kbd>
             </button>
@@ -176,10 +180,11 @@ function LocaleToggle() {
     <button
       type="button"
       onClick={() => setLocale(next)}
-      aria-label={t('locale.switch')}
       title={t('locale.switch')}
       className={`${iconButton} gap-1 px-2 text-[0.82rem] font-medium`}
     >
+      {/* The name says what the button does and holds what it shows. */}
+      <span className="sr-only">{t('locale.switch')}:</span>
       <span className={locale === 'de' ? 'text-ink' : 'text-ink-3'}>DE</span>
       <span aria-hidden="true" className="text-line-strong">
         /

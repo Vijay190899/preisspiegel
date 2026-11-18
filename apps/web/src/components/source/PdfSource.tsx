@@ -168,7 +168,15 @@ export function PdfSource({
       : 140 + SCAN_MS * 0.72 * (mark.y / page.height)
 
   return (
-    <div ref={frame} className="relative h-full overflow-auto">
+    // A region of its own that takes focus, so the page can be scrolled
+    // from the keyboard as well.
+    <div
+      ref={frame}
+      tabIndex={0}
+      role="region"
+      aria-label={t('source.title')}
+      className="relative h-full overflow-auto"
+    >
       {failed && (
         <p role="alert" className="p-5 text-open-ink">
           {t('source.failed')}
