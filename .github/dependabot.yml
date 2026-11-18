@@ -10,6 +10,10 @@ updates:
     cooldown:
       default-days: 2
     open-pull-requests-limit: 5
+    ignore:
+      # The types follow the Node the app runs on (24), not the newest one.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       dependencies:
         patterns: ['*']

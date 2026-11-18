@@ -58,6 +58,14 @@ pnpm check
 - `pnpm env:push` copies `.env.local` into the Convex deployment's environment. Run it after changing a model role or a key.
 - `pnpm shots` and `pnpm probe:ui` drive the Chrome installed on the machine and need `pnpm dev` running with the seed loaded and a finished run. A fresh deployment has no run: `pnpm bench --start` makes one (about 40 cents on a cold answer cache, nothing on a warm one). `pnpm probe:ui` presses "Noch einmal lesen", so it replaces the finished run with a replay of it (same figures, no model) and takes about 25 s longer.
 
+### Production
+
+- **Live at https://preis-spiegel.vercel.app** (Vercel project `preisspiegel`, Hobby; production branch `main`). Checked on 2026-11-18: `pnpm probe:ui` 55 of 55, `pnpm probe:a11y` clean and `pnpm shots` clean against the live address; every response carries the security headers; `/demo/*.x83` arrives as brotli-compressed XML on Vercel too; production's model spend for the day stayed 0 calls and $0 through all of it.
+- Convex production deployment: `watchful-lapwing-32.convex.cloud`. Its deploy key lives in `services/backend/.env.production.local` (git-ignored, mode 600) beside the generated `DEMO_ACCESS_CODE`; never in `.env.local`, which the dev server and every local `convex` command read.
+- `pnpm prod <convex args>` runs the Convex CLI against production with that key, e.g. `pnpm prod run health:get`, `pnpm prod run demo:reset`, `pnpm prod deploy -y`.
+- Production holds the local deployment's data as exported on 2026-11-18 (`convex export`, then `pnpm prod import --replace-all`): the tender, 3,668 stored match answers and 2,810 labor answers. A read-back there gives 1,078 / 92 / 19,621.76 € with 0 model calls.
+- Vercel builds from root directory `apps/web` with `cd ../../services/backend && pnpm exec convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'pnpm -C ../../apps/web build'`; Nitro writes Vercel's output. Needs `CONVEX_DEPLOY_KEY` (a deploy-only production key, Production scope), `ENABLE_EXPERIMENTAL_COREPACK=1` (pnpm 12 from `packageManager`) and `VITE_SITE_URL`, and Node 24.
+
 ## 3. Decisions already made (do not re-litigate)
 
 The full list is [DECISIONS](DECISIONS.md). The ones a new session is most likely to question:
