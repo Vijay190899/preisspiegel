@@ -1,13 +1,8 @@
 import NumberFlow from '@number-flow/react'
 import { motion } from 'motion/react'
-import { formatDate, formatQty } from '~/lib/format'
+import { formatDate, formatMoney, formatQty } from '~/lib/format'
 import { useT } from '~/lib/i18n'
 import type { RunSummary } from '~/lib/queries'
-
-const usd = new Intl.NumberFormat('de-DE', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
 
 /**
  * What the last run did, in one sentence, or what a running one is doing
@@ -81,7 +76,7 @@ export function RunLine({
         model: shown.model ?? '',
         calls: formatQty(shown.calls),
         cached: formatQty(shown.cached),
-        usd: usd.format(shown.usd),
+        usd: formatMoney(shown.usd),
       })}
     </p>
   )

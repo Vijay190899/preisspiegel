@@ -7,10 +7,12 @@
  * priced is lit; one that needs a decision burns red; and the whole front is
  * mirrored in the water, which is where the name comes from.
  *
- * The dark theme is the blue hour: a deep blue sky, tungsten light in the
+ * The dark theme is night: a deep sky with a moon, tungsten light in the
  * windows, and that same light on the one thing to do next. The light theme
- * is the same building by day: pale sky, dark glass, ink for the action.
- * Red means "a person has to decide" in both, and nothing else is red.
+ * is the same house by day: a pale sky with a sun, a dark front whose glass
+ * shows the sky, ink for the action. Either way a priced window is the
+ * bright one. Red means "a person has to decide" in both, and nothing else
+ * is red.
  *
  * Components never use raw hex. They use these tokens through the Tailwind
  * names mapped in app.css.
@@ -21,7 +23,6 @@
 
   /* Sky, and the surfaces that stand in front of it */
   --t-bg: #e8edf2;
-  --t-sky: #f3f6f9;
   --t-surface: #f5f7f9;
   --t-surface-raised: #ffffff;
   --t-surface-sunken: #dde4eb;
@@ -31,7 +32,7 @@
 
   --t-ink: #0f1722;
   --t-ink-2: #3b4757;
-  --t-ink-3: #566375;
+  --t-ink-3: #485465;
 
   /* The one thing to do next */
   --t-action: #101a27;
@@ -42,20 +43,47 @@
   --t-lamp-ink: #885100;
   --t-lamp-soft: #fbeed6;
 
-  /* The building */
-  --t-wall: #f8fafb;
-  --t-slab: #cdd5de;
-  /* A window whose position is priced, one nobody has read yet */
+  /*
+   * The scene: sky from the top of the page down to the horizon, the far
+   * shore, and the sea.
+   */
+  --t-sky-top: #c6dcf0;
+  --t-sky: #eaf2f9;
+  --t-horizon: rgb(255 244 214 / 0.9);
+  --t-shore: #c9d6e2;
+  --t-shore-light: #c9d6e2;
+  --t-orb: #fff6d8;
+  --t-orb-glow: rgb(255 236 170 / 0.55);
+  --t-star: transparent;
+  --t-cloud: rgb(255 255 255 / 0.85);
+  --t-water: #d2dfeb;
+  --t-water-deep: #e8edf2;
+
+  /*
+   * The house. By day the front is dark and the glass shows the sky, so a
+   * priced window is still the bright one.
+   */
+  --t-wall: #2c3848;
+  --t-roof: #232d3b;
+  --t-slab: #3a485a;
+  --t-on-wall: #f2f6fa;
+  --t-on-wall-2: #a9b7c7;
+  --t-wall-focus: #9cc4ff;
+  --t-sign: #2c3848;
+  --t-sign-glow: transparent;
+  /* A window whose position is priced, one that needs a person, one nobody has read. */
+  --t-glass: #eaf3fc;
+  --t-glass-open: #ff6a52;
+  --t-glass-off: #3a485a;
+  --t-glass-glow: 0.3;
+  /* A priced position as a mark on the page itself: a bar, a swatch. */
   --t-pane: #34485f;
   --t-pane-off: #d5dce4;
   --t-pane-glow: 0;
-  --t-water: #dbe3ea;
-  /* The glow of the town behind the building, low on the sky. */
-  --t-horizon: rgb(255 255 255 / 0.75);
 
   /* State. `open` is the only red there is. */
   --t-open: #d6381f;
-  --t-open-ink: #ae2a14;
+  --t-open-ink: #9f2510;
   --t-open-soft: #fbe6e1;
   --t-settled: #34485f;
   --t-settled-ink: #2a3b50;
@@ -102,7 +130,6 @@
   color-scheme: dark;
 
   --t-bg: #070b12;
-  --t-sky: #0c1524;
   --t-surface: #0c131d;
   --t-surface-raised: #121b27;
   --t-surface-sunken: #05080e;
@@ -121,13 +148,33 @@
   --t-lamp-ink: #ffd59b;
   --t-lamp-soft: #2b2113;
 
+  --t-sky-top: #04070d;
+  --t-sky: #13233f;
+  --t-horizon: rgb(255 176 108 / 0.13);
+  --t-shore: #0b1424;
+  --t-shore-light: #ffcf8a;
+  --t-orb: #f4ecd8;
+  --t-orb-glow: rgb(214 226 255 / 0.22);
+  --t-star: #dfe8f7;
+  --t-cloud: transparent;
+  --t-water: #060a10;
+  --t-water-deep: #070b12;
+
   --t-wall: #0e1826;
+  --t-roof: #1a2740;
   --t-slab: #17212e;
+  --t-on-wall: #edf2f8;
+  --t-on-wall-2: #8090a3;
+  --t-wall-focus: #8cb7fb;
+  --t-sign: #ffdcaa;
+  --t-sign-glow: rgb(255 200 130 / 0.75);
+  --t-glass: #ffdcaa;
+  --t-glass-open: #ff5c47;
+  --t-glass-off: #162130;
+  --t-glass-glow: 0.75;
   --t-pane: #ffdcaa;
   --t-pane-off: #162130;
   --t-pane-glow: 0.75;
-  --t-water: #060a10;
-  --t-horizon: rgb(255 176 108 / 0.11);
 
   --t-open: #ff5c47;
   --t-open-ink: #ff9484;

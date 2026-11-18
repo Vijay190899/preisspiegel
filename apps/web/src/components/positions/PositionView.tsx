@@ -7,12 +7,14 @@ import {
   formatMoney,
   formatQty,
   formatUnitPrice,
+  perUnitLabel,
   unitLabel,
 } from '~/lib/format'
 import { useT } from '~/lib/i18n'
 import { usePace } from '~/lib/pace'
 import { offers } from '~/lib/queries'
 import { offerSource, tenderSource } from '~/lib/sources'
+import { useTenderText } from '~/lib/tenderText'
 import { Locator } from './Locator'
 import type { ReactNode } from 'react'
 import type {
@@ -99,6 +101,7 @@ export function PositionView({
   next: string | undefined
 }) {
   const t = useT()
+  const said = useTenderText()
   const { pace } = usePace()
   const { position, referring } = detail
   const [title, subtitle] = position.path
@@ -173,7 +176,7 @@ export function PositionView({
                 search={{ titel: title.rno }}
                 className="transition-colors duration-150 hover:text-ink"
               >
-                {title.label}
+                {said.heading(title.label)}
               </Link>
             )}
             {subtitle !== undefined && (
@@ -181,7 +184,7 @@ export function PositionView({
                 <span aria-hidden="true" className="mx-1.5 text-line-strong">
                   /
                 </span>
-                {subtitle.label}
+                {said.heading(subtitle.label)}
               </>
             )}
           </p>
@@ -199,8 +202,14 @@ export function PositionView({
           <div className="min-w-0">
             <p className="code text-[0.95rem] text-ink-3">{position.oz}</p>
             <h1 className="display mt-2.5 text-[clamp(1.75rem,4.6cqi,2.6rem)] !leading-[1.06]">
-              {position.shortText}
+              {said.item(position.shortText)}
             </h1>
+            {said.locale !== 'de' && (
+              // The item's name as the tender has it.
+              <p className="caption mt-2" lang="de">
+                {position.shortText}
+              </p>
+            )}
             <p className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="text-[1.5rem] leading-none">
                 <Traceable
@@ -225,7 +234,7 @@ export function PositionView({
         <motion.div {...arrive(1)} className="mt-8">
           <Decision
             match={match}
-            unit={unitLabel(position.unit)}
+            unit={perUnitLabel(position.unit)}
             supplier={
               match.best === null
                 ? undefined
@@ -284,7 +293,10 @@ export function PositionView({
 
       <motion.section {...arrive(3)} className="mt-12">
         <h2 className="heading text-[1.3rem]">{t('pos.asked')}</h2>
-        <div className="mt-3">
+        {said.locale !== 'de' && (
+          <p className="caption mt-1">{t('pos.wording')}</p>
+        )}
+        <div className="mt-3" lang="de">
           <Description text={position.longText} />
         </div>
         <p className="mt-3 text-[0.92rem]">
@@ -499,6 +511,7 @@ function Offer({
   pace: Pace
 }) {
   const t = useT()
+  const { attribute } = useTenderText()
   const details = useId()
   const { supplier, line, offer, second } = shown
   const name = (field: OfferField) =>
@@ -550,7 +563,9 @@ function Offer({
           <p className="caption num mt-1.5">
             {t('offer.per')}{' '}
             {line.priceBasis !== 1 && `${formatQty(line.priceBasis)} `}
-            {unit}
+            {line.priceBasis === 1
+              ? perUnitLabel(line.unit ?? tenderUnit)
+              : unit}
             {shown.unitPrice !== null &&
               (tenderQty !== 1 || converted) &&
               ` · ${t('offer.forAll', {
@@ -611,17 +626,17 @@ function Offer({
         // What was found, in words, drawn to scale where it is a measure.
         <ul className="mt-4 grid gap-4">
           {findings.map((finding, index) => {
-            const said = findingText(t, finding)
+            const words = findingText(t, finding, attribute)
             return (
               <li key={index} className="text-[0.95rem] leading-snug">
                 <span className="font-medium text-open-ink">
                   {t(reasonLabel(finding.code))}.
                 </span>{' '}
-                <span className="num">{said.text}</span>
+                <span className="num">{words.text}</span>
                 <Gauge finding={finding} />
-                {said.arithmetic !== undefined && (
+                {words.arithmetic !== undefined && (
                   <span className="code mt-2 block text-[0.84rem] text-ink-2">
-                    {said.arithmetic}
+                    {words.arithmetic}
                   </span>
                 )}
               </li>
@@ -723,7 +738,7 @@ function Offer({
               <p className="caption num mt-4">
                 {t('offer.converted', {
                   price: formatUnitPrice(shown.unitPrice),
-                  unit: unitLabel(tenderUnit),
+                  unit: perUnitLabel(tenderUnit),
                 })}
               </p>
             )}
@@ -797,6 +812,7 @@ function Gauge({ finding }: { finding: Finding }) {
 /** What was compared to tell that the line is, or is not, what was asked for. */
 function Evidence({ offer }: { offer: MatchOffer }) {
   const t = useT()
+  const { attribute } = useTenderText()
   const note =
     offer.by === 'code' && offer.pairs.length === 0 && offer.referenced
       ? t('offer.sameText')
@@ -814,7 +830,7 @@ function Evidence({ offer }: { offer: MatchOffer }) {
         {offer.pairs.map((pair, index) => (
           <li key={index}>
             <span className="flex flex-wrap items-baseline gap-x-2">
-              <span className="text-ink-3">{pair.attribute}</span>
+              <span className="text-ink-3">{attribute(pair.attribute)}</span>
               <span className="num text-ink">{pair.tender.value}</span>
               <span aria-hidden="true" className="text-ink-3">
                 {pair.agrees ? '=' : '≠'}

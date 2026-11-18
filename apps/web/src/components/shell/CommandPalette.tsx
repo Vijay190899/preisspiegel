@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatQty, unitLabel } from '~/lib/format'
 import { useT } from '~/lib/i18n'
+import { useTenderText } from '~/lib/tenderText'
 import { searchPositions } from '~/lib/positionSearch'
 import { positionsQuery } from '~/lib/queries'
 import type { PositionRow } from '~/lib/queries'
@@ -14,6 +15,7 @@ const MAX_RESULTS = 8
 /** Jump to a position by ordinal number or text. Opens with ⌘K or Ctrl+K. */
 export function CommandPalette() {
   const t = useT()
+  const said = useTenderText()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -169,7 +171,7 @@ export function CommandPalette() {
                     {row.oz}
                   </span>
                   <span className="relative min-w-0 flex-1 truncate">
-                    {row.shortText}
+                    {said.item(row.shortText)}
                   </span>
                   <span className="num relative shrink-0 text-[0.84rem] text-ink-3">
                     {formatQty(row.qty)} {unitLabel(row.unit)}

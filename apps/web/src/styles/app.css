@@ -31,10 +31,23 @@
   --color-lamp-soft: var(--t-lamp-soft);
 
   --color-wall: var(--t-wall);
+  --color-roof: var(--t-roof);
   --color-slab: var(--t-slab);
+  --color-on-wall: var(--t-on-wall);
+  --color-on-wall-2: var(--t-on-wall-2);
+  --color-wall-focus: var(--t-wall-focus);
+  --color-sign: var(--t-sign);
+  --color-glass: var(--t-glass);
+  --color-glass-open: var(--t-glass-open);
+  --color-glass-off: var(--t-glass-off);
   --color-pane: var(--t-pane);
   --color-pane-off: var(--t-pane-off);
   --color-water: var(--t-water);
+  --color-shore: var(--t-shore);
+  --color-shore-light: var(--t-shore-light);
+  --color-orb: var(--t-orb);
+  --color-star: var(--t-star);
+  --color-cloud: var(--t-cloud);
 
   --color-open: var(--t-open);
   --color-open-ink: var(--t-open-ink);
@@ -245,25 +258,100 @@
   }
 
   /*
-   * The scene the overview opens on: sky, the building on the bank, the
-   * river. The sky runs the full width of the page.
+   * The scene the overview opens on: sky, the far shore, the house on the
+   * quay, the sea. The sky runs the full width of the page and is a night
+   * or a day sky with the theme.
    */
   .scene {
+    position: relative;
+    isolation: isolate;
     background:
       radial-gradient(
-        ellipse 70% 46% at 50% 100%,
+        ellipse 80% 42% at 50% 100%,
         var(--t-horizon),
-        transparent 72%
+        transparent 70%
       ),
-      linear-gradient(180deg, var(--t-bg) 0%, var(--t-sky) 100%);
+      linear-gradient(180deg, var(--t-sky-top) 0%, var(--t-sky) 100%);
   }
 
-  /* The bank is a line of stone; under it the river, which fades into the page. */
+  /* What is in the sky and on the far shore stands behind everything else. */
+  .scene-back {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* The moon by night, the sun by day, with the light around it. */
+  .orb {
+    position: absolute;
+    top: 0.6rem;
+    right: 5%;
+    width: 1.6rem;
+    height: 1.6rem;
+    filter: drop-shadow(0 0 14px var(--t-orb-glow))
+      drop-shadow(0 0 46px var(--t-orb-glow));
+  }
+
+  .orb::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: var(--t-orb);
+  }
+
+  /* By night it is a sickle: the disc with a bite taken out of it. */
+  :root[data-theme='dark'] .orb::before {
+    mask: radial-gradient(circle at 72% 34%, transparent 0 58%, #000 59%);
+  }
+
+  @media (min-width: 1024px) {
+    .orb {
+      top: 1.6rem;
+      right: 5.5%;
+      width: 2.6rem;
+      height: 2.6rem;
+    }
+  }
+
+  /* The name on the roof: lit letters by night, dark ones against the day sky. */
+  .sign {
+    font-family: var(--t-font-display);
+    font-weight: 400;
+    fill: var(--t-sign);
+    filter: drop-shadow(0 0 4px var(--t-sign-glow));
+  }
+
+  .star {
+    fill: var(--t-star);
+  }
+
+  .star[data-twinkle] {
+    animation: twinkle var(--period, 5s) ease-in-out var(--at, 0s) infinite;
+  }
+
+  .cloud {
+    fill: var(--t-cloud);
+    animation: drift var(--period, 120s) linear infinite alternate;
+  }
+
+  /*
+   * The quay is a band of stone with a lit edge; under it the sea, which
+   * takes the colour of the sky at the horizon and fades into the page.
+   */
   .water {
-    border-top: 1px solid var(--t-line-strong);
+    position: relative;
+    border-top: 1px solid var(--t-on-wall-2);
     background:
-      linear-gradient(180deg, var(--t-slab) 0 5px, transparent 5px),
-      linear-gradient(180deg, var(--t-water) 40%, var(--t-bg) 100%);
+      linear-gradient(180deg, var(--t-slab) 0 7px, transparent 7px),
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--t-sky) 55%, var(--t-water)) 0%,
+        var(--t-water) 34%,
+        var(--t-water-deep) 100%
+      );
     overflow: hidden;
   }
 
@@ -273,13 +361,13 @@
    * front in the order the positions were read.
    */
   .pane {
-    fill: var(--t-pane);
+    fill: var(--t-glass);
     animation: pane-on 520ms steps(1, end) var(--at, 0ms) both;
   }
 
   /* A window that needs a decision keeps asking, all of them together. */
   .pane[data-s='open'] {
-    fill: var(--t-open);
+    fill: var(--t-glass-open);
     animation:
       pane-on 520ms steps(1, end) var(--at, 0ms) both,
       pane-ask 2800ms ease-in-out 2600ms infinite;
@@ -289,6 +377,20 @@
   .halo {
     opacity: 0;
     animation: halo-in 900ms ease-out 1700ms forwards;
+  }
+
+  /*
+   * When a title or a reason is pointed at, its windows stay as they are
+   * and all the others step back.
+   */
+  .front[data-pointing='true'] .pane:not([data-on]) {
+    animation: none;
+    opacity: 0.16;
+  }
+
+  .front[data-pointing='true'] .halo {
+    animation: none;
+    opacity: 0.1;
   }
 
   /* The water can only show what is lit: it comes last. */
@@ -641,7 +743,26 @@
 
 @keyframes halo-in {
   to {
-    opacity: var(--t-pane-glow);
+    opacity: var(--t-glass-glow);
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(-3%);
+  }
+  to {
+    transform: translateX(3%);
   }
 }
 

@@ -39,7 +39,7 @@ export interface FacadeShape {
   parapet: number
   /** Room beside the wall for the names of the storeys. */
   labelRoom: number
-  /** Room above the roof for the numbers of the bays. */
+  /** Room above the roof edge for what stands on the roof. */
   headRoom: number
 }
 
@@ -56,7 +56,7 @@ export const BLOCK: FacadeShape = {
   edge: 15,
   parapet: 18,
   labelRoom: 46,
-  headRoom: 30,
+  headRoom: 62,
 }
 
 /** The same house standing upright, for a narrow screen. */
@@ -72,7 +72,7 @@ export const TOWER: FacadeShape = {
   edge: 10,
   parapet: 12,
   labelRoom: 34,
-  headRoom: 8,
+  headRoom: 40,
 }
 
 export interface Pane {

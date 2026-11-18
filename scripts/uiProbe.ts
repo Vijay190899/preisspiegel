@@ -352,6 +352,25 @@ async function main(): Promise<void> {
         ledger.some((row) => /\d+ Positionen: /.test(row.text)),
       ledger.map((row) => row.about),
     )
+    // Pointing at a title picks its windows out; holding a reason does too.
+    const picked = () =>
+      page.locator('svg.front:visible rect.pane[data-on]').count()
+    await page.getByRole('link', { name: /^07\s*Beleuchtung$/ }).hover()
+    await settle(page, 200)
+    const ofTitle = await picked()
+    await page.mouse.move(5, 300)
+    await settle(page, 200)
+    const released = await picked()
+    await page.getByRole('button', { name: /^Kein Angebot/ }).click()
+    await page.mouse.move(5, 300)
+    await settle(page, 200)
+    const held = await picked()
+    await page.getByRole('button', { name: /^Kein Angebot/ }).click()
+    check(
+      'pointing at a title shows its windows; a reason stays shown once clicked',
+      ofTitle === 171 && released === 0 && held === 41,
+      { ofTitle, released, held },
+    )
     await page.getByRole('link', { name: /^07\s*Beleuchtung$/ }).click()
     await page.waitForURL(/titel=07/)
     await page.waitForURL(/\/positionen\/07\./)
@@ -421,6 +440,40 @@ async function main(): Promise<void> {
       'the document language follows the stored choice',
       lang === 'en',
       lang,
+    )
+    // In English the page is English: its own words, the tender's sections
+    // and item names, and the figures.
+    await page.goto(`${base}/`, { waitUntil: 'networkidle' })
+    await settle(page, 300)
+    const english = (await page.locator('main').innerText()).replace(
+      /\s+/g,
+      ' ',
+    )
+    check(
+      'the overview is in English, down to the tender and the figures',
+      english.includes('New office building') &&
+        english.includes('1,078 of 1,170 items are priced') &&
+        english.includes('Sub-distribution boards') &&
+        english.includes('Ground') &&
+        !/Positionen|Leistungsverzeichnis|Unterverteilungen|Obergeschoss/.test(
+          english,
+        ),
+      english.slice(0, 300),
+    )
+    await page.goto(`${base}/positionen/01.01.0020`, {
+      waitUntil: 'networkidle',
+    })
+    const item = (await page.locator('article').innerText()).replace(
+      /\s+/g,
+      ' ',
+    )
+    check(
+      "an item is named in English with the tender's wording under it",
+      item.includes('Site distribution cabinet 250 A for site power') &&
+        item.includes('Anschlussverteilerschrank 250 A für Baustrom') &&
+        item.includes('Rated current: 250 A specified, 138 kVA offered') &&
+        item.includes('4,502.13'),
+      item.slice(0, 300),
     )
     await page.getByRole('button', { name: 'Auf Deutsch umschalten' }).click()
     await context.close()

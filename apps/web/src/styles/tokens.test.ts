@@ -45,16 +45,20 @@ function contrast(a: string, b: string): number {
 const TEXT: Array<[string, string]> = [
   ['ink', 'bg'],
   ['ink', 'sky'],
+  ['ink', 'sky-top'],
   ['ink', 'surface'],
   ['ink', 'surface-raised'],
   ['ink-2', 'bg'],
   ['ink-2', 'sky'],
+  ['ink-2', 'sky-top'],
   ['ink-2', 'surface'],
   ['ink-2', 'surface-raised'],
   ['ink-2', 'surface-sunken'],
   ['ink-3', 'bg'],
   ['ink-3', 'sky'],
+  ['ink-3', 'sky-top'],
   ['ink-3', 'water'],
+  ['ink-3', 'shore'],
   ['ink-3', 'surface'],
   ['ink-3', 'surface-raised'],
   ['ink-3', 'surface-sunken'],
@@ -66,27 +70,34 @@ const TEXT: Array<[string, string]> = [
   ['on-marker', 'marker'],
   ['open-ink', 'bg'],
   ['open-ink', 'sky'],
+  ['open-ink', 'sky-top'],
+  ['open-ink', 'shore'],
   ['open-ink', 'surface'],
   ['open-ink', 'surface-sunken'],
   ['approved-ink', 'surface'],
   ['settled-ink', 'surface'],
+  // The numbers of the bays, on the band under the roof.
+  ['on-wall-2', 'wall'],
 ]
 
 /** Marks that carry meaning without text: WCAG 1.4.11, 3:1. */
 const MARKS: Array<[string, string]> = [
-  // The building: a lit window, one that needs a decision and one nobody
-  // has read have to be told apart from the wall and from each other.
-  ['pane', 'wall'],
-  ['open', 'wall'],
-  ['pane', 'pane-off'],
-  ['open', 'pane-off'],
+  // The house: a priced window, one that needs a decision and one nobody
+  // has read have to be told apart from the wall and from each other, by
+  // night and by day.
+  ['glass', 'wall'],
+  ['glass-open', 'wall'],
+  ['glass', 'glass-off'],
+  ['glass-open', 'glass-off'],
+  ['on-wall', 'wall'],
+  ['wall-focus', 'wall'],
+  // A priced position as a mark on the page: a bar, a line.
   ['pane', 'bg'],
   ['pane', 'surface'],
   ['open', 'bg'],
   ['open', 'surface'],
   ['marker', 'paper'],
   ['focus', 'bg'],
-  ['focus', 'wall'],
   ['focus', 'surface'],
   ['focus', 'surface-raised'],
   ['approved', 'surface'],
