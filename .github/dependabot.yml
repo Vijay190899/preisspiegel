@@ -1,0 +1,21 @@
+# Weekly dependency updates, grouped so a week brings one pull request per
+# ecosystem rather than one per package. pnpm's minimumReleaseAge still holds
+# a release back until it has been out for a day.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dependencies:
+        patterns: ['*']
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
