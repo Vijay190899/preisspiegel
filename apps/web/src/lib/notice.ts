@@ -10,7 +10,9 @@ import type { MessageKey } from './i18n'
  */
 export const NOTICE_MS = 6000
 
-let current: MessageKey | null = null
+/** What is said now, and a count that makes a repeat a new announcement. */
+let current: { message: MessageKey; n: number } | null = null
+let said = 0
 let timer: ReturnType<typeof setTimeout> | undefined
 const listeners = new Set<() => void>()
 
@@ -19,14 +21,15 @@ function emit() {
 }
 
 export function say(message: MessageKey): void {
-  current = message
+  said++
+  current = { message, n: said }
   clearTimeout(timer)
   timer = setTimeout(dismiss, NOTICE_MS)
   emit()
 }
 
 /** What is being said now, if anything. */
-export function peekNotice(): MessageKey | null {
+export function peekNotice(): { message: MessageKey; n: number } | null {
   return current
 }
 
@@ -41,6 +44,6 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener)
 }
 
-export function useNotice(): MessageKey | null {
+export function useNotice(): { message: MessageKey; n: number } | null {
   return useSyncExternalStore(subscribe, peekNotice, () => null)
 }

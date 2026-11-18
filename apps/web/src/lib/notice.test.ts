@@ -12,7 +12,7 @@ describe('the notice', () => {
     expect(peekNotice()).toBeNull()
     say('decision.failed')
     vi.advanceTimersByTime(NOTICE_MS - 1)
-    expect(peekNotice()).toBe('decision.failed')
+    expect(peekNotice()?.message).toBe('decision.failed')
     vi.advanceTimersByTime(1)
     expect(peekNotice()).toBeNull()
   })
@@ -22,7 +22,14 @@ describe('the notice', () => {
     vi.advanceTimersByTime(NOTICE_MS - 1000)
     say('run.refused.failed')
     vi.advanceTimersByTime(NOTICE_MS - 1)
-    expect(peekNotice()).toBe('run.refused.failed')
+    expect(peekNotice()?.message).toBe('run.refused.failed')
+  })
+
+  it('makes the same line twice two announcements', () => {
+    say('decision.failed')
+    const first = peekNotice()?.n
+    say('decision.failed')
+    expect(peekNotice()?.n).not.toBe(first)
   })
 
   it('goes when dismissed', () => {

@@ -5,6 +5,7 @@ const base = {
   configured: 'weide-7Q-hafen-2031',
   running: false,
   locked: false,
+  crowded: false,
   replayAllowed: true,
 }
 
@@ -53,6 +54,16 @@ describe('admit', () => {
       ok: false,
       reason: 'locked',
     })
+  })
+
+  it('past the overall ceiling answers a wrong code as locked, and still lets the right one in', () => {
+    expect(admit({ ...base, code: 'guess', crowded: true })).toEqual({
+      ok: false,
+      reason: 'locked',
+    })
+    expect(
+      admit({ ...base, code: 'weide-7Q-hafen-2031', crowded: true }),
+    ).toEqual({ ok: true, mode: 'live' })
   })
 
   it('reads the answers back only as often as the limit allows', () => {

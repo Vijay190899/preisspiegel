@@ -46,8 +46,13 @@ export function admit(request: {
   configured: string | undefined
   /** Whether a run of this tender is under way. */
   running: boolean
-  /** Whether this browser, or everyone together, gave too many wrong codes. */
+  /** Whether this browser gave too many wrong codes: its codes are not read. */
   locked: boolean
+  /**
+   * Whether everyone together gave too many wrong codes. A wrong code is
+   * then answered as locked, but the right one is still let in.
+   */
+  crowded: boolean
   /** Whether this browser may have the answers read back once more. */
   replayAllowed: boolean
 }): Admission {
@@ -62,7 +67,7 @@ export function admit(request: {
   if (unset(request.configured)) return { ok: false, reason: 'closed' }
   if (request.locked) return { ok: false, reason: 'locked' }
   if (!sameCode(request.code, request.configured ?? '')) {
-    return { ok: false, reason: 'code' }
+    return { ok: false, reason: request.crowded ? 'locked' : 'code' }
   }
   return request.running
     ? { ok: false, reason: 'running' }

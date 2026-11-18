@@ -7,8 +7,9 @@
  * never taken from the browser. A price the estimator types is theirs.
  */
 import { ConvexError, v } from 'convex/values'
+import { internal } from './_generated/api'
 import { internalMutation, mutation, query } from './_generated/server'
-import { DECIDE, take } from './limits'
+import { take } from './limits'
 import { isSession, known } from './session'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 
@@ -19,7 +20,7 @@ export const KEPT_FOR_MS = 30 * 24 * 60 * 60 * 1000
 
 /** Refuses when this browser, or everyone together, decides too fast. */
 async function paced(ctx: MutationCtx, session: string) {
-  if (!(await take(ctx, DECIDE, session))) {
+  if (!(await take(ctx, 'decide', session, 'decideAll'))) {
     throw new ConvexError('Too many decisions at once. Wait a moment.')
   }
 }
@@ -150,6 +151,8 @@ export const reopen = mutation({
   },
 })
 
+const BATCH = 500
+
 /** Lets go of decisions older than `KEPT_FOR_MS`, a batch at a time. */
 export const forgetOld = internalMutation({
   args: {},
@@ -158,8 +161,12 @@ export const forgetOld = internalMutation({
     const old = await ctx.db
       .query('decisions')
       .withIndex('by_at', (q) => q.lt('at', before))
-      .take(500)
+      .take(BATCH)
     for (const row of old) await ctx.db.delete('decisions', row._id)
-    return { forgotten: old.length, more: old.length === 500 }
+    // A full batch means there may be more: the next one follows at once, so
+    // the table is cleared however fast it was filled.
+    const more = old.length === BATCH
+    if (more) await ctx.scheduler.runAfter(0, internal.decisions.forgetOld, {})
+    return { forgotten: old.length, more }
   },
 })

@@ -10,7 +10,7 @@
 
 > An independent portfolio project. The contractor, the suppliers and the tender are fictional, and all data is synthetic ([docs/DATA.md](docs/DATA.md)).
 
-<p align="center"><picture><source srcset="docs/assets/showcase.avif" type="image/avif"><img src="docs/assets/showcase.webp" width="100%" alt="The demo in English: the tender as a building at night whose windows light up, one per item; a reason picks its red windows out; the site distribution cabinet where 250 A was asked and 138 kVA offered, 199 A by the arithmetic shown; its price opened in the supplier's PDF at the line it was read from; a key takes the clean offer; the copper notation moves the bid by about a hundred thousand euros; then the tender read again from the stored answers, without a model"></picture></p>
+<p align="center"><picture><source srcset="docs/assets/showcase.avif" type="image/avif"><img src="docs/assets/showcase.webp" width="100%" alt="The demo in English: the tender as a building at night whose windows light up, one per item; a reason picks its red windows out; the site distribution cabinet where 250 A was asked and 138 kVA offered, 199 A by the arithmetic shown; its price opened in the supplier's PDF at the line it was read from; a key takes the clean offer; the copper notation moves the bid by close to 90,000 €; then the tender read again from the stored answers, without a model"></picture></p>
 
 <sub>Recorded from the app in replay mode with [`scripts/showcase.ts`](scripts/showcase.ts) and [`scripts/encode_showcase.py`](scripts/encode_showcase.py); the read-back is shown at 3&times; speed.</sub>
 

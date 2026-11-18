@@ -55,7 +55,7 @@ async function seed(t: T) {
     const runId = await ctx.db.insert('runs', {
       tenderSlug: SLUG,
       status: 'done',
-      model: 'claude-haiku-5-5',
+      model: 'test-model',
       mode: 'replay',
       startedAt: 1,
       finishedAt: 2,
@@ -211,7 +211,16 @@ describe('decisions', () => {
         refused++
       }
     }
-    expect(refused).toBeGreaterThan(0)
+    // A burst of 60 is allowed, and the clock does not move here.
+    expect(refused).toBe(10)
+    // Taking a decision back counts the same way.
+    await expect(
+      t.mutation(api.decisions.reopen, {
+        slug: SLUG,
+        session: ME,
+        oz: '01.0020',
+      }),
+    ).rejects.toThrow(/Too many decisions/)
     // Another browser is not held up by it.
     await t.mutation(api.decisions.decide, { ...own, session: SOMEONE })
   })
@@ -235,6 +244,37 @@ describe('decisions', () => {
       forgotten: 1,
       more: false,
     })
+  })
+
+  it('clears a month of decisions however many there are, a batch after another', async () => {
+    const t = setup()
+    await seed(t)
+    await t.run(async (ctx) => {
+      for (let at = 0; at < 1203; at++) {
+        await ctx.db.insert('decisions', {
+          tenderSlug: SLUG,
+          session: `s${String(at).padStart(20, '0')}`,
+          oz: '01.0020',
+          seq: 1,
+          offerId: null,
+          supplierKey: null,
+          unitPrice: 3,
+          at: Date.now(),
+        })
+      }
+    })
+    vi.advanceTimersByTime(KEPT_FOR_MS + 1000)
+    expect(await t.mutation(internal.decisions.forgetOld, {})).toEqual({
+      forgotten: 500,
+      more: true,
+    })
+    // The next batches were scheduled by the one before.
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(
+      await t.run(
+        async (ctx) => (await ctx.db.query('decisions').collect()).length,
+      ),
+    ).toBe(0)
   })
 })
 
@@ -271,16 +311,20 @@ describe('starting a run', () => {
     })
   })
 
-  it('closes the code for everyone past the overall ceiling', async () => {
+  it('past the overall ceiling refuses wrong codes from anyone, but never the right one', async () => {
     const t = setup()
     await seed(t)
     // A script making up a new browser id for every guess.
-    for (let at = 0; at < 30; at++) {
+    for (let at = 0; at < 300; at++) {
       await start(t, `guesser${String(at).padStart(12, '0')}`, 'guess')
     }
-    expect(await start(t, SOMEONE, 'weide-7Q-hafen-2031')).toEqual({
+    expect(await start(t, SOMEONE, 'another-guess')).toEqual({
       ok: false,
       reason: 'locked',
+    })
+    expect(await start(t, SOMEONE, 'weide-7Q-hafen-2031')).toEqual({
+      ok: true,
+      mode: 'live',
     })
   })
 

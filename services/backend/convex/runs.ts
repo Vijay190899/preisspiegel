@@ -8,7 +8,7 @@ import { ConvexError, v } from 'convex/values'
 import { env, mutation, query } from './_generated/server'
 import { admit } from './agent/gate'
 import { beginRun, runUnderWay } from './agent/store'
-import { REPLAY, WRONG_CODE, allows, take } from './limits'
+import { allows, limiter, overallAllows, take } from './limits'
 import { roleModel } from './llm/client'
 import { known } from './session'
 import type { Admission } from './agent/gate'
@@ -93,17 +93,23 @@ export const start = mutation({
     if (tender === null) throw new ConvexError(`No tender "${slug}".`)
 
     const running = await runUnderWay(ctx, slug)
+    const coded = code !== undefined
     const admission = admit({
       code: code?.slice(0, 200),
       configured: env.DEMO_ACCESS_CODE,
       running,
-      locked: code !== undefined && !(await allows(ctx, WRONG_CODE, session)),
+      locked: coded && !(await allows(ctx, 'wrongCode', session)),
+      crowded: coded && !(await overallAllows(ctx, 'wrongCodeAll')),
       // Counted only when the read-back would otherwise start.
-      replayAllowed:
-        code !== undefined || running || (await take(ctx, REPLAY, session)),
+      replayAllowed: coded || running || (await take(ctx, 'replay', session)),
     })
     if (!admission.ok) {
-      if (admission.reason === 'code') await take(ctx, WRONG_CODE, session)
+      if (admission.reason === 'code' || admission.reason === 'locked') {
+        // A wrong code counts against this browser and overall; past either
+        // limit there is nothing left to count.
+        await limiter.limit(ctx, 'wrongCode', { key: session })
+        await limiter.limit(ctx, 'wrongCodeAll')
+      }
       return admission
     }
 

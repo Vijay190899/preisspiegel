@@ -29,7 +29,7 @@ function convexOrigins(url: string | undefined): Array<string> {
  * The headers every response carries. Scripts allow 'unsafe-inline' because
  * the server-rendered page hydrates from inline scripts and sets the theme
  * before paint; everything else is held to this origin and the Convex
- * deployment (ADR-63).
+ * deployment (ADR-64).
  */
 function securityHeaders(convexUrl: string | undefined) {
   const policy = [
@@ -75,6 +75,11 @@ function gaebRules() {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ENV_DIR, ENV_PREFIX)
   const convexUrl = env.VITE_CONVEX_URL ?? env.CONVEX_URL
+  // A deployed build without its Convex URL would go out green and fail on
+  // every request. CI builds without one, so only a host's build is held.
+  if (process.env.VERCEL !== undefined && !convexUrl) {
+    throw new Error('Set VITE_CONVEX_URL for the deployed build.')
+  }
   return {
     envDir: ENV_DIR,
     envPrefix: ENV_PREFIX,
