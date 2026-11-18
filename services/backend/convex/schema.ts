@@ -164,7 +164,82 @@ export default defineSchema({
      */
     storeys: v.optional(v.array(v.string())),
     storeyByPosition: v.optional(v.string()),
+    /** What the contractor charges for an hour of labor, in the tender's currency. */
+    laborRate: v.optional(v.number()),
   }).index('by_slug', ['slug']),
+
+  // --- Labor ---------------------------------------------------------------
+
+  // The contractor's labor time table: minutes per unit for a kind of work.
+  laborTimes: defineTable({
+    tenderSlug: v.string(),
+    key: v.string(),
+    label: v.string(),
+    unit: v.string(),
+    minutes: v.number(),
+  }).index('by_tenderSlug_and_key', ['tenderSlug', 'key']),
+
+  // One pass over a tender that ties each position to an entry of the table.
+  laborJobs: defineTable({
+    tenderSlug: v.string(),
+    status: v.union(
+      v.literal('reading'),
+      v.literal('done'),
+      v.literal('stopped'),
+      v.literal('failed'),
+    ),
+    /** `replay`: only stored answers are used and no model is called. */
+    mode: v.union(v.literal('live'), v.literal('replay')),
+    model: v.string(),
+    startedAt: v.number(),
+    finishedAt: v.union(v.number(), v.null()),
+    positions: v.number(),
+    cursor: v.number(),
+    calls: v.number(),
+    cached: v.number(),
+    failed: v.number(),
+    usd: v.number(),
+    note: v.union(v.string(), v.null()),
+  }).index('by_tenderSlug_and_startedAt', ['tenderSlug', 'startedAt']),
+
+  // What was decided about the labor of one position.
+  laborMatches: defineTable({
+    tenderSlug: v.string(),
+    oz: v.string(),
+    seq: v.number(),
+    qty: v.number(),
+    unit: v.string(),
+    /** `set`: an entry was taken. `none`: no entry describes the work. `review`: a person decides. */
+    status: v.union(v.literal('set'), v.literal('none'), v.literal('review')),
+    entryKey: v.union(v.string(), v.null()),
+    /** Minutes per unit, from the table; never from the model. */
+    minutes: v.union(v.number(), v.null()),
+    /** The position's words the choice rests on. */
+    quote: v.union(v.string(), v.null()),
+    limitQuote: v.union(v.string(), v.null()),
+    /** Why a person decides, and what was compared. */
+    reason: v.union(v.string(), v.null()),
+    detail: v.union(v.string(), v.null()),
+    source: v.union(
+      v.literal('model'),
+      v.literal('cache'),
+      v.literal('failed'),
+    ),
+  })
+    .index('by_tenderSlug_and_seq', ['tenderSlug', 'seq'])
+    .index('by_tenderSlug_and_oz', ['tenderSlug', 'oz']),
+
+  // What the model answered to a labor question, keyed by what was asked.
+  laborCache: defineTable({
+    key: v.string(),
+    model: v.string(),
+    at: v.number(),
+    answer: v.object({
+      entry: v.union(v.string(), v.null()),
+      quote: v.string(),
+      limitQuote: v.union(v.string(), v.null()),
+    }),
+  }).index('by_key', ['key']),
 
   documents: defineTable({
     tenderSlug: v.string(),

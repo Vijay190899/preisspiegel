@@ -54,6 +54,14 @@ const de = {
   'measured.row.calls': 'Modell',
   'measured.row.file': 'Dateien',
   'measured.calls': '{calls} Aufrufe, {cached} aus dem Speicher, {usd} $',
+  'measured.labor.title': 'Montagezeiten',
+  'measured.labor.body':
+    'B5: Jede Position bekommt einen Eintrag aus der Zeitwerttabelle des Auftragnehmers. Das Modell schlägt ihn vor, der Code prüft Einheit und Größe und nimmt die Minuten aus der Tabelle. Die Anweisungen wurden einmal geändert, nach den ersten beiden Läufen; Seed 504 ist danach erzeugt und einmal gelesen.',
+  'measured.labor.row.settled': 'Ohne Person zugeordnet',
+  'measured.labor.row.hours': 'Stunden falsch, gemessen an allen',
+  'measured.labor.row.prompt': 'Anweisungen',
+  'measured.labor.before': 'erste Fassung',
+  'measured.labor.after': 'nach der Änderung',
   'measured.traps.title': 'Die Fallen, Art für Art',
   'measured.traps.body':
     'In jede Ausschreibung legt der Generator 60 Fallen in die Angebote. So viele davon hat der Lauf auf Seed {seed} an ihrer Zeile gefunden.',
@@ -68,7 +76,45 @@ const de = {
     'Jeder ungesehene Lauf hat einen Teil seiner Antworten aus früheren Ausschreibungen übernommen, wo dieselbe Frage schon gestellt war.',
   'measured.limit.numbers':
     'Eine Zahl an ihrer Stelle heißt: sie steht dort, wohin die Oberfläche zeigt. Nicht, dass sie richtig ist.',
-  'costing.title': 'Was das Kupfer ausmacht',
+  'labor.title': 'Montage',
+  'labor.set.from': 'Nach der Zeitwerttabelle von {contractor}:',
+  'labor.per': '{minutes} min je {unit}',
+  'labor.sum': '{qty} sind {hours} Stunden',
+  'labor.cost.before': 'und zu {rate} € die Stunde',
+  'labor.read': 'Gewählt nach den Worten der Position',
+  'labor.and': 'und',
+  'labor.none':
+    'Keine Montagezeit: Die Zeitwerttabelle von {contractor} hat für diese Arbeit keinen Eintrag, sie wird anders abgerechnet.',
+  'labor.none.read': 'Gelesen an',
+  'labor.review': 'Die Montagezeit entscheidet eine Person.',
+  'labor.why.unread': 'Die Position wurde nicht gelesen.',
+  'labor.why.unknown_entry':
+    'Der vorgeschlagene Eintrag steht nicht in der Zeitwerttabelle.',
+  'labor.why.quote':
+    'Die Worte, auf die sich der Vorschlag stützt, stehen so nicht in der Position.',
+  'labor.why.unit':
+    'Der vorgeschlagene Eintrag rechnet in einer anderen Einheit als die Position.',
+  'labor.why.limit_unstated':
+    'Der vorgeschlagene Eintrag gilt nur für eine bestimmte Größe, und die Position nennt keine, die sich prüfen lässt.',
+  'labor.why.limit':
+    'Der vorgeschlagene Eintrag gilt für eine andere Größe, als die Position verlangt.',
+  'labor.proposed': 'Vorgeschlagen war',
+  'labor.position.says': 'die Position sagt',
+  'costing.title': 'Was das Angebot kostet',
+  'costing.labor.before': ', die Montage braucht',
+  'costing.labor.hours': 'Stunden und kostet zu {rate} € die Stunde',
+  'costing.labor': 'Montage',
+  'costing.labor.where': 'Wo die Montage steckt',
+  'costing.labor.reading':
+    'Die Montagezeiten werden gerade gelesen: {read} von {total} Positionen.',
+  'costing.labor.body':
+    '{set} von {total} Positionen haben eine Montagezeit aus der Zeitwerttabelle von {contractor} mit {entries} Einträgen. {none} werden anders abgerechnet, und bei {review} entscheidet eine Person.',
+  'costing.labor.open': 'Wo eine Person die Montagezeit entscheidet: {n}',
+  'costing.labor.why.limit':
+    'Der vorgeschlagene Eintrag gilt für eine andere Größe',
+  'costing.labor.why.other': 'Der Vorschlag lässt sich nicht prüfen',
+  'costing.col.quantity': 'Menge',
+  'costing.col.hours': 'Stunden',
   'costing.s1': 'Das kalkulierte Material kostet',
   'costing.s2': '. Bei',
   'costing.s3': 'je 100 kg Kupfer kommen',
@@ -84,7 +130,7 @@ const de = {
   'costing.col.copper': 'Kupferzahl',
   'costing.col.surcharge': 'Zuschlag',
   'costing.note':
-    'Angenommen ist, was Preislisten für Kabel üblicherweise enthalten: Kupfer zu 150 € je 100 kg steckt im Preis, auf die Notierung kommt 1 % Bezugskosten. Die Kupferzahl ist hier Aderzahl mal Querschnitt mal 9,6 kg je km. Die Angebote der Demo nennen keine Kupferbasis; Lohn ist noch nicht kalkuliert.',
+    'Angenommen ist, was Preislisten für Kabel üblicherweise enthalten: Kupfer zu 150 € je 100 kg steckt im Preis, auf die Notierung kommt 1 % Bezugskosten. Die Kupferzahl ist hier Aderzahl mal Querschnitt mal 9,6 kg je km. Die Angebote der Demo nennen keine Kupferbasis. Die Montage rechnet mit den Minuten der Zeitwerttabelle und einem Stundensatz, beide für die Demo erfunden; Zuschläge für Baustelle, Gemeinkosten und Gewinn sind nicht enthalten.',
   'nav.main': 'Hauptnavigation',
 
   'theme.toLight': 'Helles Design einschalten',
@@ -341,6 +387,14 @@ const en: Record<MessageKey, string> = {
   'measured.row.calls': 'Model',
   'measured.row.file': 'Files',
   'measured.calls': '{calls} calls, {cached} from the store, {usd} $',
+  'measured.labor.title': 'Labor times',
+  'measured.labor.body':
+    'B5: every item is given an entry of the contractor\u2019s labor time table. The model proposes it, code checks the unit and the size and takes the minutes from the table. The instructions were changed once, after the first two runs; seed 504 was generated after that and read once.',
+  'measured.labor.row.settled': 'Tied to an entry without a person',
+  'measured.labor.row.hours': 'Hours wrong, against all hours',
+  'measured.labor.row.prompt': 'Instructions',
+  'measured.labor.before': 'first version',
+  'measured.labor.after': 'after the change',
   'measured.traps.title': 'The traps, kind by kind',
   'measured.traps.body':
     'The generator plants 60 traps in the offers of every tender. This is how many of them the run on seed {seed} found on their line.',
@@ -355,7 +409,43 @@ const en: Record<MessageKey, string> = {
     'Each unseen run took part of its answers from earlier tenders, where the same question had been asked before.',
   'measured.limit.numbers':
     'A number at its place means it stands where the interface points. Not that it is right.',
-  'costing.title': 'What copper does to the bid',
+  'labor.title': 'Labor',
+  'labor.set.from': 'From the labor time table of {contractor}:',
+  'labor.per': '{minutes} min per {unit}',
+  'labor.sum': '{qty} take {hours} hours',
+  'labor.cost.before': 'and at {rate} € an hour cost',
+  'labor.read': 'Chosen on the words of the item',
+  'labor.and': 'and',
+  'labor.none':
+    'No labor time: the labor time table of {contractor} has no entry for this work, which is charged another way.',
+  'labor.none.read': 'Read from',
+  'labor.review': 'A person decides the labor time.',
+  'labor.why.unread': 'The item was not read.',
+  'labor.why.unknown_entry':
+    'The proposed entry is not in the labor time table.',
+  'labor.why.quote':
+    'The words the proposal rests on are not in the item as written.',
+  'labor.why.unit': 'The proposed entry counts in another unit than the item.',
+  'labor.why.limit_unstated':
+    'The proposed entry covers only a certain size, and the item states none that can be checked.',
+  'labor.why.limit':
+    'The proposed entry covers another size than the item asks for.',
+  'labor.proposed': 'Proposed was',
+  'labor.position.says': 'the item says',
+  'costing.title': 'What the bid comes to',
+  'costing.labor.before': ', the labor takes',
+  'costing.labor.hours': 'hours and at {rate} € an hour costs',
+  'costing.labor': 'Labor',
+  'costing.labor.where': 'Where the labor is',
+  'costing.labor.reading':
+    'The labor times are being read: {read} of {total} items.',
+  'costing.labor.body':
+    '{set} of {total} items have a labor time from the labor time table of {contractor}, which has {entries} entries. {none} are charged another way, and for {review} a person decides.',
+  'costing.labor.open': 'Where a person decides the labor time: {n}',
+  'costing.labor.why.limit': 'The proposed entry covers another size',
+  'costing.labor.why.other': 'The proposal cannot be checked',
+  'costing.col.quantity': 'Quantity',
+  'costing.col.hours': 'Hours',
   'costing.s1': 'The priced material comes to',
   'costing.s2': '. With copper at',
   'costing.s3': 'per 100 kg, a surcharge of',
@@ -371,7 +461,7 @@ const en: Record<MessageKey, string> = {
   'costing.col.copper': 'Copper number',
   'costing.col.surcharge': 'Surcharge',
   'costing.note':
-    'Assumed is what price lists for cable usually hold: copper at 150 € per 100 kg is in the price, and 1% procurement costs are added to the notation. The copper number here is cores times cross-section times 9.6 kg per km. The offers in the demo state no copper base; labor is not priced yet.',
+    'Assumed is what price lists for cable usually hold: copper at 150 € per 100 kg is in the price, and 1% procurement costs are added to the notation. The copper number here is cores times cross-section times 9.6 kg per km. The offers in the demo state no copper base. Labor uses the minutes of the labor time table and an hourly rate, both invented for the demo; site, overhead and profit mark-ups are not included.',
   'nav.main': 'Main navigation',
 
   'theme.toLight': 'Switch to the light theme',

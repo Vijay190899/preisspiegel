@@ -21,6 +21,11 @@ import a502B1 from '../../../../bench/results/heldout-502/b1_auto_pricing.json'
 import a502B2 from '../../../../bench/results/heldout-502/b2_traps.json'
 import a502B3 from '../../../../bench/results/heldout-502/b3_number_guard.json'
 
+import laborFirst from '../../../../bench/results/labor-first/b5_labor.json'
+import laborNow from '../../../../bench/results/b5_labor.json'
+import labor503 from '../../../../bench/results/heldout-labor-503/b5_labor.json'
+import labor504 from '../../../../bench/results/heldout-labor-504/b5_labor.json'
+
 export type TrapKind =
   | 'SPEC_MISMATCH'
   | 'UNIT_BASIS'
@@ -188,3 +193,83 @@ export function headline(runs: ReadonlyArray<MeasuredRun> = RUNS): MeasuredRun {
 /** Where a run's files are, as a path in the repository. */
 export const filesOf = (run: MeasuredRun): string =>
   `bench/results/${run.folder === '' ? '' : `${run.folder}/`}`
+
+/** One labor pass, as B5 scored it. */
+export interface LaborRun {
+  key: 'laborFirst' | 'labor503' | 'laborNow' | 'labor504'
+  /** As for the runs above: `unseen` was generated, read once and scored. */
+  kind: 'first' | 'unseen' | 'tuned'
+  /** The instructions it was read with: before or after the one change. */
+  prompt: 1 | 2
+  folder: string
+  seed: number
+  date: string
+  gitSha: string
+  calls: number
+  fromCache: number
+  usd: number
+  positions: number
+  settled: number
+  settledRight: number
+  wrongEntry: number
+  review: number
+  hoursTrue: number
+  hoursError: number
+}
+
+interface B5File {
+  seed: number
+  generatedAt: string
+  gitSha: string
+  job: { calls: number; answeredFromCache: number; usd: number }
+  result: {
+    positions: number
+    settled: number
+    settledRight: number
+    wrongEntry: number
+    wrongNone: number
+    review: number
+    hoursTrue: number
+    hoursError: number
+  }
+}
+
+function laborRun(
+  key: LaborRun['key'],
+  kind: LaborRun['kind'],
+  prompt: LaborRun['prompt'],
+  folder: string,
+  file: B5File,
+): LaborRun {
+  return {
+    key,
+    kind,
+    prompt,
+    folder,
+    seed: file.seed,
+    date: file.generatedAt.slice(0, 10),
+    gitSha: file.gitSha,
+    calls: file.job.calls,
+    fromCache: file.job.answeredFromCache,
+    usd: file.job.usd,
+    positions: file.result.positions,
+    settled: file.result.settled,
+    settledRight: file.result.settledRight,
+    wrongEntry: file.result.wrongEntry + file.result.wrongNone,
+    review: file.result.review,
+    hoursTrue: file.result.hoursTrue,
+    hoursError: file.result.hoursError,
+  }
+}
+
+/** The labor passes, set out like the runs: the unseen ones first, newest in front. */
+export const LABOR_RUNS: ReadonlyArray<LaborRun> = [
+  laborRun('labor504', 'unseen', 2, 'heldout-labor-504', labor504),
+  laborRun('labor503', 'unseen', 1, 'heldout-labor-503', labor503),
+  laborRun('laborFirst', 'first', 1, 'labor-first', laborFirst),
+  laborRun('laborNow', 'tuned', 2, '', laborNow),
+]
+
+/** Where a labor pass's file is. */
+export const laborFileOf = (run: LaborRun): string =>
+  `bench/results/${run.folder === '' ? '' : `${run.folder}/`}b5_labor.json`

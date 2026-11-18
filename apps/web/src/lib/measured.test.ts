@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { RUNS, TRAP_KINDS, filesOf, headline } from './measured'
+import {
+  LABOR_RUNS,
+  RUNS,
+  TRAP_KINDS,
+  filesOf,
+  headline,
+  laborFileOf,
+} from './measured'
 
 describe('the committed benchmark results', () => {
   it('are five runs over the same number of positions', () => {
@@ -57,5 +64,28 @@ describe('the committed benchmark results', () => {
     const folders = RUNS.map(filesOf)
     expect(folders[3]).toBe('bench/results/baseline/')
     expect(folders[4]).toBe('bench/results/')
+  })
+})
+
+describe('the committed labor results', () => {
+  it('lead with an unseen tender read with the current instructions', () => {
+    const [lead] = LABOR_RUNS
+    expect(lead?.kind).toBe('unseen')
+    expect(lead?.prompt).toBe(2)
+    expect(lead?.seed).not.toBe(118)
+  })
+
+  it('hold figures that agree with each other', () => {
+    for (const run of LABOR_RUNS) {
+      expect(run.settled + run.review).toBe(run.positions)
+      expect(run.settledRight + run.wrongEntry).toBe(run.settled)
+      expect(run.hoursError).toBeLessThan(run.hoursTrue)
+    }
+  })
+
+  it('name their files', () => {
+    expect(LABOR_RUNS.map(laborFileOf)).toContain(
+      'bench/results/heldout-labor-504/b5_labor.json',
+    )
   })
 })

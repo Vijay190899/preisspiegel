@@ -12,6 +12,8 @@ export const TENDER = {
   client: 'Weidenufer Projektgesellschaft mbH',
   /** The contractor pricing the tender: the user of this product. */
   contractor: 'Ampenhof Elektrotechnik GmbH',
+  /** What the contractor charges for an hour of labor, in EUR. Invented. */
+  laborRate: 62,
   contractorCity: '50997 Köln',
   /** Fixed, so generated files never depend on the day they were made. */
   issued: '2026-10-19',

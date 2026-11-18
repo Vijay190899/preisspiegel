@@ -1,6 +1,8 @@
 {
   "note": "Labor time table of Ampenhof Elektrotechnik GmbH. Invented for the demo.",
   "unit": "minutes per unit",
+  "hourlyRate": 62,
+  "hourlyRateUnit": "EUR per hour of labor",
   "entries": [
     {
       "key": "mcb.1p",

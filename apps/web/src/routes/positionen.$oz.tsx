@@ -14,6 +14,7 @@ import { useT } from '~/lib/i18n'
 import { filterPositions } from '~/lib/positionSearch'
 import {
   matchQuery,
+  positionLaborQuery,
   positionQuery,
   positionsQuery,
   reviewQueueQuery,
@@ -32,6 +33,7 @@ export const Route = createFileRoute('/positionen/$oz')({
     Promise.all([
       context.queryClient.ensureQueryData(positionQuery(params.oz)),
       context.queryClient.ensureQueryData(matchQuery(params.oz)),
+      context.queryClient.ensureQueryData(positionLaborQuery(params.oz)),
     ]),
   component: PositionPage,
 })
@@ -53,6 +55,7 @@ function PositionPage() {
   const { data: rows } = useSuspenseQuery(positionsQuery)
   const { data: detail } = useSuspenseQuery(positionQuery(oz))
   const { data: match } = useSuspenseQuery(matchQuery(oz))
+  const { data: labor } = useSuspenseQuery(positionLaborQuery(oz))
   const { data: queue } = useQuery({ ...reviewQueueQuery, enabled: offen })
   const { decided, decide, reopen } = useDecisions()
   const onDecide = useCallback(
@@ -135,6 +138,7 @@ function PositionPage() {
           tender={tender}
           detail={detail}
           match={match}
+          labor={labor ?? null}
           decision={decided.get(oz)}
           onDecide={onDecide}
           onReopen={onReopen}

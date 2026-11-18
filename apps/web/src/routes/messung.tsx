@@ -1,9 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { formatDate, formatMoney, formatQty, formatShare } from '~/lib/format'
 import { useT } from '~/lib/i18n'
-import { RUNS, TRAP_KINDS, filesOf, headline } from '~/lib/measured'
+import {
+  LABOR_RUNS,
+  RUNS,
+  TRAP_KINDS,
+  filesOf,
+  headline,
+  laborFileOf,
+} from '~/lib/measured'
 import type { MessageKey } from '~/lib/i18n'
-import type { MeasuredRun } from '~/lib/measured'
+import type { LaborRun, MeasuredRun } from '~/lib/measured'
 
 export const Route = createFileRoute('/messung')({ component: Measured })
 
@@ -218,9 +225,114 @@ function Measured() {
         </section>
       </div>
 
+      <LaborRuns />
+
       <div className="mt-20 border-t border-line pt-6">
         <p className="caption">{t('app.synthetic')}</p>
       </div>
     </div>
+  )
+}
+
+const LABOR_COLUMN: Record<LaborRun['key'], MessageKey> = {
+  labor504: 'measured.run.unseen',
+  labor503: 'measured.run.unseen',
+  laborFirst: 'measured.run.first',
+  laborNow: 'measured.run.now',
+}
+
+/** B5: the labor passes, side by side like the runs. */
+function LaborRuns() {
+  const t = useT()
+  const [lead] = LABOR_RUNS
+  const of = (part: number, whole: number) =>
+    t('measured.of', { part: formatQty(part), whole: formatQty(whole) })
+  const rows: Array<{ label: MessageKey; cell: (run: LaborRun) => string }> = [
+    {
+      label: 'measured.labor.row.settled',
+      cell: (run) => of(run.settled, run.positions),
+    },
+    {
+      label: 'measured.row.rightly',
+      cell: (run) =>
+        `${of(run.settledRight, run.settled)} (${formatShare(run.settledRight / run.settled)})`,
+    },
+    {
+      label: 'measured.labor.row.hours',
+      cell: (run) =>
+        `${formatQty(Math.round(run.hoursError))} h (${formatShare(run.hoursError / run.hoursTrue)})`,
+    },
+    {
+      label: 'measured.labor.row.prompt',
+      cell: (run) =>
+        t(run.prompt === 1 ? 'measured.labor.before' : 'measured.labor.after'),
+    },
+    {
+      label: 'measured.row.calls',
+      cell: (run) =>
+        t('measured.calls', {
+          calls: formatQty(run.calls),
+          cached: formatQty(run.fromCache),
+          usd: formatMoney(run.usd),
+        }),
+    },
+  ]
+  return (
+    <section className="mt-20" aria-labelledby="labor-runs">
+      <h2 id="labor-runs" className="heading text-[1.75rem]">
+        {t('measured.labor.title')}
+      </h2>
+      <p className="mt-2 max-w-[64ch] text-ink-2">{t('measured.labor.body')}</p>
+      <div className="measure-scroll mt-7">
+        <table className="measure">
+          <thead>
+            <tr>
+              <td />
+              {LABOR_RUNS.map((run) => (
+                <th
+                  key={run.key}
+                  scope="col"
+                  data-lead={run.key === lead?.key ? '' : undefined}
+                >
+                  {t(LABOR_COLUMN[run.key])}
+                  <span className="caption block font-normal">
+                    {t('measured.seed', { seed: run.seed })}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label}>
+                <th scope="row">{t(row.label)}</th>
+                {LABOR_RUNS.map((run) => (
+                  <td
+                    key={run.key}
+                    className="num"
+                    data-lead={run.key === lead?.key ? '' : undefined}
+                  >
+                    {row.cell(run)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">{t('measured.row.file')}</th>
+              {LABOR_RUNS.map((run) => (
+                <td key={run.key}>
+                  <span className="code">{laborFileOf(run)}</span>
+                  <span className="caption block">
+                    {run.gitSha}, {formatDate(run.date)}
+                  </span>
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
   )
 }

@@ -20,6 +20,7 @@
     "bench:replay": "tsx bench/src/replay.ts",
     "bench:heldout": "tsx bench/src/heldOut.ts",
     "bench:seeds": "tsx bench/src/seeds.ts",
+    "bench:labor": "tsx bench/src/labor.ts",
     "env:push": "tsx scripts/pushEnv.ts",
     "demo:reset": "pnpm -C services/backend exec convex run demo:reset",
     "probe:llm": "tsx bench/src/probe.ts",

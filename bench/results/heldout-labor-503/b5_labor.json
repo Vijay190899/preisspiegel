@@ -1,0 +1,178 @@
+{
+  "benchmark": "B5",
+  "question": "Is each position tied to the right entry of the labor time table, and is what is not sent to a person?",
+  "generatedAt": "2026-11-17T22:08:57.176Z",
+  "gitSha": "9e8bc04-dirty",
+  "seed": 503,
+  "n": 1170,
+  "job": {
+    "id": "m175y9n3e2ns2vbfv24rg5fgxd8jdvqv",
+    "mode": "live",
+    "model": "claude-haiku-5-5",
+    "calls": 546,
+    "answeredFromCache": 624,
+    "failed": 0,
+    "usd": 0.0464,
+    "seconds": 143
+  },
+  "result": {
+    "positions": 1170,
+    "settled": 1168,
+    "settledShare": 0.9983,
+    "settledRight": 1140,
+    "settledPrecision": 0.976,
+    "wrongEntry": 27,
+    "wrongMinutes": 27,
+    "wrongNone": 1,
+    "review": 2,
+    "reviewReasons": {
+      "limit": 1,
+      "limit_unstated": 1
+    },
+    "hoursTrue": 11177.25,
+    "hoursDecided": 11138.02,
+    "hoursError": 90.57
+  },
+  "wrong": [
+    {
+      "oz": "06.01.0010",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.01.0020",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.01.0040",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.01.0180",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.01.0190",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.02.0010",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.02.0190",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.02.0200",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.02.0260",
+      "got": null,
+      "expected": "device.box"
+    },
+    {
+      "oz": "06.03.0010",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.03.0030",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.03.0180",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.03.0190",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.04.0010",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.04.0170",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.04.0180",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.05.0180",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.06.0030",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.06.0170",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.06.0180",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.07.0010",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.07.0170",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "06.07.0180",
+      "got": "device.box",
+      "expected": "device"
+    },
+    {
+      "oz": "10.01.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    },
+    {
+      "oz": "10.05.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    },
+    {
+      "oz": "10.06.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    },
+    {
+      "oz": "10.07.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    },
+    {
+      "oz": "10.08.0090",
+      "got": "data.panel",
+      "expected": "data.accessory"
+    }
+  ]
+}
