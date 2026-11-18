@@ -5,7 +5,7 @@
 import { v } from 'convex/values'
 import { internal } from '../_generated/api'
 import { internalMutation, internalQuery } from '../_generated/server'
-import { ledgerEntry, recordEntries } from '../llm/ledger'
+import { ledgerEntry } from '../llm/ledger'
 import {
   candidate,
   judgement,
@@ -349,7 +349,8 @@ export const saveBatch = internalMutation({
         .first()
       if (existing === null) await ctx.db.insert('matchCache', { ...entry, at })
     }
-    await recordEntries(ctx, args.entries)
+    // The calls are on the ledger already, each as it returned (`run.ts`);
+    // here they only count towards the run.
 
     const count = (source: string) =>
       args.rows.filter((row) => row.source === source).length

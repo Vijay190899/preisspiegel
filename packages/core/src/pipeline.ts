@@ -316,9 +316,48 @@ export interface Judgement {
   alternative: string | null
 }
 
-const valueIn = (quote: string, value: string) =>
-  canonicalText(value) !== '' &&
-  canonicalText(quote).includes(canonicalText(value))
+/**
+ * Whether a value stands in its quote as a whole number: `250 A` holds
+ * `250 A` but not `50 A`, and `(100 m/Ring)` holds `100` but not `10`.
+ * Spacing does not count, so `5 x 16` holds `5x16`.
+ */
+export function valueIn(quote: string, value: string): boolean {
+  const needle = canonicalText(value)
+  if (needle === '') return false
+  // The quote in the same form, remembering where a space stood: digits on
+  // either side of a space are two numbers, not one.
+  let hay = ''
+  const spaced: Array<boolean> = []
+  let gap = false
+  for (const char of quote) {
+    if (/\s/.test(char)) {
+      gap = true
+      continue
+    }
+    hay += canonicalText(char)
+    spaced.push(gap)
+    gap = false
+  }
+  const digit = (at: number) => {
+    const char = hay[at]
+    return char !== undefined && char >= '0' && char <= '9'
+  }
+  // A decimal mark between digits joins them: `2` is not in `2,5`.
+  const mark = (at: number) => hay[at] === ',' || hay[at] === '.'
+  const touches = (inner: number, outer: number, beyond: number) =>
+    !spaced[Math.max(inner, outer)] &&
+    (digit(outer) ||
+      (mark(outer) && !spaced[Math.max(outer, beyond)] && digit(beyond)))
+  for (let from = 0; ;) {
+    const at = hay.indexOf(needle, from)
+    if (at < 0) return false
+    const end = at + needle.length - 1
+    const cutsFront = digit(at) && touches(at, at - 1, at - 2)
+    const cutsBack = digit(end) && touches(end, end + 1, end + 2)
+    if (!cutsFront && !cutsBack) return true
+    from = at + 1
+  }
+}
 
 export function verifyAnswer(
   question: Question,

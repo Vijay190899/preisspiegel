@@ -203,7 +203,7 @@ B1  priced without a person   ${scored.b1.auto} of ${scored.b1.positions} (${per
     at the right price        ${scored.b1.autoAtRightPrice} of ${scored.b1.auto}
     euro error                ${scored.b1.euroError.toFixed(2)} of ${scored.b1.euroAuto.toFixed(2)}
 B2  traps found               ${scored.b2.trapsCaught} of ${scored.b2.trapsPlanted}
-    review queue              ${scored.b2.reviewRaised} raised, ${scored.b2.reviewFound} of ${scored.b2.reviewExpected} expected found
+    review queue              ${scored.b2.reviewRaised} raised, ${scored.b2.reviewFound} of ${scored.b2.reviewExpected} expected found, ${scored.b2.reviewFoundForReason} of them for a right reason
     queue recall, precision   ${percent(scored.b2.queueRecall)}, ${percent(scored.b2.queuePrecision)}
 B3  numbers at their source   ${guard.found} of ${guard.checked} (${percent(guard.share)})
     no reader                 ${percent(offline.noReader.b1.autoShare)} auto at ${percent(offline.noReader.b1.autoPrecision)}, ${offline.noReader.b2.trapsCaught} traps, error ${offline.noReader.b1.euroError.toFixed(2)}

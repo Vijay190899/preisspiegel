@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   assessLabor,
-  containsWhole,
   entryLimit,
   laborCost,
   laborHours,
   statedSize,
   within,
 } from './labor'
+import { containsWhole } from './text'
 import type { LaborEntry } from './labor'
 
 const TABLE: Array<LaborEntry> = [
