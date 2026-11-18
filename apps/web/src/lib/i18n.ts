@@ -79,8 +79,8 @@ const de = {
   'labor.title': 'Montage',
   'labor.set.from': 'Nach der Zeitwerttabelle von {contractor}:',
   'labor.per': '{minutes} min je {unit}',
-  'labor.sum': '{qty} sind {hours} Stunden',
-  'labor.cost.before': 'und zu {rate} € die Stunde',
+  'labor.sum': '{hours} Stunden für {qty}',
+  'labor.cost.before': 'zu {rate} € die Stunde',
   'labor.read': 'Gewählt nach den Worten der Position',
   'labor.and': 'und',
   'labor.none':
@@ -96,6 +96,8 @@ const de = {
     'Der vorgeschlagene Eintrag rechnet in einer anderen Einheit als die Position.',
   'labor.why.limit_unstated':
     'Der vorgeschlagene Eintrag gilt nur für eine bestimmte Größe, und die Position nennt keine, die sich prüfen lässt.',
+  'labor.why.limit_conflict':
+    'Die zitierten Worte nennen eine andere Größe als die Position selbst.',
   'labor.why.limit':
     'Der vorgeschlagene Eintrag gilt für eine andere Größe, als die Position verlangt.',
   'labor.proposed': 'Vorgeschlagen war',
@@ -412,8 +414,8 @@ const en: Record<MessageKey, string> = {
   'labor.title': 'Labor',
   'labor.set.from': 'From the labor time table of {contractor}:',
   'labor.per': '{minutes} min per {unit}',
-  'labor.sum': '{qty} take {hours} hours',
-  'labor.cost.before': 'and at {rate} € an hour cost',
+  'labor.sum': '{hours} hours for {qty}',
+  'labor.cost.before': 'at {rate} € an hour',
   'labor.read': 'Chosen on the words of the item',
   'labor.and': 'and',
   'labor.none':
@@ -428,9 +430,11 @@ const en: Record<MessageKey, string> = {
   'labor.why.unit': 'The proposed entry counts in another unit than the item.',
   'labor.why.limit_unstated':
     'The proposed entry covers only a certain size, and the item states none that can be checked.',
+  'labor.why.limit_conflict':
+    'The words quoted state another size than the item itself.',
   'labor.why.limit':
     'The proposed entry covers another size than the item asks for.',
-  'labor.proposed': 'Proposed was',
+  'labor.proposed': 'The proposal was',
   'labor.position.says': 'the item says',
   'costing.title': 'What the bid comes to',
   'costing.labor.before': ', the labor takes',

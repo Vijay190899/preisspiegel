@@ -10,6 +10,7 @@ const REASON: Record<string, MessageKey> = {
   unit: 'labor.why.unit',
   limit_unstated: 'labor.why.limit_unstated',
   limit: 'labor.why.limit',
+  limit_conflict: 'labor.why.limit_conflict',
 }
 
 /** German words from a document, kept as written and marked as German. */
@@ -63,7 +64,7 @@ export function Labor({
             })}
             {cost !== null && labor.rate !== null && (
               <>
-                {' '}
+                {', '}
                 {t('labor.cost.before', { rate: formatQty(labor.rate) })}{' '}
                 <b className="whitespace-nowrap font-semibold text-ink">
                   {formatMoney(cost)} €

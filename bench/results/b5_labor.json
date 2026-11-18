@@ -1,12 +1,12 @@
 {
   "benchmark": "B5",
   "question": "Is each position tied to the right entry of the labor time table, and is what is not sent to a person?",
-  "generatedAt": "2026-11-17T22:19:32.460Z",
-  "gitSha": "9e8bc04-dirty",
+  "generatedAt": "2026-11-18T00:15:24.987Z",
+  "gitSha": "941dd9f-dirty",
   "seed": 118,
   "n": 1170,
   "job": {
-    "id": "m171apbn38z3dchdyryw2807zh8jdk69",
+    "id": "m1741sfd9rvkdy5vck9v1g1k258jfmbv",
     "mode": "replay",
     "model": "claude-haiku-5-5",
     "calls": 0,

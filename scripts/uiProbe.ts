@@ -471,8 +471,8 @@ async function main(): Promise<void> {
     const readGerman = (text: string | undefined) =>
       Number((text ?? '').replaceAll('.', '').replace(',', '.'))
     const minutes = readGerman(/([\d,]+) min je/.exec(laborText)?.[1])
-    const quantity = readGerman(/\. ([\d.,]+) m sind/.exec(laborText)?.[1])
-    const hours = readGerman(/sind ([\d.,]+) Stunden/.exec(laborText)?.[1])
+    const quantity = readGerman(/für ([\d.,]+) m/.exec(laborText)?.[1])
+    const hours = readGerman(/([\d.,]+) Stunden für/.exec(laborText)?.[1])
     const rate = readGerman(/zu ([\d.,]+) € die Stunde/.exec(laborText)?.[1])
     const cost = readGerman(/([\d.]+,\d\d) €/.exec(laborText)?.[1])
     check(
@@ -638,18 +638,35 @@ async function main(): Promise<void> {
               Number(getComputedStyle(pane).opacity) < 0.4,
           ).length,
       )
+    // While picked out, the others step back by their fill alone; once let
+    // go, every window is as it was at rest (lit windows rest at varied fill).
+    const fills = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('svg.front rect.pane')]
+          .filter((pane) => pane.closest('svg')?.getClientRects().length !== 0)
+          .map((pane) => getComputedStyle(pane).fillOpacity),
+      )
+    const changedFrom = async (before: Array<string>) =>
+      (await fills()).filter((fill, at) => fill !== before[at]).length
+    const atRest = await fills()
     await page.getByRole('link', { name: /^03\s/ }).hover()
     await settle(page, 40)
     const whilePicked = await dark()
     await page.getByRole('link', { name: /^07\s*Beleuchtung$/ }).hover()
     await settle(page, 40)
     const whileMoved = await dark()
+    const backWhileMoved = await changedFrom(atRest)
     await page.mouse.move(5, 300)
     await settle(page, 30)
+    const leftBack = await changedFrom(atRest)
     check(
-      'no window goes dark when titles are pointed at or let go',
-      whilePicked === 0 && whileMoved === 0 && (await dark()) === 0,
-      { whilePicked, whileMoved },
+      'no window goes dark when titles are pointed at, and none stays dimmed once let go',
+      whilePicked === 0 &&
+        whileMoved === 0 &&
+        (await dark()) === 0 &&
+        backWhileMoved > 0 &&
+        leftBack === 0,
+      { whilePicked, whileMoved, backWhileMoved, leftBack },
     )
     check(
       'pointing at a title shows its windows; a reason stays shown once clicked',
