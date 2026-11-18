@@ -107,11 +107,13 @@ export function RunLine({
   )
 }
 
-const REFUSED: Record<Refusal, MessageKey> = {
+export const REFUSED: Record<Refusal, MessageKey> = {
   code: 'run.refused.code',
   locked: 'run.refused.locked',
   closed: 'run.refused.closed',
   running: 'run.refused.running',
+  busy: 'run.refused.busy',
+  failed: 'run.refused.failed',
 }
 
 /** The model reads afresh, for whoever has the access code. Closed until asked for. */

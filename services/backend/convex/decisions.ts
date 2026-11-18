@@ -7,17 +7,21 @@
  * never taken from the browser. A price the estimator types is theirs.
  */
 import { ConvexError, v } from 'convex/values'
-import { mutation, query } from './_generated/server'
+import { internalMutation, mutation, query } from './_generated/server'
+import { DECIDE, take } from './limits'
+import { isSession, known } from './session'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 
-/** The id a browser keeps for itself. Random, and nothing else. */
-const SESSION = /^[A-Za-z0-9_-]{16,64}$/
 /** No unit of anything in a tender costs more than this. */
 const HIGHEST_PRICE = 10_000_000
+/** A decision nobody has touched for this long is let go (crons.ts). */
+export const KEPT_FOR_MS = 30 * 24 * 60 * 60 * 1000
 
-function known(session: string): string {
-  if (!SESSION.test(session)) throw new ConvexError('Unknown session.')
-  return session
+/** Refuses when this browser, or everyone together, decides too fast. */
+async function paced(ctx: MutationCtx, session: string) {
+  if (!(await take(ctx, DECIDE, session))) {
+    throw new ConvexError('Too many decisions at once. Wait a moment.')
+  }
 }
 
 const own = (
@@ -37,7 +41,7 @@ const own = (
 export const mine = query({
   args: { slug: v.string(), session: v.string() },
   handler: async (ctx, { slug, session }) => {
-    if (!SESSION.test(session)) return []
+    if (!isSession(session)) return []
     // A tender has a few thousand positions at most, and a decision is one
     // row per position.
     const rows = await ctx.db
@@ -69,6 +73,7 @@ export const decide = mutation({
   },
   handler: async (ctx, { slug, session, oz, offerId, unitPrice }) => {
     known(session)
+    await paced(ctx, session)
     const position = await ctx.db
       .query('positions')
       .withIndex('by_tenderSlug_and_oz', (q) =>
@@ -138,8 +143,23 @@ export const reopen = mutation({
   args: { slug: v.string(), session: v.string(), oz: v.string() },
   handler: async (ctx, { slug, session, oz }) => {
     known(session)
+    await paced(ctx, session)
     const before = await own(ctx, slug, session, oz)
     if (before !== null) await ctx.db.delete('decisions', before._id)
     return null
+  },
+})
+
+/** Lets go of decisions older than `KEPT_FOR_MS`, a batch at a time. */
+export const forgetOld = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const before = Date.now() - KEPT_FOR_MS
+    const old = await ctx.db
+      .query('decisions')
+      .withIndex('by_at', (q) => q.lt('at', before))
+      .take(500)
+    for (const row of old) await ctx.db.delete('decisions', row._id)
+    return { forgotten: old.length, more: old.length === 500 }
   },
 })

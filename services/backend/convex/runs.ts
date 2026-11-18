@@ -4,11 +4,13 @@
  * answers read back, which calls no model, or, with the deployment's access
  * code, a run in which the model reads.
  */
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { env, mutation, query } from './_generated/server'
-import { LOCK_WINDOW_MS, WRONG_CODES_ALLOWED, admit } from './agent/gate'
+import { admit } from './agent/gate'
 import { beginRun, runUnderWay } from './agent/store'
+import { REPLAY, WRONG_CODE, allows, take } from './limits'
 import { roleModel } from './llm/client'
+import { known } from './session'
 import type { Admission } from './agent/gate'
 import type { Doc } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
@@ -77,38 +79,31 @@ export const latest = query({
  * any run. What it refuses, it refuses by returning the reason.
  */
 export const start = mutation({
-  args: { slug: v.string(), code: v.optional(v.string()) },
-  handler: async (ctx, { slug, code }): Promise<Admission> => {
+  args: {
+    slug: v.string(),
+    session: v.string(),
+    code: v.optional(v.string()),
+  },
+  handler: async (ctx, { slug, session, code }): Promise<Admission> => {
+    known(session)
     const tender = await ctx.db
       .query('tenders')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique()
-    if (tender === null) throw new Error(`No tender "${slug}".`)
+    if (tender === null) throw new ConvexError(`No tender "${slug}".`)
 
-    const now = Date.now()
-    const wrong =
-      code === undefined
-        ? []
-        : await ctx.db
-            .query('codeAttempts')
-            .withIndex('by_at', (q) => q.gte('at', now - LOCK_WINDOW_MS))
-            .take(WRONG_CODES_ALLOWED)
+    const running = await runUnderWay(ctx, slug)
     const admission = admit({
       code: code?.slice(0, 200),
       configured: env.DEMO_ACCESS_CODE,
-      running: await runUnderWay(ctx, slug),
-      wrongCodes: wrong.length,
+      running,
+      locked: code !== undefined && !(await allows(ctx, WRONG_CODE, session)),
+      // Counted only when the read-back would otherwise start.
+      replayAllowed:
+        code !== undefined || running || (await take(ctx, REPLAY, session)),
     })
     if (!admission.ok) {
-      if (admission.reason === 'code') {
-        await ctx.db.insert('codeAttempts', { at: now })
-        // Attempts that no longer count are not kept.
-        const stale = await ctx.db
-          .query('codeAttempts')
-          .withIndex('by_at', (q) => q.lt('at', now - LOCK_WINDOW_MS))
-          .take(50)
-        for (const row of stale) await ctx.db.delete('codeAttempts', row._id)
-      }
+      if (admission.reason === 'code') await take(ctx, WRONG_CODE, session)
       return admission
     }
 
@@ -135,6 +130,7 @@ export const statuses = query({
 export const events = query({
   args: { runId: v.id('runs'), limit: v.number() },
   handler: async (ctx, { runId, limit }) => {
+    if (!Number.isInteger(limit) || limit < 1) return []
     const rows = await ctx.db
       .query('runEvents')
       .withIndex('by_runId_and_seq', (q) => q.eq('runId', runId))

@@ -351,9 +351,6 @@ export default defineSchema({
     note: v.union(v.string(), v.null()),
   }).index('by_tenderSlug_and_startedAt', ['tenderSlug', 'startedAt']),
 
-  // Wrong access codes, so that guessing stops being answered.
-  codeAttempts: defineTable({ at: v.number() }).index('by_at', ['at']),
-
   // What happened in a run, in order. Append-only. The interface shows a run
   // from this log, and a replay is this log read back.
   runEvents: defineTable({
@@ -434,7 +431,9 @@ export default defineSchema({
     /** For one unit of the tender. Read from the offer, or typed in. */
     unitPrice: v.number(),
     at: v.number(),
-  }).index('by_tenderSlug_and_session_and_oz', ['tenderSlug', 'session', 'oz']),
+  })
+    .index('by_tenderSlug_and_session_and_oz', ['tenderSlug', 'session', 'oz'])
+    .index('by_at', ['at']),
 
   // What a model answered to a question, kept by the question's hash. The
   // same position text against the same lines is read once, ever.

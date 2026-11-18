@@ -178,6 +178,9 @@ importers:
       '@convex-dev/eslint-plugin':
         specifier: ^5.0.1
         version: 5.0.1(convex@1.50.0(react@19.3.1))(eslint@10.15.0(jiti@2.7.0))
+      '@edge-runtime/vm':
+        specifier: 5.0.0
+        version: 5.0.0
       '@tanstack/eslint-config':
         specifier: ^0.5.0
         version: 0.5.0(@typescript-eslint/utils@8.72.2(@typescript/typescript6@6.0.2)(eslint@10.15.0(jiti@2.7.0)))(@typescript/typescript6@6.0.2)(eslint@10.15.0(jiti@2.7.0))
@@ -204,7 +207,7 @@ importers:
         version: '@typescript/typescript6@6.0.2'
       vitest:
         specifier: ^5.1.0
-        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+        version: 5.1.0(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
   apps/web:
     dependencies:
@@ -320,6 +323,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^1.8.0
         version: 1.8.0(zod@4.6.7)
+      '@convex-dev/rate-limiter':
+        specifier: 0.4.3
+        version: 0.4.3(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       '@preisspiegel/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -329,6 +335,16 @@ importers:
       zod:
         specifier: ^4.6.7
         version: 4.6.7
+    devDependencies:
+      '@edge-runtime/vm':
+        specifier: 5.0.0
+        version: 5.0.0
+      convex-test:
+        specifier: 0.0.71
+        version: 0.0.71(convex@1.50.0(react@19.3.1))
+      vite:
+        specifier: 8.3.8
+        version: 8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)
 
 packages:
 
@@ -418,16 +434,38 @@ packages:
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA==}
 
+  '@convex-dev/batch-worker@0.3.5':
+    resolution: {integrity: sha512-kTxLGy1TXRN6WLcENcoRWWnvPshv1sIZp2EpPqGqCB4FxDI7m8tEHUr+jCLdhGtSZT1UHkWtb1w8YYuEzTxHWQ==}
+    peerDependencies:
+      convex: ^1.43.0
+
   '@convex-dev/eslint-plugin@5.0.1':
     resolution: {integrity: sha512-/zW1ihbthQ+ZRJhzjKVLosmQaLmsbayXu05o7JAKrWMZveBmMX/IuJo1XGZBlhEWL3cBBc1s6uI2XXDar/Pw1A==}
     peerDependencies:
       convex: ^1.43.0
+
+  '@convex-dev/rate-limiter@0.4.3':
+    resolution: {integrity: sha512-IXIEGbZBANC5B23pGmIui7p49kSiltNWyJ7wX7nFmkR396X/Oj9ebgScgxSJMAW7DkhpUtt1NAnQHhjB0v6a/A==}
+    peerDependencies:
+      convex: ^1.43.0
+      react: ^18.2.0 || ^19.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   '@convex-dev/react-query@0.1.0':
     resolution: {integrity: sha512-ULmBZCtAQDUePdBhUv7hj1Yy4QiCelhi6uEIOtMpjW8db6W9CFKvQwLt9heLngccFyMFfAZdOfSrT+cP4AH0Jw==}
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
       convex: ^1.29.3
+
+  '@edge-runtime/primitives@6.0.0':
+    resolution: {integrity: sha512-FqoxaBT+prPBHBwE1WXS1ocnu/VLTQyZ6NMUBAdbP7N2hsFTTxMC/jMu2D/8GAlMQfxeuppcPuCUk/HO3fpIvA==}
+    engines: {node: '>=18'}
+
+  '@edge-runtime/vm@5.0.0':
+    resolution: {integrity: sha512-NKBGBSIKUG584qrS1tyxVpX/AKJKQw5HgjYEnPLC0QsTw79JrGn+qUr8CXFb955Iy7GUdiiUv1rJ6JBGvaKb6w==}
+    engines: {node: '>=18'}
 
   '@emnapi/core@2.0.0-beta.2':
     resolution: {integrity: sha512-MzCVoWtcg4Pm2B3je5mMvYMvj3MmBKw+fU7vbsJc9/iT8ip6/eYIHo/Dsm/mr+wsHB6SEyJDuxB09Yy6r/8+4A==}
@@ -1822,6 +1860,36 @@ packages:
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
+  convex-helpers@0.1.135:
+    resolution: {integrity: sha512-UX2f9j6pk90UyosPhnYQ1Q6nmUF/klUn/LZGp6BM8Ps5r+cZyY66ULhB1Vp3lUOY4EdjS3RLCKyaoTUg0BqhoA==}
+    hasBin: true
+    peerDependencies:
+      '@standard-schema/spec': ^1.0.0
+      convex: ^1.46.0
+      hono: ^4.0.5
+      prettier: ^3.0.0
+      react: ^17.0.2 || ^18.0.0 || ^19.0.0
+      typescript: ^5.5 || ^6.0.0 || ^7.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@standard-schema/spec':
+        optional: true
+      hono:
+        optional: true
+      prettier:
+        optional: true
+      react:
+        optional: true
+      typescript:
+        optional: true
+      zod:
+        optional: true
+
+  convex-test@0.0.71:
+    resolution: {integrity: sha512-sHptDSWL0b2Og6to5R9/GoCHF7XGNXIAxQDJnA8UYYZa8yym9mfC03h3C47LS3Bj2BIO9lD0pKIv2H7dP+VKPA==}
+    peerDependencies:
+      convex: ^1.43.0
+
   convex@1.50.0:
     resolution: {integrity: sha512-WzzCad5hyzU4zzW0ChyUGB3Mil4LgRYMYii9cyQtC24WQnfaRgkZB0IKyhIIgRm1a2IXiGJoZnVYYSfttiap3Q==}
     engines: {node: '>=22.0.0', npm: '>=7.0.0'}
@@ -2872,6 +2940,18 @@ snapshots:
       hashery: 1.5.1
       keyv: 5.6.0
 
+  '@convex-dev/batch-worker@0.3.5(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
+    dependencies:
+      convex: 1.50.0(react@19.3.1)
+      convex-helpers: 0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - prettier
+      - react
+      - typescript
+      - zod
+
   '@convex-dev/eslint-plugin@5.0.1(convex@1.50.0(react@19.3.1))(eslint@10.15.0(jiti@2.7.0))':
     dependencies:
       '@typescript-eslint/parser': 8.58.2(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3)
@@ -2883,10 +2963,29 @@ snapshots:
       - eslint
       - supports-color
 
+  '@convex-dev/rate-limiter@0.4.3(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
+    dependencies:
+      '@convex-dev/batch-worker': 0.3.5(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      convex: 1.50.0(react@19.3.1)
+    optionalDependencies:
+      react: 19.3.1
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - prettier
+      - typescript
+      - zod
+
   '@convex-dev/react-query@0.1.0(@tanstack/react-query@5.107.1(@types/react@19.3.0)(react@19.3.1))(convex@1.50.0(react@19.3.1))':
     dependencies:
       '@tanstack/react-query': 5.107.1(@types/react@19.3.0)(react@19.3.1)
       convex: 1.50.0(react@19.3.1)
+
+  '@edge-runtime/primitives@6.0.0': {}
+
+  '@edge-runtime/vm@5.0.0':
+    dependencies:
+      '@edge-runtime/primitives': 6.0.0
 
   '@emnapi/core@2.0.0-beta.2':
     dependencies:
@@ -4025,6 +4124,19 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
+  convex-helpers@0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7):
+    dependencies:
+      convex: 1.50.0(react@19.3.1)
+    optionalDependencies:
+      prettier: 3.10.1
+      react: 19.3.1
+      typescript: 6.0.3
+      zod: 4.6.7
+
+  convex-test@0.0.71(convex@1.50.0(react@19.3.1)):
+    dependencies:
+      convex: 1.50.0(react@19.3.1)
+
   convex@1.50.0(react@19.3.1):
     dependencies:
       esbuild: 0.27.0
@@ -4794,7 +4906,7 @@ snapshots:
     optionalDependencies:
       vite: 8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)
 
-  vitest@5.1.0(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)):
+  vitest@5.1.0(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/mocker': 5.1.0(vite@8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
@@ -4811,6 +4923,7 @@ snapshots:
       vite: 8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)
       why-is-node-running: 3.2.1
     optionalDependencies:
+      '@edge-runtime/vm': 5.0.0
       '@opentelemetry/api': 1.10.0
       '@types/node': 24.19.2
     transitivePeerDependencies:
