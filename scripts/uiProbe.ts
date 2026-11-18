@@ -395,14 +395,6 @@ async function main(): Promise<void> {
       (await verdict()).includes('eigenen Preis: 4.321,50 €'),
       await verdict(),
     )
-    await page
-      .getByRole('button', { name: 'Entscheidung zurücknehmen' })
-      .click()
-    await settle(page, 600)
-
-    console.log('Costing')
-    await page.goto(`${base}/kalkulation`, { waitUntil: 'networkidle' })
-    await settle(page, 400)
     const sum = async () => {
       const text = (await page.locator('main p.statement').innerText()).replace(
         /\s+/g,
@@ -413,11 +405,35 @@ async function main(): Promise<void> {
       )
       return {
         text,
+        material: figures.at(0) ?? 0,
         surcharge: figures.at(-2) ?? 0,
         total: figures.at(-1) ?? 0,
       }
     }
+    await page.goto(`${base}/kalkulation`, { waitUntil: 'networkidle' })
+    await settle(page, 400)
+    const withOwnPrice = await sum()
+    await page.goto(`${base}/positionen/01.01.0020?offen=true`, {
+      waitUntil: 'networkidle',
+    })
+    await settle(page, 500)
+    await page
+      .getByRole('button', { name: 'Entscheidung zurücknehmen' })
+      .click()
+    await settle(page, 600)
+
+    console.log('Costing')
+    await page.goto(`${base}/kalkulation`, { waitUntil: 'networkidle' })
+    await settle(page, 400)
     const atFirst = await sum()
+    check(
+      'the costing page counts a decided price in, and lets it go when taken back',
+      // One cabinet, priced by the run at the cheapest clean offer of
+      // 4,893.62 €; the typed 4,321.50 € takes its place.
+      Math.abs(withOwnPrice.material - atFirst.material - (4321.5 - 4893.62)) <
+        0.005,
+      { decided: withOwnPrice.material, undecided: atFirst.material },
+    )
     await page.locator('input[type="range"]').focus()
     await page.keyboard.press('End')
     await settle(page, 300)
@@ -561,7 +577,11 @@ async function main(): Promise<void> {
     const stoodBefore = await stands()
     const readAgain = page.getByRole('button', { name: 'Noch einmal lesen' })
     await readAgain.click()
-    await page.getByRole('status').first().waitFor({ timeout: 5000 })
+    await page
+      .locator('main')
+      .getByRole('status')
+      .first()
+      .waitFor({ timeout: 5000 })
     await settle(page, 5000)
     const midway = await litPanes()
     // The control is gone while a run is under way, and comes back with it.
@@ -590,7 +610,7 @@ async function main(): Promise<void> {
     check(
       'a run in which the model reads is refused without the access code',
       (await readAgain.count()) === 1 &&
-        (await page.getByRole('status').count()) === 0,
+        (await page.locator('main').getByRole('status').count()) === 0,
       { refusal: await refusedWith.innerText() },
     )
 
@@ -834,6 +854,24 @@ async function main(): Promise<void> {
     )
     await phonePage.goto(`${base}/`, { waitUntil: 'networkidle' })
     await settle(phonePage, 600)
+    const tabs = await phonePage
+      .getByRole('navigation', { name: 'Hauptnavigation' })
+      .getByRole('link')
+      .evaluateAll((links) =>
+        links.map((link) => {
+          const box = link.getBoundingClientRect()
+          return {
+            text: link.textContent,
+            inside: box.left >= 0 && box.right <= window.innerWidth,
+            whole: link.scrollWidth <= link.clientWidth + 1,
+          }
+        }),
+      )
+    check(
+      'on a phone every tab is in view and none is cut off',
+      tabs.length === 4 && tabs.every((tab) => tab.inside && tab.whole),
+      tabs,
+    )
     const upright = phonePage.locator('[role="application"]:visible')
     const shape = await upright.boundingBox()
     check(

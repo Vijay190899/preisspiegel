@@ -6,6 +6,7 @@ import { setLocale, useLocale, useT } from '~/lib/i18n'
 import { LOCALE_COOKIE } from '~/lib/locale'
 import { setTheme, useTheme } from '~/lib/theme'
 import { CommandPalette, openPalette } from './CommandPalette'
+import { Notice } from './Notice'
 import type { ReactNode } from 'react'
 import type { MessageKey } from '~/lib/i18n'
 
@@ -49,11 +50,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
 
       <header className="sticky top-0 z-40 border-b border-line bg-bg/75 backdrop-blur-xl backdrop-saturate-150">
-        <div className="flex h-14 items-center gap-1 px-3 sm:gap-2 sm:px-6">
+        {/* On a phone the tabs take a row of their own, four equal parts
+            of it, so none is cut off; from 640 px they sit beside the mark. */}
+        <div className="flex flex-wrap items-center gap-x-1 px-3 sm:h-14 sm:flex-nowrap sm:gap-2 sm:px-6">
           <Link
             to="/"
             aria-label="Preisspiegel"
-            className="mr-1 flex items-center gap-2.5 sm:mr-4"
+            className="mr-1 flex h-14 items-center gap-2.5 sm:mr-4 sm:h-auto"
           >
             <Mark />
             <span className="hidden text-[1.02rem] font-semibold tracking-[-0.02em] sm:inline [font-stretch:108%]">
@@ -61,18 +64,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
 
-          {/* On a narrow screen the tabs give way, not the controls: they
-              can be pushed sideways, and what is at the right stays put. */}
           <nav
             aria-label={t('nav.main')}
-            className="tabs flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto sm:flex-none sm:overflow-visible"
+            className="order-last grid h-11 w-full grid-cols-4 items-center gap-0.5 sm:order-none sm:flex sm:h-auto sm:w-auto"
           >
             {TABS.map((tab) => (
               <Link
                 key={tab.to}
                 to={tab.to}
                 aria-current={active === tab.to ? 'page' : undefined}
-                className={`relative shrink-0 rounded-control px-2.5 py-1.5 text-[0.9rem] font-medium transition-colors duration-150 sm:px-3 sm:text-[0.94rem] ${
+                className={`relative shrink-0 rounded-control px-1 py-1.5 text-center text-[0.88rem] font-medium transition-colors duration-150 sm:px-3 sm:text-[0.94rem] ${
                   active === tab.to ? 'text-ink' : 'text-ink-3 hover:text-ink'
                 }`}
               >
@@ -113,6 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       <CommandPalette />
+      <Notice />
     </div>
   )
 }

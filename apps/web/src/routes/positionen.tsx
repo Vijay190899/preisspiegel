@@ -99,7 +99,7 @@ function Positions() {
     <div className="workspace" data-focused={oz !== undefined && sourceOpen}>
       <aside
         data-position-list
-        className={`workspace-list min-h-0 bg-surface max-lg:h-[calc(100dvh-57px)] ${
+        className={`workspace-list min-h-0 bg-surface max-lg:h-[calc(100dvh-var(--header-h))] ${
           oz === undefined ? '' : 'max-lg:hidden'
         }`}
       >

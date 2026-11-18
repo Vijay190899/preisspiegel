@@ -4,7 +4,9 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
+  useRouter,
 } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { AppShell } from '~/components/shell/AppShell'
 import { useLocale, useT } from '~/lib/i18n'
 import { themeBootScript } from '~/lib/theme'
@@ -77,21 +79,47 @@ function NotFound() {
   )
 }
 
-function RouteError({ error }: { error: unknown }) {
+/**
+ * What a page that failed to load says. A visitor is told what to do, not
+ * what went wrong inside; the error itself is shown only in development and
+ * goes to the console, where the server's log has its own copy.
+ */
+function RouteError({ error, reset }: { error: unknown; reset: () => void }) {
   const t = useT()
-  const message = error instanceof Error ? error.message : String(error)
+  const router = useRouter()
+  const detail = error instanceof Error ? error.message : String(error)
+  useEffect(() => {
+    console.error(error)
+  }, [error])
   return (
-    <div className="mx-auto w-full max-w-[1240px] px-4 py-12 sm:px-8">
-      <div role="alert" className="module max-w-[70ch] px-5 py-4">
-        <h1 className="flex items-center gap-2.5 font-semibold">
+    <div className="mx-auto w-full max-w-[1240px] px-4 py-20 sm:px-8">
+      <div role="alert">
+        <h1 className="display flex items-center gap-3 text-[2.2rem]">
           <span
             className="lamp"
             style={{ '--lamp': 'var(--t-open)' } as React.CSSProperties}
           />
           {t('error.title')}
         </h1>
-        <p className="mt-2 break-words text-[0.93rem] text-ink-2">{message}</p>
+        <p className="mt-4 max-w-[60ch] text-[1.05rem] text-ink-2">
+          {t('error.body')}
+        </p>
+        {import.meta.env.DEV && (
+          <p className="code mt-4 max-w-[80ch] break-words text-ink-3">
+            {detail}
+          </p>
+        )}
       </div>
+      <button
+        type="button"
+        className="action mt-8"
+        onClick={() => {
+          reset()
+          void router.invalidate()
+        }}
+      >
+        {t('error.retry')}
+      </button>
     </div>
   )
 }
