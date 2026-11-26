@@ -25,6 +25,7 @@ import laborFirst from '../../../../bench/results/labor-first/b5_labor.json'
 import laborNow from '../../../../bench/results/b5_labor.json'
 import labor503 from '../../../../bench/results/heldout-labor-503/b5_labor.json'
 import labor504 from '../../../../bench/results/heldout-labor-504/b5_labor.json'
+import b4 from '../../../../bench/results/b4-90200/b4_escalation.json'
 
 export type TrapKind =
   | 'SPEC_MISMATCH'
@@ -273,3 +274,30 @@ export const LABOR_RUNS: ReadonlyArray<LaborRun> = [
 /** Where a labor pass's file is. */
 export const laborFileOf = (run: LaborRun): string =>
   `bench/results/${run.folder === '' ? '' : `${run.folder}/`}b5_labor.json`
+
+/**
+ * B4: the same unseen tender read by the matcher alone, and with the larger
+ * model reading again what the matcher could not settle.
+ */
+export const ESCALATION = {
+  seed: b4.seed,
+  n: b4.n,
+  expectedReview: b4.expected.review,
+  file: 'bench/results/b4-90200/b4_escalation.json',
+  date: b4.generatedAt.slice(0, 10),
+  model: b4.escalation.models.escalation,
+  questions: b4.escalation.run.escalation.questions,
+  positions: b4.escalation.run.escalation.positions,
+  sides: [b4.matcher, b4.escalation].map((side) => ({
+    review: side.review,
+    auto: side.auto,
+    autoPrecision: side.autoPrecision,
+    euroError: side.euroError,
+    trapsCaught: side.trapsCaught,
+    trapsPlanted: side.trapsPlanted,
+    queuePrecision: side.queuePrecision,
+    usd: side.run.usd,
+    calls: side.run.calls,
+    gitSha: side.gitSha,
+  })),
+}
