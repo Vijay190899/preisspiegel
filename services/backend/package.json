@@ -13,15 +13,15 @@
     "./llm/registry": "./convex/llm/registry.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0",
+    "@anthropic-ai/sdk": "^1.12.0",
     "@convex-dev/rate-limiter": "0.4.3",
     "@preisspiegel/core": "workspace:*",
-    "convex": "^1.50.0",
+    "convex": "^1.51.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@edge-runtime/vm": "5.0.0",
-    "convex-test": "0.0.71",
+    "convex-test": "0.0.73",
     "vite": "8.3.8"
   }
 }
