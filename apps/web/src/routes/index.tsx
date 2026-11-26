@@ -14,6 +14,7 @@ import {
 } from '~/components/overview/RunLine'
 import { Scenery } from '~/components/overview/Scenery'
 import { formatMoney, formatQty } from '~/lib/format'
+import { introDelay, useCountUp } from '~/lib/countUp'
 import { settleCounts, settleQueue, settleStatuses } from '~/lib/decisions'
 import { useT } from '~/lib/i18n'
 import { usePace } from '~/lib/pace'
@@ -59,6 +60,12 @@ function Overview() {
   const queue = settleQueue(wholeQueue, mine)
   const [pointing, setPointing] = useState<Pointing>(null)
   const { start, asking, refused } = useStartRun()
+  // The figures count up as the lights come on, the first time in a visit.
+  const counts =
+    run.done === null ? null : settleCounts(run.done, wholeQueue, mine)
+  const shownAuto = useCountUp(counts?.auto ?? 0)
+  const shownOpen = useCountUp(counts?.review ?? 0)
+  const shownAtRisk = useCountUp(counts?.atRisk ?? 0)
 
   if (tender === null) {
     return (
@@ -73,11 +80,16 @@ function Overview() {
     )
   }
 
-  // The words settle first; then the lights come on behind them.
+  // The words settle first; then the lights come on behind them. Where the
+  // opening plays, they wait for it to lift.
   const arrive = (order: number) => ({
     initial: { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0 },
-    transition: pace({ delay: order * 0.08, duration: 0.7, ease: EASE }),
+    transition: pace({
+      delay: introDelay() + order * 0.08,
+      duration: 0.7,
+      ease: EASE,
+    }),
   })
 
   const { current, done } = run
@@ -91,7 +103,6 @@ function Overview() {
       ? null
       : said.storey(tender.storeys[parseInt(letter, 36)] ?? '', true) || null
   }
-  const counts = done === null ? null : settleCounts(done, wholeQueue, mine)
   const open = counts?.review ?? 0
 
   return (
@@ -119,11 +130,11 @@ function Overview() {
               <motion.div {...arrive(2)}>
                 {decided ? (
                   <p className="statement">
-                    <b>{formatQty(counts?.auto ?? 0)}</b>{' '}
+                    <b>{formatQty(Math.round(shownAuto))}</b>{' '}
                     {t('overview.priced', { total: formatQty(done.positions) })}{' '}
                     {open > 0 && (
                       <>
-                        <b>{formatQty(open)}</b>{' '}
+                        <b>{formatQty(Math.round(shownOpen))}</b>{' '}
                         {t(
                           open === 1
                             ? 'overview.wait.one'
@@ -136,7 +147,7 @@ function Overview() {
                               {' '}
                               {t('overview.stake.before')}{' '}
                               <b className="whitespace-nowrap">
-                                {formatMoney(counts.atRisk)} €
+                                {formatMoney(shownAtRisk)} €
                               </b>
                               {t('overview.stake.after')}
                             </>

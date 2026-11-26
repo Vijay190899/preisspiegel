@@ -8,7 +8,9 @@ import {
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { AppShell } from '~/components/shell/AppShell'
+import { Intro } from '~/components/shell/Intro'
 import { pageDescription, pageTitle, useLocale, useT } from '~/lib/i18n'
+import { introBootScript } from '~/lib/intro'
 import { themeBootScript } from '~/lib/theme'
 import appCss from '~/styles/app.css?url'
 import type { QueryClient } from '@tanstack/react-query'
@@ -47,7 +49,7 @@ export const Route = createRootRouteWithContext<{
       { rel: 'stylesheet', href: appCss },
       { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
     ],
-    scripts: [{ children: themeBootScript }],
+    scripts: [{ children: themeBootScript }, { children: introBootScript }],
   }),
   notFoundComponent: NotFound,
   errorComponent: RouteError,
@@ -80,6 +82,7 @@ function RootDocument({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        <Intro />
         {children}
         <Scripts />
       </body>

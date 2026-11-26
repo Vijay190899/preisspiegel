@@ -29,6 +29,7 @@ const de = {
   'nav.costing': 'Kalkulation',
   'nav.measured': 'Messung',
   'pos.title': 'Position {oz}',
+  'intro.line': 'Jede Zahl bis zur Quelle',
   'app.description':
     'Angebotskalkulation für Elektro-Ausschreibungen: jede Position zugeordnet und kalkuliert, jede Zahl bis zur Quelle nachvollziehbar.',
   'measured.title': 'Was gemessen ist',
@@ -396,6 +397,7 @@ const en: Record<MessageKey, string> = {
   'nav.costing': 'Costing',
   'nav.measured': 'Measured',
   'pos.title': 'Item {oz}',
+  'intro.line': 'Every number to its source',
   'app.description':
     'Bid pricing for electrical tenders: every item matched and priced, every number traceable to its source.',
   'measured.title': 'What was measured',

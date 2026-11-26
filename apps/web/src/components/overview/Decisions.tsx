@@ -85,7 +85,7 @@ export function Decisions({
                 to="/positionen/$oz"
                 params={{ oz: lead.oz }}
                 search={{ offen: true }}
-                className="ledger-row"
+                className="ledger-row reveal"
               >
                 <span className="code text-[0.82rem] text-ink-3 [grid-area:oz]">
                   {lead.oz}
@@ -169,7 +169,7 @@ function Quotes({
         <span key={supplier.key} className="block h-[5px]">
           {quote !== undefined && quote.total !== null && largest > 0 && (
             <span
-              className={`block h-full min-w-[3px] rounded-[2px] ${
+              className={`grow block h-full min-w-[3px] rounded-[2px] ${
                 quote.clean ? 'bg-ink-3' : 'bg-open'
               }`}
               style={{ width: `${(quote.total / largest) * 100}%` }}

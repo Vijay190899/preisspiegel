@@ -52,9 +52,11 @@ async function main(): Promise<void> {
                 : 'no-preference',
             deviceScaleFactor: 2,
           })
-          // The app follows a stored choice, not the operating system.
+          // The app follows a stored choice, not the operating system; and
+          // the opening is a moment, not a page, so it is skipped here.
           await context.addInitScript((choice) => {
             localStorage.setItem('preisspiegel:theme', choice)
+            sessionStorage.setItem('preisspiegel:intro', '1')
           }, theme)
           const page = await context.newPage()
           const label = `${path} @ ${viewport.name}px ${theme}`
