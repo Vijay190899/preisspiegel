@@ -66,3 +66,22 @@ export function planEscalation(
   }
   return { items, unsettled: count, capped: count - taken }
 }
+
+/**
+ * One position's reading after the second one. The larger model's verdict is
+ * taken only for the lines the matcher left unconfirmed; every line the
+ * matcher settled keeps its verdict, so a worse second answer cannot undo a
+ * line that was already settled. Both readings are verified against this
+ * position's own lines before they meet here.
+ */
+export function mergeEscalated<
+  T extends Pick<Judgement, 'id' | 'verdict' | 'by'>,
+>(first: ReadonlyArray<T>, second: ReadonlyArray<T>): Array<T> {
+  const again = new Map(second.map((judgement) => [judgement.id, judgement]))
+  return first.map((judgement) => {
+    if (judgement.by !== 'model' || judgement.verdict !== 'unconfirmed') {
+      return judgement
+    }
+    return again.get(judgement.id) ?? judgement
+  })
+}

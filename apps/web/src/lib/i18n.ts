@@ -65,7 +65,7 @@ const de = {
   'measured.labor.title': 'Montagezeiten',
   'measured.b4.title': 'Ein größeres Modell',
   'measured.b4.body':
-    'Was das erste Modell nicht klären konnte, liest ein größeres noch einmal, und der Code prüft dessen Antwort wie die erste. Gemessen auf einer neuen Ausschreibung, einmal ohne und einmal mit dem größeren Modell. Es lohnt sich nicht: Es bleiben mehr Positionen für eine Person, der Preisfehler wird größer, und zusammen kostet es fast das Fünffache. Es bleibt ausgeschaltet.',
+    'Was das erste Modell nicht klären konnte, liest ein größeres noch einmal, und der Code prüft dessen Antwort für jede Position an ihren eigenen Zeilen. Gemessen auf einer neuen Ausschreibung, einmal ohne und einmal mit dem größeren Modell: Es räumte jeden Fehler aus, den das erste übrig ließ, und zusammen kostet es fast das Fünffache. Eine Ausschreibung ist zu wenig, um es einzuschalten; es bleibt aus, bis es auf weiteren gemessen ist.',
   'measured.b4.alone': 'Erstes Modell allein',
   'measured.b4.with': 'Mit {model}',
   'measured.b4.row.queue': 'Positionen für eine Person (erwartet {expected})',
@@ -208,6 +208,8 @@ const de = {
     'Lauf vom {date}: {cached} gespeicherte Antworten von {model} wiedergegeben und jede neu geprüft. Kein Modell wurde gerufen.',
   'run.done.escalated':
     '{questions} Fragen zu {positions} Positionen, die das erste Modell nicht klären konnte, las {model} noch einmal; {answered} davon beantwortete es.',
+  'run.escalating.planning':
+    'Alles gelesen. Gesucht wird, was das erste Modell nicht klären konnte.',
   'run.escalating':
     'Alles gelesen. {model} liest {questions} Fragen noch einmal, die das erste Modell nicht klären konnte.',
   'run.reading.before': 'Ein Lauf liest gerade die Angebote:',
@@ -428,7 +430,7 @@ const en: Record<MessageKey, string> = {
   'measured.labor.title': 'Labor times',
   'measured.b4.title': 'A larger model',
   'measured.b4.body':
-    'What the first model could not settle, a larger one reads again, and code checks its answer as it checked the first. Measured on a new tender, once without and once with the larger model. It does not pay: more items are left for a person, the price error grows, and together it costs nearly five times as much. It stays switched off.',
+    'What the first model could not settle, a larger one reads again, and code checks its answer for each item against that item\u2019s own lines. Measured on a new tender, once without and once with the larger model: it cleared every error the first one left, and together it costs nearly five times as much. One tender is too little to switch it on; it stays off until it is measured on more.',
   'measured.b4.alone': 'First model alone',
   'measured.b4.with': 'With {model}',
   'measured.b4.row.queue': 'Items for a person ({expected} expected)',
@@ -568,6 +570,8 @@ const en: Record<MessageKey, string> = {
     'Run of {date}: {cached} stored answers by {model} read back and each checked again. No model was called.',
   'run.done.escalated':
     '{model} read {questions} questions again, for {positions} items the first model could not settle, and answered {answered} of them.',
+  'run.escalating.planning':
+    'Everything is read. Looking for what the first model could not settle.',
   'run.escalating':
     'Everything is read. {model} is reading {questions} questions again that the first model could not settle.',
   'run.reading.before': 'A run is reading the offers:',

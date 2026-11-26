@@ -288,7 +288,12 @@ export const ESCALATION = {
   model: b4.escalation.models.escalation,
   questions: b4.escalation.run.escalation.questions,
   positions: b4.escalation.run.escalation.positions,
-  sides: [b4.matcher, b4.escalation].map((side) => ({
+  // Cost and calls come from the run that paid for the answers (`cost`); a
+  // re-score from the cache calls no model and costs nothing.
+  sides: [
+    { ...b4.matcher, paid: b4.cost.matcher },
+    { ...b4.escalation, paid: b4.cost.larger },
+  ].map((side) => ({
     review: side.review,
     auto: side.auto,
     autoPrecision: side.autoPrecision,
@@ -296,8 +301,8 @@ export const ESCALATION = {
     trapsCaught: side.trapsCaught,
     trapsPlanted: side.trapsPlanted,
     queuePrecision: side.queuePrecision,
-    usd: side.run.usd,
-    calls: side.run.calls,
+    usd: side.paid.usd,
+    calls: side.paid.calls,
     gitSha: side.gitSha,
   })),
 }

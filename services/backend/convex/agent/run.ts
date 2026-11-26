@@ -17,6 +17,7 @@
  */
 import {
   buildQuestions,
+  mergeEscalated,
   planEscalation,
   triage,
   verifyAnswer,
@@ -401,19 +402,28 @@ async function afterReading(ctx: ActionCtx, runId: Id<'runs'>): Promise<void> {
   )
 }
 
-async function toDeciding(ctx: ActionCtx, runId: Id<'runs'>): Promise<void> {
+async function toDeciding(
+  ctx: ActionCtx,
+  runId: Id<'runs'>,
+  note: string | null = null,
+): Promise<void> {
   await ctx.runMutation(internal.agent.store.setStatus, {
     runId,
     status: 'deciding',
-    note: null,
+    note,
   })
   await ctx.scheduler.runAfter(0, internal.agent.run.decide, { runId })
 }
 
 /**
  * The second reading. The first step plans which questions go to the larger
- * model; every step after reads a batch of them. A question it cannot answer
- * keeps the matcher's answer, and its positions go to a person as before.
+ * model; every step after reads a batch of them. Each answer is checked
+ * against every asking position's own lines, since positions that share a
+ * question name different lines, and it is taken only for the lines the
+ * matcher left unconfirmed (`mergeEscalated`). A question it cannot answer
+ * keeps the matcher's reading, and its positions go to a person as before.
+ * A budget reached here ends the second reading, not the run: what the
+ * matcher read is decided as it stands.
  */
 export const escalate = internalAction({
   args: { runId: v.id('runs') },
@@ -438,13 +448,16 @@ export const escalate = internalAction({
           rows.push(...page)
           if (page.length < PAGE) break
         }
-        const plan = planEscalation(rows)
-        await ctx.runMutation(internal.agent.store.planEscalation, {
-          runId,
-          model,
-          ...plan,
-        })
-        await ctx.scheduler.runAfter(0, internal.agent.run.escalate, { runId })
+        const planned = await ctx.runMutation(
+          internal.agent.store.planEscalation,
+          { runId, model, ...planEscalation(rows) },
+        )
+        // A step that ran twice planned nothing and starts no second chain.
+        if (planned) {
+          await ctx.scheduler.runAfter(0, internal.agent.run.escalate, {
+            runId,
+          })
+        }
         return
       }
 
@@ -461,34 +474,42 @@ export const escalate = internalAction({
         })
         const over =
           current.usd >= limits.runUsd
-            ? `The run reached its budget of ${limits.runUsd} USD.`
+            ? `The second reading stopped at the run's budget of ${limits.runUsd} USD.`
             : day.usd >= limits.dailyUsd
-              ? `Model spend for today reached ${limits.dailyUsd} USD.`
+              ? `The second reading stopped: model spend for today reached ${limits.dailyUsd} USD.`
               : null
         if (over !== null) {
-          await ctx.runMutation(internal.agent.store.setStatus, {
-            runId,
-            status: 'stopped',
-            note: over,
-          })
+          await toDeciding(ctx, runId, over)
           return
         }
       }
 
       const to = Math.min(state.next + ESCALATION_BATCH, state.items.length)
       const batch = state.items.slice(state.next, to)
-      const shown: Array<Question & { seq: number; key: string }> =
-        await ctx.runQuery(internal.agent.store.questionsAt, {
-          runId,
-          seqs: batch.map((item) => item.seqs[0] ?? -1),
-        })
-      const bySeq = new Map(shown.map((question) => [question.seq, question]))
+      const readings: Array<{
+        question: Question & { seq: number; key: string }
+        first: Array<Judgement>
+      }> = await ctx.runQuery(internal.agent.store.readingAt, {
+        runId,
+        seqs: batch.flatMap((item) => item.seqs),
+      })
+      const bySeq = new Map(
+        readings.map((reading) => [reading.question.seq, reading]),
+      )
       const keyed = await Promise.all(
         batch.map(async (item) => {
-          const question = bySeq.get(item.seqs[0] ?? -1)
-          return question === undefined
-            ? null
-            : { item, question, key: await questionKey(question, state.model) }
+          const asked = item.seqs
+            .map((seq) => bySeq.get(seq))
+            .filter((reading) => reading !== undefined)
+          // An item whose positions are all gone has nothing to ask.
+          const shown = asked.at(0)?.question
+          if (shown === undefined) return null
+          return {
+            item,
+            asked,
+            shown,
+            key: await questionKey(shown, state.model),
+          }
         }),
       )
       const work = keyed.filter((entry) => entry !== null)
@@ -508,18 +529,18 @@ export const escalate = internalAction({
         answer: Array<RawJudgement>
       }> = []
       let failed = 0
-      const results = await sideBySide(
+      const answered = await sideBySide(
         work,
         SIDE_BY_SIDE,
-        async ({ item, question, key }) => {
+        async ({ asked, shown, key }) => {
           let answer = stored.get(key)
           if (answer === undefined && !replay) {
             const outcome = await llmCall({
               role: 'escalation',
               system: SYSTEM,
-              user: renderQuestion(question),
+              user: renderQuestion(shown),
               schema: answerSchema,
-              maxTokens: 16000,
+              maxTokens: 8000,
               runId,
             })
             if (outcome?.entry != null) {
@@ -535,7 +556,7 @@ export const escalate = internalAction({
               events.push({
                 kind: 'escalation.failed',
                 data: {
-                  oz: question.oz,
+                  oz: shown.oz,
                   reason:
                     outcome === null
                       ? 'role off'
@@ -548,32 +569,41 @@ export const escalate = internalAction({
           }
           if (answer === undefined) {
             failed++
-            return null
+            return []
           }
-          const judgements: Array<Judgement> = verifyAnswer(
-            question,
-            withLineIds(question, answer),
-          )
-          events.push({
-            kind: 'escalated',
-            data: {
-              oz: question.oz,
-              positions: item.seqs.length,
-              confirmed: judgements.filter((j) => j.verdict === 'confirmed')
-                .length,
-              unconfirmed: judgements.filter((j) => j.verdict === 'unconfirmed')
-                .length,
-            },
+          // Each asking position against its own lines: the answer numbers
+          // the lines as they were listed, and each position lists its own.
+          const given = answer
+          return asked.map(({ question, first }) => {
+            const merged = mergeEscalated(
+              first,
+              verifyAnswer(question, withLineIds(question, given)),
+            )
+            events.push({
+              kind: 'escalated',
+              data: {
+                oz: question.oz,
+                settled: merged.filter(
+                  (line, at) =>
+                    first[at]?.verdict === 'unconfirmed' &&
+                    line.verdict !== 'unconfirmed',
+                ).length,
+                open: merged.filter((line) => line.verdict === 'unconfirmed')
+                  .length,
+              },
+            })
+            return { seq: question.seq, judgements: merged }
           })
-          return { seqs: item.seqs, judgements }
         },
       )
+      const results = answered.flat()
 
       const saved = await ctx.runMutation(internal.agent.store.saveEscalation, {
         runId,
         from: state.next,
         to,
-        results: results.filter((result) => result !== null),
+        results,
+        answered: answered.filter((group) => group.length > 0).length,
         failed: failed + (batch.length - work.length),
         cache,
         entries,

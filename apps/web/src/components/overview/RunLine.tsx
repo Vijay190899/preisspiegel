@@ -29,10 +29,14 @@ export function Reading({ run }: { run: RunSummary }) {
         {run.status === 'deciding' ? (
           t('run.deciding')
         ) : run.status === 'escalating' ? (
-          t('run.escalating', {
-            questions: formatQty(run.escalation?.questions ?? 0),
-            model: run.escalation?.model ?? '',
-          })
+          run.escalation === null ? (
+            t('run.escalating.planning')
+          ) : (
+            t('run.escalating', {
+              questions: formatQty(run.escalation.questions),
+              model: run.escalation.model,
+            })
+          )
         ) : (
           <>
             {t(

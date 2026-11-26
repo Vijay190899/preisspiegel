@@ -1,6 +1,8 @@
 /**
- * `pnpm bench:escalation [seed] [model]`: B4, whether a larger model earns
- * its cost on the questions the matcher could not settle.
+ * `pnpm bench:escalation <seed> <model>`: B4, whether a larger model earns
+ * its cost on the questions the matcher could not settle, e.g.
+ * `pnpm bench:escalation 90200 claude-sonnet-5-5`. The model is named on the
+ * command line, not in code: the registry checks it like any role's model.
  *
  * A tender the pipeline has never seen is generated and loaded in place of
  * the demo, then run twice: once with the matcher alone, and once with the
@@ -15,15 +17,18 @@
  * on a new tender, and what the larger model's questions cost on top.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { generate } from '../../data/src/generate'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const backend = resolve(repoRoot, 'services/backend')
-const seed = Number(process.argv[2] ?? 90200)
-const larger = process.argv[3] ?? 'claude-sonnet-5-5'
+const seed = Number(process.argv[2])
+const larger = process.argv[3] ?? ''
+if (!Number.isInteger(seed) || larger === '') {
+  throw new Error('Usage: pnpm bench:escalation <seed> <model>')
+}
 const ROLE = 'LLM_ESCALATION_MODEL'
 const out = `b4-${seed}`
 
@@ -152,6 +157,50 @@ function arm(name: string) {
 
 const matcher = arm('matcher')
 const escalation = arm('escalation')
+
+/**
+ * What the two readings cost and took. A run whose answers all came from the
+ * cache cost nothing and says nothing about time, so when this one called no
+ * model, the figures of the run that paid for those answers are kept from
+ * the file it wrote.
+ */
+interface Paid {
+  calls: number
+  usd: number
+  seconds: number | null
+}
+interface Cost {
+  measuredAt: string
+  matcher: Paid
+  larger: Paid
+}
+const paid = (run: Paid): Paid => ({
+  calls: run.calls,
+  usd: run.usd,
+  seconds: run.seconds,
+})
+const previousPath = resolve(results, 'b4_escalation.json')
+const previous = existsSync(previousPath)
+  ? (JSON.parse(readFileSync(previousPath, 'utf8')) as {
+      generatedAt: string
+      cost?: Cost
+      matcher: { run: Paid }
+      escalation: { run: Paid }
+    })
+  : null
+const cachedOnly = matcher.run.calls === 0 && escalation.run.calls === 0
+const cost: Cost =
+  cachedOnly && previous !== null
+    ? (previous.cost ?? {
+        measuredAt: previous.generatedAt,
+        matcher: paid(previous.matcher.run),
+        larger: paid(previous.escalation.run),
+      })
+    : {
+        measuredAt: new Date().toISOString(),
+        matcher: paid(matcher.run),
+        larger: paid(escalation.run),
+      }
 const round = (value: number) => Math.round(value * 10000) / 10000
 const comparison = {
   benchmark: 'B4',
@@ -166,15 +215,14 @@ const comparison = {
   },
   matcher,
   escalation,
+  cost,
   difference: {
     review: escalation.review - matcher.review,
     autoPrecision: round(escalation.autoPrecision - matcher.autoPrecision),
     euroError: round(escalation.euroError - matcher.euroError),
     trapsCaught: escalation.trapsCaught - matcher.trapsCaught,
     queuePrecision: round(escalation.queuePrecision - matcher.queuePrecision),
-    // The second run read the matcher's answers from the cache, so its cost
-    // is the larger model's alone.
-    usd: escalation.run.usd,
+    usd: cost.larger.usd,
   },
 }
 writeFileSync(
@@ -192,6 +240,6 @@ priced without a person   ${pct(matcher.autoShare).padEnd(18)} ${pct(escalation.
 euro error                ${String(matcher.euroError).padEnd(18)} ${escalation.euroError}
 traps found               ${`${matcher.trapsCaught} of ${matcher.trapsPlanted}`.padEnd(18)} ${escalation.trapsCaught} of ${escalation.trapsPlanted}
 reviews that belong       ${pct(matcher.queuePrecision).padEnd(18)} ${pct(escalation.queuePrecision)}
-cost                      ${`$${matcher.run.usd}`.padEnd(18)} +$${escalation.run.usd} (${escalation.run.escalation?.questions ?? 0} questions, ${escalation.run.escalation?.positions ?? 0} positions)
+cost                      ${`$${cost.matcher.usd}`.padEnd(18)} +$${cost.larger.usd} (${escalation.run.escalation?.questions ?? 0} questions, ${escalation.run.escalation?.positions ?? 0} positions)
 
 Wrote bench/results/${out}/b4_escalation.json`)

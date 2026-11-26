@@ -22,6 +22,12 @@ function setup() {
 }
 type T = ReturnType<typeof setup>
 
+/**
+ * A position as the model was shown it. Every position offers its own line
+ * (`k.4`, `k.5`, ...) under the same text: positions that share a question
+ * share an answer but not their lines.
+ */
+const lineOf = (seq: number) => `k.${seq + 4}`
 const question = (seq: number) => ({
   oz: `01.00${String(seq + 1).padStart(2, '0')}`,
   seq,
@@ -30,7 +36,7 @@ const question = (seq: number) => ({
   unit: 'm',
   candidates: [
     {
-      id: 'k.4',
+      id: lineOf(seq),
       referenced: false,
       text: 'NYM-J 3x1,5 mm² Ring 100 m',
       articleNo: null,
@@ -41,10 +47,10 @@ const question = (seq: number) => ({
   key: 'matcher-key',
 })
 
-/** What the matcher left: the line unconfirmed (it was unsure). */
-const unsure = [
+/** What the matcher left on a position's line: unconfirmed (it was unsure). */
+const unsure = (seq: number) => [
   {
-    id: 'k.4',
+    id: lineOf(seq),
     verdict: 'unconfirmed' as const,
     by: 'model' as const,
     said: 'unsure' as const,
@@ -54,19 +60,29 @@ const unsure = [
     alternative: null,
   },
 ]
-const settled = [
-  { ...unsure[0], verdict: 'confirmed' as const, said: 'same' as const },
-]
+const settled = (seq: number) =>
+  unsure(seq).map((line) => ({
+    ...line,
+    verdict: 'confirmed' as const,
+    said: 'same' as const,
+  }))
 
 /**
  * A run that has read ten positions; the first two share a question whose
  * line the matcher left unconfirmed.
  */
-async function readRun(t: T, mode: 'live' | 'replay'): Promise<Id<'runs'>> {
+async function readRun(
+  t: T,
+  mode: 'live' | 'replay',
+  {
+    status = 'escalating',
+    usd = 0,
+  }: { status?: 'escalating' | 'reading'; usd?: number } = {},
+): Promise<Id<'runs'>> {
   return t.run(async (ctx) => {
     const runId = await ctx.db.insert('runs', {
       tenderSlug: 'demo',
-      status: 'escalating',
+      status,
       model: 'claude-haiku-5-5',
       mode,
       startedAt: 1,
@@ -77,7 +93,7 @@ async function readRun(t: T, mode: 'live' | 'replay'): Promise<Id<'runs'>> {
       calls: 0,
       cached: 0,
       failed: 0,
-      usd: 0,
+      usd,
       auto: null,
       review: null,
       materialTotal: null,
@@ -93,7 +109,7 @@ async function readRun(t: T, mode: 'live' | 'replay'): Promise<Id<'runs'>> {
         oz: shown.oz,
         seq,
         source: 'model',
-        judgements: seq < 2 ? unsure : settled,
+        judgements: seq < 2 ? unsure(seq) : settled(seq),
       })
     }
     return runId
@@ -132,6 +148,16 @@ async function storeLargerAnswer(t: T) {
   )
 }
 
+const judgementsOf = (t: T, runId: Id<'runs'>) =>
+  t.run((ctx) =>
+    ctx.db
+      .query('judgements')
+      .withIndex('by_runId_and_seq', (q) => q.eq('runId', runId).lt('seq', 3))
+      .collect(),
+  )
+const runOf = (t: T, runId: Id<'runs'>) =>
+  t.run((ctx) => ctx.db.get('runs', runId))
+
 beforeEach(() => {
   vi.useFakeTimers()
 })
@@ -140,13 +166,30 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
+describe('after reading', () => {
+  it('goes on to the second reading when the role has a model', async () => {
+    vi.stubEnv('LLM_ESCALATION_MODEL', LARGER)
+    const t = setup()
+    const runId = await readRun(t, 'live', { status: 'reading' })
+    await t.action(internal.agent.run.read, { runId })
+    expect((await runOf(t, runId))?.status).toBe('escalating')
+  })
+
+  it('goes straight to deciding when it has none', async () => {
+    const t = setup()
+    const runId = await readRun(t, 'live', { status: 'reading' })
+    await t.action(internal.agent.run.read, { runId })
+    expect((await runOf(t, runId))?.status).toBe('deciding')
+  })
+})
+
 describe('the second reading', () => {
   it('plans the unsettled question once, for both positions that ask it', async () => {
     vi.stubEnv('LLM_ESCALATION_MODEL', LARGER)
     const t = setup()
     const runId = await readRun(t, 'replay')
     await t.action(internal.agent.run.escalate, { runId })
-    const run = await t.run((ctx) => ctx.db.get('runs', runId))
+    const run = await runOf(t, runId)
     expect(run?.status).toBe('escalating')
     expect(run?.escalation).toMatchObject({
       model: LARGER,
@@ -157,7 +200,7 @@ describe('the second reading', () => {
     })
   })
 
-  it('puts the larger model’s verified answer in place of the first, then decides', async () => {
+  it('checks the answer against each position\u2019s own line, then decides', async () => {
     vi.stubEnv('LLM_ESCALATION_MODEL', LARGER)
     const t = setup()
     const runId = await readRun(t, 'replay')
@@ -165,20 +208,19 @@ describe('the second reading', () => {
     await t.action(internal.agent.run.escalate, { runId }) // plans
     await t.action(internal.agent.run.escalate, { runId }) // reads
 
-    const rows = await t.run((ctx) =>
-      ctx.db
-        .query('judgements')
-        .withIndex('by_runId_and_seq', (q) => q.eq('runId', runId).lt('seq', 3))
-        .collect(),
-    )
-    expect(rows.map((row) => [row.source, row.judgements[0]?.verdict])).toEqual(
-      [
-        ['escalated', 'confirmed'],
-        ['escalated', 'confirmed'],
-        ['model', 'confirmed'],
-      ],
-    )
-    const run = await t.run((ctx) => ctx.db.get('runs', runId))
+    const rows = await judgementsOf(t, runId)
+    expect(
+      rows.map((row) => [
+        row.source,
+        row.judgements[0]?.id,
+        row.judgements[0]?.verdict,
+      ]),
+    ).toEqual([
+      ['escalated', 'k.4', 'confirmed'],
+      ['escalated', 'k.5', 'confirmed'],
+      ['model', 'k.6', 'confirmed'],
+    ])
+    const run = await runOf(t, runId)
     expect(run?.status).toBe('deciding')
     // A replay calls no model: the answer came from the cache.
     expect(run?.escalation).toMatchObject({ next: 1, answered: 1, calls: 0 })
@@ -191,23 +233,53 @@ describe('the second reading', () => {
     const runId = await readRun(t, 'replay')
     await t.action(internal.agent.run.escalate, { runId })
     await t.action(internal.agent.run.escalate, { runId })
-    const first = await t.run((ctx) =>
-      ctx.db
-        .query('judgements')
-        .withIndex('by_runId_and_seq', (q) => q.eq('runId', runId).eq('seq', 0))
-        .unique(),
-    )
+    const first = (await judgementsOf(t, runId)).at(0)
     expect(first?.source).toBe('model')
-    const run = await t.run((ctx) => ctx.db.get('runs', runId))
+    expect(first?.judgements[0]?.verdict).toBe('unconfirmed')
+    const run = await runOf(t, runId)
     expect(run?.escalation).toMatchObject({ answered: 0, failed: 1 })
     expect(run?.status).toBe('deciding')
+  })
+
+  it('decides what the matcher read when the budget runs out, rather than stopping', async () => {
+    vi.stubEnv('LLM_ESCALATION_MODEL', LARGER)
+    vi.stubEnv('RUN_MAX_USD', '0.5')
+    const t = setup()
+    const runId = await readRun(t, 'live', { usd: 1 })
+    await t.action(internal.agent.run.escalate, { runId }) // plans
+    await t.action(internal.agent.run.escalate, { runId }) // over budget
+    const run = await runOf(t, runId)
+    expect(run?.status).toBe('deciding')
+    expect(run?.note).toMatch(/second reading stopped/)
+    expect(run?.escalation).toMatchObject({ next: 0, calls: 0 })
+  })
+
+  it('stores a batch once, however often its step runs', async () => {
+    vi.stubEnv('LLM_ESCALATION_MODEL', LARGER)
+    const t = setup()
+    const runId = await readRun(t, 'replay')
+    await t.action(internal.agent.run.escalate, { runId })
+    const stale = await t.mutation(internal.agent.store.saveEscalation, {
+      runId,
+      from: 5,
+      to: 6,
+      results: [{ seq: 0, judgements: settled(0) }],
+      answered: 1,
+      failed: 0,
+      cache: [],
+      entries: [],
+      events: [],
+    })
+    expect(stale).toEqual({ stored: false, done: false })
+    const first = (await judgementsOf(t, runId)).at(0)
+    expect(first?.source).toBe('model')
   })
 
   it('goes straight to deciding when the role has no model', async () => {
     const t = setup()
     const runId = await readRun(t, 'live')
     await t.action(internal.agent.run.escalate, { runId })
-    const run = await t.run((ctx) => ctx.db.get('runs', runId))
+    const run = await runOf(t, runId)
     expect(run?.status).toBe('deciding')
     expect(run?.escalation).toBeUndefined()
   })

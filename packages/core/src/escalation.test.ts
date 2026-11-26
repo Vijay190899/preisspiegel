@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { planEscalation, unsettled } from './escalation'
+import { mergeEscalated, planEscalation, unsettled } from './escalation'
 import type { ReadOutcome } from './escalation'
 
 const row = (
@@ -66,5 +66,46 @@ describe('the questions asked again', () => {
       unsettled: 0,
       capped: 0,
     })
+  })
+})
+
+describe('a position after the second reading', () => {
+  const line = (
+    id: string,
+    verdict: 'confirmed' | 'mismatch' | 'unrelated' | 'unconfirmed',
+    by: 'model' | 'code' = 'model',
+  ) => ({ id, verdict, by })
+
+  it('takes the larger model only on the lines the matcher left open', () => {
+    const first = [
+      line('a.1', 'confirmed'),
+      line('a.2', 'unconfirmed'),
+      line('k.3', 'mismatch'),
+    ]
+    const second = [
+      line('a.1', 'unconfirmed'),
+      line('a.2', 'confirmed'),
+      line('k.3', 'confirmed'),
+    ]
+    expect(mergeEscalated(first, second)).toEqual([
+      line('a.1', 'confirmed'),
+      line('a.2', 'confirmed'),
+      line('k.3', 'mismatch'),
+    ])
+  })
+
+  it('keeps the first verdict where the second has nothing on that line', () => {
+    expect(
+      mergeEscalated([line('a.2', 'unconfirmed')], [line('x.9', 'confirmed')]),
+    ).toEqual([line('a.2', 'unconfirmed')])
+  })
+
+  it('never touches a line code settled', () => {
+    expect(
+      mergeEscalated(
+        [line('e.1', 'unconfirmed', 'code')],
+        [line('e.1', 'confirmed')],
+      ),
+    ).toEqual([line('e.1', 'unconfirmed', 'code')])
   })
 })

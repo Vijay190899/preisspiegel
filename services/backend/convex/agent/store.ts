@@ -652,7 +652,7 @@ export const planEscalation = internalMutation({
       current.status !== 'escalating' ||
       current.escalation !== undefined
     ) {
-      return null
+      return false
     }
     const nextEvent = await appendEvents(ctx, runId, current.nextEvent, [
       {
@@ -680,25 +680,35 @@ export const planEscalation = internalMutation({
         usd: 0,
       },
     })
-    return null
+    return true
   },
 })
 
-/** The questions at these positions, as the model was shown them. */
-export const questionsAt = internalQuery({
+/**
+ * Each of these positions as the model was shown it, with what the first
+ * reading made of it: positions that share a question name different lines,
+ * so each is checked against its own.
+ */
+export const readingAt = internalQuery({
   args: { runId: v.id('runs'), seqs: v.array(v.number()) },
   handler: async (ctx, { runId, seqs }) => {
     const found = []
-    for (const seq of seqs.slice(0, 100)) {
+    for (const seq of seqs.slice(0, 400)) {
       const row = await ctx.db
         .query('questions')
         .withIndex('by_runId_and_seq', (q) =>
           q.eq('runId', runId).eq('seq', seq),
         )
         .unique()
-      if (row === null) continue
+      const read = await ctx.db
+        .query('judgements')
+        .withIndex('by_runId_and_seq', (q) =>
+          q.eq('runId', runId).eq('seq', seq),
+        )
+        .unique()
+      if (row === null || read === null) continue
       const { _id, _creationTime, runId: _run, ...question } = row
-      found.push(question)
+      found.push({ question, first: read.judgements })
     }
     return found
   },
@@ -715,9 +725,11 @@ export const saveEscalation = internalMutation({
     runId: v.id('runs'),
     from: v.number(),
     to: v.number(),
+    /** The merged reading of each position whose question was answered. */
     results: v.array(
-      v.object({ seqs: v.array(v.number()), judgements: v.array(judgement) }),
+      v.object({ seq: v.number(), judgements: v.array(judgement) }),
     ),
+    answered: v.number(),
     failed: v.number(),
     cache: v.array(
       v.object({
@@ -742,19 +754,17 @@ export const saveEscalation = internalMutation({
     }
 
     for (const result of args.results) {
-      for (const seq of result.seqs) {
-        const row = await ctx.db
-          .query('judgements')
-          .withIndex('by_runId_and_seq', (q) =>
-            q.eq('runId', args.runId).eq('seq', seq),
-          )
-          .unique()
-        if (row === null) continue
-        await ctx.db.patch('judgements', row._id, {
-          source: 'escalated',
-          judgements: result.judgements,
-        })
-      }
+      const row = await ctx.db
+        .query('judgements')
+        .withIndex('by_runId_and_seq', (q) =>
+          q.eq('runId', args.runId).eq('seq', result.seq),
+        )
+        .unique()
+      if (row === null) continue
+      await ctx.db.patch('judgements', row._id, {
+        source: 'escalated',
+        judgements: result.judgements,
+      })
     }
     const at = Date.now()
     for (const entry of args.cache) {
@@ -775,7 +785,7 @@ export const saveEscalation = internalMutation({
           from: args.from,
           to: args.to,
           calls: args.entries.length,
-          answered: args.results.length,
+          answered: args.answered,
           failed: args.failed,
           usd,
         },
@@ -788,7 +798,7 @@ export const saveEscalation = internalMutation({
       escalation: {
         ...state,
         next: args.to,
-        answered: state.answered + args.results.length,
+        answered: state.answered + args.answered,
         failed: state.failed + args.failed,
         calls: state.calls + args.entries.length,
         usd: state.usd + usd,
