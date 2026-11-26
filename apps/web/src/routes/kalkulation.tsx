@@ -142,12 +142,12 @@ function Costing() {
       <div className="mt-12" aria-hidden="true">
         <div className="flex h-3 gap-[3px]">
           <span
-            className="block rounded-[3px] bg-pane"
+            className="block rounded-[3px] bg-pane transition-[width] duration-200 ease-arrive"
             style={{ width: `${(material / full) * 100}%` }}
           />
           {laborDone && (
             <span
-              className="block rounded-[3px] bg-ink-3"
+              className="block rounded-[3px] bg-ink-3 transition-[width] duration-200 ease-arrive"
               style={{ width: `${(laborCost / full) * 100}%` }}
             />
           )}
@@ -174,7 +174,7 @@ function Costing() {
         </div>
       </div>
 
-      <section className="mt-20" aria-labelledby="where">
+      <section className="reveal mt-20" aria-labelledby="where">
         <h2 id="where" className="heading text-[1.75rem]">
           {t('costing.where')}
         </h2>

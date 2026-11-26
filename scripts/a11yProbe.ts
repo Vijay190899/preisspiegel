@@ -31,6 +31,13 @@ for (const view of VIEWS) {
     viewport: { width: view.width, height: view.height },
     reducedMotion: 'reduce',
   })
+  await context.addInitScript(() => {
+    try {
+      sessionStorage.setItem('preisspiegel:intro', '1')
+    } catch {
+      // Storage blocked: the opening does not play either.
+    }
+  })
   await context.addInitScript((theme) => {
     localStorage.setItem('preisspiegel:theme', theme)
   }, view.theme)

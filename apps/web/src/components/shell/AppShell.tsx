@@ -114,7 +114,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <main id="content" className="flex min-h-0 flex-1 flex-col">
-        {children}
+        {/* A page arrives when its tab is chosen; moving within a tab keeps
+            its place, so the key is the tab, not the address. */}
+        <div key={active} className="page-enter flex min-h-0 flex-1 flex-col">
+          {children}
+        </div>
       </main>
 
       <CommandPalette />

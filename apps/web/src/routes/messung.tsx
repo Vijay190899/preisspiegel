@@ -113,7 +113,7 @@ function Measured() {
         <span className="code">{filesOf(lead)}</span>
       </p>
 
-      <section className="mt-20" aria-labelledby="runs">
+      <section className="reveal mt-20" aria-labelledby="runs">
         <h2 id="runs" className="heading text-[1.75rem]">
           {t('measured.runs.title')}
         </h2>
@@ -289,7 +289,7 @@ function LaborRuns() {
     },
   ]
   return (
-    <section className="mt-20" aria-labelledby="labor-runs">
+    <section className="reveal mt-20" aria-labelledby="labor-runs">
       <h2 id="labor-runs" className="heading text-[1.75rem]">
         {t('measured.labor.title')}
       </h2>
@@ -412,7 +412,7 @@ function EscalationRun() {
     },
   ]
   return (
-    <section className="mt-20" aria-labelledby="escalation-run">
+    <section className="reveal mt-20" aria-labelledby="escalation-run">
       <h2 id="escalation-run" className="heading text-[1.75rem]">
         {t('measured.b4.title')}
       </h2>

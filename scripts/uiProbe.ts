@@ -8,7 +8,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
-import type { Page } from 'playwright'
+import type { BrowserContext, Page } from 'playwright'
 
 const base = process.env.SHOTS_BASE_URL ?? 'http://localhost:3000'
 const failures: Array<string> = []
@@ -64,12 +64,26 @@ async function open(
   await page.locator('html[data-hydrated]').waitFor({ timeout: 30_000 })
 }
 
+/**
+ * A visitor who has seen the opening in this visit: the checks below are
+ * about the app, and the opening is checked on its own at the end.
+ */
+const skipIntro = (context: BrowserContext) =>
+  context.addInitScript(() => {
+    try {
+      sessionStorage.setItem('preisspiegel:intro', '1')
+    } catch {
+      // Storage blocked: the opening does not play either.
+    }
+  })
+
 async function main(): Promise<void> {
   const browser = await chromium.launch({ channel: 'chrome' })
   try {
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
     })
+    await skipIntro(context)
     const page = await context.newPage()
     watch(page, 'desktop')
 
@@ -934,6 +948,7 @@ async function main(): Promise<void> {
       viewport: { width: 1440, height: 900 },
       reducedMotion: 'reduce',
     })
+    await skipIntro(calm)
     const calmPage = await calm.newPage()
     watch(calmPage, 'reduced motion')
     await open(calmPage, `${base}/`, { waitUntil: 'networkidle' })
@@ -959,11 +974,64 @@ async function main(): Promise<void> {
     )
     await calm.close()
 
+    console.log('Opening')
+    const fresh = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+    })
+    const freshPage = await fresh.newPage()
+    watch(freshPage, 'opening')
+    await freshPage.goto(`${base}/`, { waitUntil: 'domcontentloaded' })
+    const intro = freshPage.locator('.intro')
+    const openingAtLoad = await intro.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        display: style.display,
+        pointerEvents: style.pointerEvents,
+        hidden: element.getAttribute('aria-hidden'),
+      }
+    })
+    await freshPage.locator('html[data-hydrated]').waitFor({ timeout: 30_000 })
+    await settle(freshPage, 2600)
+    const afterwards = await intro.evaluate(
+      (element) => getComputedStyle(element).visibility,
+    )
+    await freshPage.goto(`${base}/kalkulation`, {
+      waitUntil: 'domcontentloaded',
+    })
+    const again = await intro.evaluate(
+      (element) => getComputedStyle(element).display,
+    )
+    check(
+      'the opening plays once a visit, takes no click, and lifts by itself',
+      openingAtLoad.display === 'grid' &&
+        openingAtLoad.pointerEvents === 'none' &&
+        openingAtLoad.hidden === 'true' &&
+        afterwards === 'hidden' &&
+        again === 'none',
+      { openingAtLoad, afterwards, again },
+    )
+    await fresh.close()
+    const still = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      reducedMotion: 'reduce',
+    })
+    const stillPage = await still.newPage()
+    watch(stillPage, 'opening, reduced motion')
+    await stillPage.goto(`${base}/`, { waitUntil: 'domcontentloaded' })
+    check(
+      'the opening does not play for a reader who asked for reduced motion',
+      (await stillPage
+        .locator('.intro')
+        .evaluate((element) => getComputedStyle(element).display)) === 'none',
+    )
+    await still.close()
+
     console.log('Phone')
     const phone = await browser.newContext({
       viewport: { width: 390, height: 844 },
       hasTouch: true,
     })
+    await skipIntro(phone)
     const phonePage = await phone.newPage()
     watch(phonePage, 'phone')
     await open(phonePage, `${base}/positionen`, { waitUntil: 'networkidle' })

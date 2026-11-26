@@ -20,7 +20,7 @@ function Tally({
               {row.name}
             </span>
             <span
-              className="mt-2 block h-[3px] min-w-[3px] rounded-full bg-pane"
+              className="grow mt-2 block h-[3px] min-w-[3px] rounded-full bg-pane"
               style={{ width: `${(row.count / largest) * 100}%` }}
             />
           </dt>

@@ -332,7 +332,7 @@ function Gauge({ finding }: { finding: Finding }) {
             <span className="text-ink-3">{row.label}</span>
             <span className="block h-2 rounded-[2px] bg-surface-sunken">
               <span
-                className={`block h-full rounded-[2px] ${row.tone}`}
+                className={`grow-in block h-full rounded-[2px] ${row.tone}`}
                 style={{ width: `${(row.value / full) * 100}%` }}
               />
             </span>
