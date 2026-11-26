@@ -81,7 +81,7 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 
 - Deploy the web app and a Convex cloud deployment.
 - `/bench` page, banner, showcase recording, README, docs brought up to date.
-- B4 if time allows. _Run (ADR-71): on one unseen tender the larger model cleared every error the matcher left, at nearly five times the cost; it stays off until measured on more tenders._
+- B4 if time allows. _Run on three unseen tenders (ADR-71, 72): the larger model cut the needless reviews from 7 to 1 and removed the only wrong price, for about 0.81 $ more per tender; the role stays off by default and is switched on by deployment._
 - **Gate:**
   - The public URL works in a private window in replay mode, with no model calls in the Convex logs.
   - The README is complete and CI is green.

@@ -640,20 +640,32 @@ async function main(): Promise<void> {
           .getAttribute('aria-current')) === 'page',
       { leads, firstColumn },
     )
-    // B4: the larger model's run beside the matcher's, as its file has it.
-    const b4 = JSON.parse(
-      readFileSync('bench/results/b4-90200/b4_escalation.json', 'utf8'),
-    ) as {
-      matcher: { review: number }
-      escalation: { review: number }
-      cost: { larger: { usd: number } }
+    // B4: the larger model's runs beside the matcher's, pooled as the files have them.
+    const b4Runs = [90200, 90300, 90400].map(
+      (seed) =>
+        JSON.parse(
+          readFileSync(`bench/results/b4-${seed}/b4_escalation.json`, 'utf8'),
+        ) as {
+          matcher: { review: number }
+          escalation: { review: number }
+          cost: { larger: { usd: number } }
+        },
+    )
+    const b4 = {
+      matcher: { review: b4Runs.reduce((s, r) => s + r.matcher.review, 0) },
+      escalation: {
+        review: b4Runs.reduce((s, r) => s + r.escalation.review, 0),
+      },
+      cost: {
+        larger: { usd: b4Runs.reduce((s, r) => s + r.cost.larger.usd, 0) },
+      },
     }
     const escalation = page.locator('section[aria-labelledby="escalation-run"]')
     const queueRow = (
       await escalation.locator('tbody tr').first().innerText()
     ).replace(/\s+/g, ' ')
     check(
-      'the measured page shows the larger model\u2019s run beside the matcher\u2019s, with what it cost, as its file has it',
+      'the measured page shows the larger model\u2019s runs beside the matcher\u2019s, with what they cost, as the files have them',
       queueRow.includes(` ${b4.matcher.review} `) &&
         queueRow.trim().endsWith(String(b4.escalation.review)) &&
         (await escalation.innerText()).includes(
