@@ -63,11 +63,11 @@ Root `package.json` scripts are the only entry points.
 
 Rows refer to their tender by slug (ADR-15).
 
-**Agent runtime** (`convex/agent/run.ts`, about 410 lines, no framework). A run is three kinds of step, four where the escalation role has a model, each scheduled by the one before it:
+**Agent runtime** (`convex/agent/run.ts`, about 680 lines, no framework). A run is three kinds of step, four where the escalation role has a model, each scheduled by the one before it:
 
 1. **`prepare`** works out, for every position, which lines could answer it, and stores the questions.
 2. **`read`** takes the next 30 positions, has the model read the questions nobody has answered before (eight calls side by side), checks every answer against its sources, and stores answers, new cache entries, ledger rows and events in one transaction. Then it schedules itself again.
-3. **`escalate`**, only where `LLM_ESCALATION_MODEL` is set: the questions the matcher left a line unconfirmed on (it was unsure, its quotes did not hold, or the call failed) go once more to the larger model, eight at a time, capped at a fifth of the tender's positions (`planEscalation` in core). Its answer is verified like the first and replaces it for every position that asked; where it has none, the first stays. The run's status is `escalating`, and the watchdog counts its progress. B4 measured it and it is off (ADR-71).
+3. **`escalate`**, only where `LLM_ESCALATION_MODEL` is set: the questions on which the matcher left a line unconfirmed (it was unsure, its quotes did not hold, or the call failed) go once more to the larger model, eight at a time, capped at a fifth of the tender's positions (`planEscalation` in core). Positions that share a question name different lines, so the answer is verified against each asking position's own lines, and it is taken only for the lines the matcher left unconfirmed (`mergeEscalated`); where it has no answer, the first reading stays. A budget reached here ends the second reading and the run goes on to decide what the matcher read. The run's status is `escalating`, and the watchdog counts its progress. B4 measured it on one tender; it is off until measured on more (ADR-71).
 4. **`decide`** runs the checks and the triage over everything that was read, and stores a decision per position.
 
 - A step that runs twice writes nothing the second time: storing a batch is guarded by the run's cursor.

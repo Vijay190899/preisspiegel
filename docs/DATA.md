@@ -161,23 +161,23 @@ On seed 501, run before the second fix, seven positions were priced at a valid o
 
 ## B4: a larger model
 
-Whether a larger model earns its cost on what the matcher could not settle (`pnpm bench:escalation`, ADR-71). A tender nobody had read (seed 90200) was run twice: by the matcher alone, and with `claude-sonnet-5-5` at effort `medium` reading again every question on which the matcher had left a line unconfirmed. Code checked the second answers as it checks the first. The second run took the matcher's answers from the cache, so its cost is the larger model's alone. Files: `bench/results/b4-90200/`.
+Whether a larger model earns its cost on what the matcher could not settle (`pnpm bench:escalation <seed> <model>`, ADR-71). A tender nobody had read (seed 90200) was run twice: by the matcher alone, and with `claude-sonnet-5-5` at effort `medium` reading again every question on which the matcher had left a line unconfirmed. Its answer was verified against each asking position's own lines and taken only for the lines the matcher left unconfirmed. Files: `bench/results/b4-90200/`.
 
-| Seed 90200 (1,170 positions, 111 reviews expected) | Matcher alone | With `claude-sonnet-5-5` |
-| -------------------------------------------------- | ------------- | ------------------------ |
-| Positions for a person                             | 113           | 118                      |
-| Priced without a person                            | 1,057         | 1,052                    |
-| of those, rightly so                               | 100%          | 100%                     |
-| Euro error over what was priced without a person   | 121.56 €      | 148.12 €                 |
-| Planted traps found                                | 60 of 60      | 60 of 60                 |
-| Expected reviews found                             | 111 of 111    | 111 of 111               |
-| Reviews raised that belong in the queue            | 98.2%         | 94.1%                    |
-| Model calls, cost                                  | 502, 0.24 $   | +84, +0.90 $             |
+| Seed 90200 (1,170 positions, 111 reviews expected) | Matcher alone      | With `claude-sonnet-5-5` |
+| -------------------------------------------------- | ------------------ | ------------------------ |
+| Positions for a person                             | 113                | 111                      |
+| Priced without a person                            | 1,057              | 1,059                    |
+| of those, rightly so                               | 100%               | 100%                     |
+| Euro error over what was priced without a person   | 121.56 €           | 0 €                      |
+| Planted traps found                                | 60 of 60           | 60 of 60                 |
+| Expected reviews found                             | 111 of 111         | 111 of 111               |
+| Reviews raised that belong in the queue            | 98.2%              | 100%                     |
+| Model calls, cost, time                            | 502, 0.24 $, 297 s | +84, +0.90 $, +69 s      |
 
 - 104 positions (84 distinct questions) were unsettled after the matcher; none was cut by the cap of a fifth of the tender. The larger model answered all 84.
-- Reviews that did not belong went from 2 to 7. Both runs priced one position at a wrong price, and the error in it grew. Together the two runs cost 4.7 times what the matcher alone did.
-- One tender, one run each: the direction is clear, the size is not. Nothing was tuned between the two runs; the prompt is the matcher's, written for a small model.
-- The files carry `0cc50c4-dirty`: both runs were made from the escalation code before it was committed, and it was committed as run.
+- On this tender it removed both needless reviews and the one wrong price the matcher left, so its column matches the ground truth on every position. Together the two readings cost 4.7 times what the matcher alone did.
+- One run each on one tender: it shows what a larger model can do on the matcher's leftovers, not how often. Nothing was tuned between the two runs; the prompt is the matcher's.
+- The answers were paid for in a first run on 2026-11-26 whose escalation step had a fault: it checked a shared question's answer against the first asking position's lines and copied the result to the others, which made the larger model look worse (118 for a person, 148.12 €). The audit found it; the step was fixed and both arms were scored again from the stored answers, calling no model. The file keeps the paid run's calls, cost and time under `cost`.
 
 ## Labor
 
