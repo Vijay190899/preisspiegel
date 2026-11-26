@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/github/license/Vijay190899/preisspiegel)](LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/Vijay190899/preisspiegel)](https://github.com/Vijay190899/preisspiegel/commits/main)
 [![Live demo](https://img.shields.io/badge/live%20demo-preis--spiegel.vercel.app-E39A2E)](https://preis-spiegel.vercel.app)
-[![Benchmarks](https://img.shields.io/badge/benchmarks-B1%20%C2%B7%20B2%20%C2%B7%20B3%20%C2%B7%20B5-2E7D5B)](https://preis-spiegel.vercel.app/messung)
+[![Benchmarks](https://img.shields.io/badge/benchmarks-B1%20%C2%B7%20B2%20%C2%B7%20B3%20%C2%B7%20B4%20%C2%B7%20B5-2E7D5B)](https://preis-spiegel.vercel.app/messung)
 
 **Live demo: [preis-spiegel.vercel.app](https://preis-spiegel.vercel.app).** Visitors can read the tender again from the model's stored answers, which runs the real checks and decisions and calls no model; a run in which the model reads needs the owner's access code. Decisions you make are kept for your browser only. German first, English with the DE/EN switch.
 
@@ -55,7 +55,7 @@ The prompt and the checks were worked on while looking at the demo tender, so th
 - One run is one tender. With flawless reading and no model (`pnpm bench:seeds`), the checks agree with the ground truth on every position of **1,021 of 1,046** further unseen tenders (97.6%), price a position that needed a person on 2.2% of them and miss a planted trap on 4.8%. Those figures pool two ranges run here with four an independent audit chose; the first range run here alone gave 198 of 200, the best of the six.
 - **B5, labor,** has its own runs: the first and unseen column are the demo tender's first labor pass and seed 504, read once after the one change to the labor instructions; seed 503, read before that change, came to 97.6%. A labor pass costs about 5 to 7 cents. [DATA](docs/DATA.md#labor) has them.
 - [docs/DATA.md](docs/DATA.md#what-the-benchmarks-show) has the full table, all three unseen runs, what the two audits found, and the failures written up.
-- B4 (matcher alone against matcher plus a larger model) is not run. All three errors on the unseen tender start in the model's answer, so a larger model might fix them; trying it on those positions would cost a few cents and has not been done.
+- **B4, a larger model,** was run on a further unseen tender (seed 90200): the matcher alone, then the same tender with `claude-sonnet-5-5` reading again the 84 questions (104 positions) the matcher could not settle. It made things slightly worse: the review queue grew from 113 to 118 (111 expected), the euro error from 121.56 € to 148.12 €, and the share of raised reviews that belonged fell from 98.2% to 94.1%, for 0.90 $ on top of the matcher's 0.24 $. Escalation stays off (ADR-71). The matcher's run alone is one more unseen tender: 1,057 of 1,170 priced without a person, all rightly, 60 of 60 traps, 111 of 111 expected reviews found.
 
 ## Architecture
 

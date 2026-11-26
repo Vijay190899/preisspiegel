@@ -159,6 +159,26 @@ On seed 501, run before the second fix, seven positions were priced at a valid o
 - **B3 covers what the readers took from the files:** quantity, price, price unit, list price, discount and total of every offer line, and every position's quantity. A rectangle has to hold the number and nothing else. It is the same for any run. Figures worked out from those (a price per metre from a price per 100 m, a total for the tender's quantity, the euros at stake) are not covered, and neither are the values the model compared.
 - **Labor is a pass of its own** (B5, below): a run prices material, and the labor pass ties each position to an entry of the labor time table.
 
+## B4: a larger model
+
+Whether a larger model earns its cost on what the matcher could not settle (`pnpm bench:escalation`, ADR-71). A tender nobody had read (seed 90200) was run twice: by the matcher alone, and with `claude-sonnet-5-5` at effort `medium` reading again every question on which the matcher had left a line unconfirmed. Code checked the second answers as it checks the first. The second run took the matcher's answers from the cache, so its cost is the larger model's alone. Files: `bench/results/b4-90200/`.
+
+| Seed 90200 (1,170 positions, 111 reviews expected) | Matcher alone | With `claude-sonnet-5-5` |
+| -------------------------------------------------- | ------------- | ------------------------ |
+| Positions for a person                             | 113           | 118                      |
+| Priced without a person                            | 1,057         | 1,052                    |
+| of those, rightly so                               | 100%          | 100%                     |
+| Euro error over what was priced without a person   | 121.56 €      | 148.12 €                 |
+| Planted traps found                                | 60 of 60      | 60 of 60                 |
+| Expected reviews found                             | 111 of 111    | 111 of 111               |
+| Reviews raised that belong in the queue            | 98.2%         | 94.1%                    |
+| Model calls, cost                                  | 502, 0.24 $   | +84, +0.90 $             |
+
+- 104 positions (84 distinct questions) were unsettled after the matcher; none was cut by the cap of a fifth of the tender. The larger model answered all 84.
+- Reviews that did not belong went from 2 to 7. Both runs priced one position at a wrong price, and the error in it grew. Together the two runs cost 4.7 times what the matcher alone did.
+- One tender, one run each: the direction is clear, the size is not. Nothing was tuned between the two runs; the prompt is the matcher's, written for a small model.
+- The files carry `0cc50c4-dirty`: both runs were made from the escalation code before it was committed, and it was committed as run.
+
 ## Labor
 
 Every position is tied to one entry of the contractor's labor time table (`zeitwerte.json`, 44 entries in minutes per unit, invented), or to none where the work is not timed by the table (hourly work, site setup, documentation). The model proposes the entry and quotes the position; code checks that the entry exists, that the quote stands in the position at word boundaries, that the units agree, and, where the entry's label states a size or a count ("bis 2,5 mm²", "über 250 A", "1-polig"), that the position states one that fits. The size is read by code, from the words the model quoted or, if it quoted none, from the position's short text and then its long text. The minutes come from the table; hours and money are worked out from them at an hourly rate of 62 EUR, also invented. The ground truth has the entry each catalogue item takes (`laborKey`). `pnpm bench:labor` scores a pass and writes `bench/results/b5_labor.json`.
