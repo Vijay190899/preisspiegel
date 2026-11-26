@@ -435,7 +435,9 @@ function EscalationRun() {
                 >
                   {column}
                   <span className="caption block font-normal">
-                    {t('measured.seed', { seed: run.seed })}
+                    {t('measured.b4.seeds', {
+                      seeds: run.seeds.join(', '),
+                    })}
                   </span>
                 </th>
               ))}
@@ -461,10 +463,15 @@ function EscalationRun() {
             <tr>
               <th scope="row">{t('measured.row.file')}</th>
               <td colSpan={2}>
-                <span className="code">{run.file}</span>
-                <span className="caption block">
-                  {run.sides[0]?.gitSha}, {formatDate(run.date)}
-                </span>
+                {run.files.map((entry) => (
+                  <span key={entry.file} className="block">
+                    <span className="code">{entry.file}</span>
+                    <span className="caption">
+                      {' '}
+                      {entry.gitSha}, {formatDate(entry.date)}
+                    </span>
+                  </span>
+                ))}
               </td>
             </tr>
           </tfoot>

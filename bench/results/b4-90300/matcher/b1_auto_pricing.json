@@ -1,0 +1,55 @@
+{
+  "benchmark": "B1",
+  "question": "How much of the tender is priced without a person, and is that part right?",
+  "generatedAt": "2026-11-26T16:10:53.118Z",
+  "gitSha": "675fb34",
+  "seed": 90300,
+  "n": 1170,
+  "offerLines": 1729,
+  "provider": "openrouter",
+  "models": {
+    "match": "claude-haiku-5-5",
+    "escalation": null
+  },
+  "run": {
+    "id": "kh71xh40spnj3k27my8md8v1tx8jzmdd",
+    "calls": 520,
+    "answeredFromCache": 605,
+    "failed": 0,
+    "usd": 0.2537,
+    "escalation": null,
+    "seconds": 309
+  },
+  "expected": {
+    "auto": 1082,
+    "review": 88
+  },
+  "result": {
+    "positions": 1170,
+    "auto": 1077,
+    "autoShare": 0.9205,
+    "autoCorrect": 1077,
+    "autoPrecision": 1,
+    "autoAtRightPrice": 1077,
+    "euroError": 0,
+    "euroAuto": 746700.91
+  },
+  "references": {
+    "noReader": {
+      "autoShare": 0.8581,
+      "autoPrecision": 0.9671,
+      "euroError": 48442.98,
+      "trapsCaught": 39,
+      "queueRecall": 0.625,
+      "queuePrecision": 0.3313
+    },
+    "perfectReader": {
+      "autoShare": 0.9248,
+      "autoPrecision": 1,
+      "euroError": 0,
+      "trapsCaught": 60,
+      "queueRecall": 1,
+      "queuePrecision": 1
+    }
+  }
+}

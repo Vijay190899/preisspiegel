@@ -65,8 +65,9 @@ const de = {
   'measured.labor.title': 'Montagezeiten',
   'measured.b4.title': 'Ein größeres Modell',
   'measured.b4.body':
-    'Was das erste Modell nicht klären konnte, liest ein größeres noch einmal, und der Code prüft dessen Antwort für jede Position an ihren eigenen Zeilen. Gemessen auf einer neuen Ausschreibung, einmal ohne und einmal mit dem größeren Modell: Es räumte jeden Fehler aus, den das erste übrig ließ, und zusammen kostet es fast das Fünffache. Eine Ausschreibung ist zu wenig, um es einzuschalten; es bleibt aus, bis es auf weiteren gemessen ist.',
+    'Was das erste Modell nicht klären konnte, liest ein größeres noch einmal, und der Code prüft dessen Antwort für jede Position an ihren eigenen Zeilen. Gemessen auf drei neuen Ausschreibungen, je einmal ohne und einmal mit dem größeren Modell: Es räumte fast alle unnötigen Prüfungen und den einzigen falschen Preis aus, fand jede Falle an ihrer Zeile und machte keine Entscheidung schlechter. Zusammen kostet es gut das Vierfache.',
   'measured.b4.alone': 'Erstes Modell allein',
+  'measured.b4.seeds': 'Seeds {seeds}',
   'measured.b4.with': 'Mit {model}',
   'measured.b4.row.queue': 'Positionen für eine Person (erwartet {expected})',
   'measured.b4.row.cost': 'Kosten',
@@ -430,8 +431,9 @@ const en: Record<MessageKey, string> = {
   'measured.labor.title': 'Labor times',
   'measured.b4.title': 'A larger model',
   'measured.b4.body':
-    'What the first model could not settle, a larger one reads again, and code checks its answer for each item against that item\u2019s own lines. Measured on a new tender, once without and once with the larger model: it cleared every error the first one left, and together it costs nearly five times as much. One tender is too little to switch it on; it stays off until it is measured on more.',
+    'What the first model could not settle, a larger one reads again, and code checks its answer for each item against that item\u2019s own lines. Measured on three new tenders, each once without and once with the larger model: it cleared nearly all needless reviews and the only wrong price, found every trap on its line, and made no decision worse. Together it costs a little over four times as much.',
   'measured.b4.alone': 'First model alone',
+  'measured.b4.seeds': 'Seeds {seeds}',
   'measured.b4.with': 'With {model}',
   'measured.b4.row.queue': 'Items for a person ({expected} expected)',
   'measured.b4.row.cost': 'Cost',

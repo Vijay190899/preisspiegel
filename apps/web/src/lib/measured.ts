@@ -25,7 +25,9 @@ import laborFirst from '../../../../bench/results/labor-first/b5_labor.json'
 import laborNow from '../../../../bench/results/b5_labor.json'
 import labor503 from '../../../../bench/results/heldout-labor-503/b5_labor.json'
 import labor504 from '../../../../bench/results/heldout-labor-504/b5_labor.json'
-import b4 from '../../../../bench/results/b4-90200/b4_escalation.json'
+import b4a from '../../../../bench/results/b4-90200/b4_escalation.json'
+import b4b from '../../../../bench/results/b4-90300/b4_escalation.json'
+import b4c from '../../../../bench/results/b4-90400/b4_escalation.json'
 
 export type TrapKind =
   | 'SPEC_MISMATCH'
@@ -276,33 +278,55 @@ export const laborFileOf = (run: LaborRun): string =>
   `bench/results/${run.folder === '' ? '' : `${run.folder}/`}b5_labor.json`
 
 /**
- * B4: the same unseen tender read by the matcher alone, and with the larger
- * model reading again what the matcher could not settle.
+ * B4: unseen tenders read by the matcher alone, and with the larger model
+ * reading again what the matcher could not settle. Three runs of each,
+ * pooled; cost and calls come from the runs that paid for the answers
+ * (`cost` in each file), since a re-score from the cache costs nothing.
  */
+const B4_RUNS = [
+  { file: 'bench/results/b4-90200/b4_escalation.json', run: b4a },
+  { file: 'bench/results/b4-90300/b4_escalation.json', run: b4b },
+  { file: 'bench/results/b4-90400/b4_escalation.json', run: b4c },
+]
+const sum = (values: ReadonlyArray<number>) =>
+  values.reduce((total, value) => total + value, 0)
+
+function pooledSide(side: 'matcher' | 'escalation') {
+  const arms = B4_RUNS.map(({ run }) => ({
+    arm: run[side],
+    paid: side === 'matcher' ? run.cost.matcher : run.cost.larger,
+  }))
+  const auto = sum(arms.map(({ arm }) => arm.auto))
+  const review = sum(arms.map(({ arm }) => arm.review))
+  return {
+    review,
+    auto,
+    autoPrecision:
+      sum(arms.map(({ arm }) => arm.autoPrecision * arm.auto)) / auto,
+    euroError: sum(arms.map(({ arm }) => arm.euroError)),
+    trapsCaught: sum(arms.map(({ arm }) => arm.trapsCaught)),
+    trapsPlanted: sum(arms.map(({ arm }) => arm.trapsPlanted)),
+    queuePrecision: sum(arms.map(({ arm }) => arm.reviewFound)) / review,
+    usd: sum(arms.map(({ paid }) => paid.usd)),
+    calls: sum(arms.map(({ paid }) => paid.calls)),
+  }
+}
+
 export const ESCALATION = {
-  seed: b4.seed,
-  n: b4.n,
-  expectedReview: b4.expected.review,
-  file: 'bench/results/b4-90200/b4_escalation.json',
-  date: b4.generatedAt.slice(0, 10),
-  model: b4.escalation.models.escalation,
-  questions: b4.escalation.run.escalation.questions,
-  positions: b4.escalation.run.escalation.positions,
-  // Cost and calls come from the run that paid for the answers (`cost`); a
-  // re-score from the cache calls no model and costs nothing.
-  sides: [
-    { ...b4.matcher, paid: b4.cost.matcher },
-    { ...b4.escalation, paid: b4.cost.larger },
-  ].map((side) => ({
-    review: side.review,
-    auto: side.auto,
-    autoPrecision: side.autoPrecision,
-    euroError: side.euroError,
-    trapsCaught: side.trapsCaught,
-    trapsPlanted: side.trapsPlanted,
-    queuePrecision: side.queuePrecision,
-    usd: side.paid.usd,
-    calls: side.paid.calls,
-    gitSha: side.gitSha,
+  seeds: B4_RUNS.map(({ run }) => run.seed),
+  n: sum(B4_RUNS.map(({ run }) => run.n)),
+  expectedReview: sum(B4_RUNS.map(({ run }) => run.expected.review)),
+  files: B4_RUNS.map(({ file, run }) => ({
+    file,
+    gitSha: run.escalation.gitSha,
+    date: run.generatedAt.slice(0, 10),
   })),
+  model: b4a.escalation.models.escalation,
+  questions: sum(
+    B4_RUNS.map(({ run }) => run.escalation.run.escalation.questions),
+  ),
+  positions: sum(
+    B4_RUNS.map(({ run }) => run.escalation.run.escalation.positions),
+  ),
+  sides: [pooledSide('matcher'), pooledSide('escalation')],
 }

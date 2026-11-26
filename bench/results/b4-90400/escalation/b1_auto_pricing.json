@@ -1,0 +1,64 @@
+{
+  "benchmark": "B1",
+  "question": "How much of the tender is priced without a person, and is that part right?",
+  "generatedAt": "2026-11-26T16:34:29.525Z",
+  "gitSha": "beb0c2a",
+  "seed": 90400,
+  "n": 1170,
+  "offerLines": 1700,
+  "provider": "openrouter",
+  "models": {
+    "match": "claude-haiku-5-5",
+    "escalation": "claude-sonnet-5-5"
+  },
+  "run": {
+    "id": "kh7chvvcn06b83axe4na5j7zw18jygzs",
+    "calls": 60,
+    "answeredFromCache": 1135,
+    "failed": 0,
+    "usd": 0.6238,
+    "escalation": {
+      "questions": 85,
+      "positions": 103,
+      "unsettled": 103,
+      "capped": 0,
+      "answered": 85,
+      "failed": 0,
+      "calls": 60,
+      "usd": 0.6238
+    },
+    "seconds": 65
+  },
+  "expected": {
+    "auto": 1080,
+    "review": 90
+  },
+  "result": {
+    "positions": 1170,
+    "auto": 1080,
+    "autoShare": 0.9231,
+    "autoCorrect": 1080,
+    "autoPrecision": 1,
+    "autoAtRightPrice": 1080,
+    "euroError": 0,
+    "euroAuto": 764264.18
+  },
+  "references": {
+    "noReader": {
+      "autoShare": 0.8419,
+      "autoPrecision": 0.9706,
+      "euroError": 39625.94,
+      "trapsCaught": 37,
+      "queueRecall": 0.6778,
+      "queuePrecision": 0.3297
+    },
+    "perfectReader": {
+      "autoShare": 0.9231,
+      "autoPrecision": 1,
+      "euroError": 0,
+      "trapsCaught": 60,
+      "queueRecall": 1,
+      "queuePrecision": 1
+    }
+  }
+}
