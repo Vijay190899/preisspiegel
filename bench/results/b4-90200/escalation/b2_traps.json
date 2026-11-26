@@ -1,0 +1,217 @@
+{
+  "benchmark": "B2",
+  "question": "Was each planted trap found on its line, and does the review queue hold what it should?",
+  "generatedAt": "2026-11-26T15:17:28.506Z",
+  "gitSha": "0cc50c4-dirty",
+  "seed": 90200,
+  "n": 1170,
+  "offerLines": 1705,
+  "provider": "openrouter",
+  "models": {
+    "match": "claude-haiku-5-5",
+    "escalation": "claude-sonnet-5-5"
+  },
+  "run": {
+    "id": "kh74f2apb1a1pb6ekg2qs9wj618jznxf",
+    "calls": 84,
+    "answeredFromCache": 1103,
+    "failed": 0,
+    "usd": 0.8991,
+    "escalation": {
+      "questions": 84,
+      "positions": 104,
+      "unsettled": 104,
+      "capped": 0,
+      "answered": 84,
+      "failed": 0,
+      "calls": 84,
+      "usd": 0.8991
+    },
+    "seconds": 69
+  },
+  "result": {
+    "traps": {
+      "SPEC_MISMATCH": {
+        "planted": 12,
+        "caught": 12
+      },
+      "UNIT_BASIS": {
+        "planted": 8,
+        "caught": 8
+      },
+      "PRICE_OUTLIER": {
+        "planted": 8,
+        "caught": 8
+      },
+      "QTY_MISMATCH": {
+        "planted": 8,
+        "caught": 8
+      },
+      "ALTERNATIVE_PRODUCT": {
+        "planted": 8,
+        "caught": 8
+      },
+      "NO_OFFER": {
+        "planted": 8,
+        "caught": 8
+      },
+      "AMBIGUOUS": {
+        "planted": 4,
+        "caught": 4
+      },
+      "ARITHMETIC": {
+        "planted": 4,
+        "caught": 4
+      }
+    },
+    "trapsPlanted": 60,
+    "trapsCaught": 60,
+    "reviewExpected": 111,
+    "reviewFound": 111,
+    "reviewFoundForReason": 111,
+    "queueRecall": 1,
+    "reviewRaised": 118,
+    "queuePrecision": 0.9407
+  },
+  "references": {
+    "noReader": {
+      "traps": {
+        "SPEC_MISMATCH": {
+          "planted": 12,
+          "caught": 0
+        },
+        "UNIT_BASIS": {
+          "planted": 8,
+          "caught": 8
+        },
+        "PRICE_OUTLIER": {
+          "planted": 8,
+          "caught": 6
+        },
+        "QTY_MISMATCH": {
+          "planted": 8,
+          "caught": 8
+        },
+        "ALTERNATIVE_PRODUCT": {
+          "planted": 8,
+          "caught": 1
+        },
+        "NO_OFFER": {
+          "planted": 8,
+          "caught": 8
+        },
+        "AMBIGUOUS": {
+          "planted": 4,
+          "caught": 4
+        },
+        "ARITHMETIC": {
+          "planted": 4,
+          "caught": 3
+        }
+      },
+      "trapsCaught": 38
+    },
+    "perfectReader": {
+      "traps": {
+        "SPEC_MISMATCH": {
+          "planted": 12,
+          "caught": 12
+        },
+        "UNIT_BASIS": {
+          "planted": 8,
+          "caught": 8
+        },
+        "PRICE_OUTLIER": {
+          "planted": 8,
+          "caught": 8
+        },
+        "QTY_MISMATCH": {
+          "planted": 8,
+          "caught": 8
+        },
+        "ALTERNATIVE_PRODUCT": {
+          "planted": 8,
+          "caught": 8
+        },
+        "NO_OFFER": {
+          "planted": 8,
+          "caught": 8
+        },
+        "AMBIGUOUS": {
+          "planted": 4,
+          "caught": 4
+        },
+        "ARITHMETIC": {
+          "planted": 4,
+          "caught": 4
+        }
+      },
+      "trapsCaught": 60
+    }
+  },
+  "disagreements": [
+    {
+      "oz": "06.02.0050",
+      "expected": "auto",
+      "got": "review",
+      "expectedReasons": [],
+      "gotReasons": [
+        "QTY_MISMATCH"
+      ]
+    },
+    {
+      "oz": "06.03.0050",
+      "expected": "auto",
+      "got": "review",
+      "expectedReasons": [],
+      "gotReasons": [
+        "QTY_MISMATCH"
+      ]
+    },
+    {
+      "oz": "06.05.0040",
+      "expected": "auto",
+      "got": "review",
+      "expectedReasons": [],
+      "gotReasons": [
+        "QTY_MISMATCH"
+      ]
+    },
+    {
+      "oz": "06.05.0050",
+      "expected": "auto",
+      "got": "review",
+      "expectedReasons": [],
+      "gotReasons": [
+        "QTY_MISMATCH"
+      ]
+    },
+    {
+      "oz": "06.06.0010",
+      "expected": "auto",
+      "got": "review",
+      "expectedReasons": [],
+      "gotReasons": [
+        "QTY_MISMATCH"
+      ]
+    },
+    {
+      "oz": "06.07.0130",
+      "expected": "auto",
+      "got": "review",
+      "expectedReasons": [],
+      "gotReasons": [
+        "QTY_MISMATCH"
+      ]
+    },
+    {
+      "oz": "07.05.0210",
+      "expected": "auto",
+      "got": "review",
+      "expectedReasons": [],
+      "gotReasons": [
+        "QTY_MISMATCH"
+      ]
+    }
+  ]
+}
