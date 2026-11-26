@@ -309,6 +309,9 @@ export default defineSchema({
     status: v.union(
       v.literal('preparing'),
       v.literal('reading'),
+      // The questions the matcher could not settle, read again by the
+      // escalation model (agent/run.ts). Only when that role is switched on.
+      v.literal('escalating'),
       v.literal('deciding'),
       v.literal('done'),
       v.literal('stopped'),
@@ -349,6 +352,26 @@ export default defineSchema({
     wins: v.optional(v.record(v.string(), v.number())),
     /** Why a run stopped or failed. */
     note: v.union(v.string(), v.null()),
+    /**
+     * The second reading, where the escalation role is on: which questions,
+     * how far it got and what it cost. Its calls and dollars are also in the
+     * run's own totals.
+     */
+    escalation: v.optional(
+      v.object({
+        model: v.string(),
+        items: v.array(
+          v.object({ key: v.string(), seqs: v.array(v.number()) }),
+        ),
+        unsettled: v.number(),
+        capped: v.number(),
+        next: v.number(),
+        answered: v.number(),
+        failed: v.number(),
+        calls: v.number(),
+        usd: v.number(),
+      }),
+    ),
   }).index('by_tenderSlug_and_startedAt', ['tenderSlug', 'startedAt']),
 
   // What happened in a run, in order. Append-only. The interface shows a run
@@ -386,6 +409,8 @@ export default defineSchema({
       v.literal('cache'),
       v.literal('code'),
       v.literal('failed'),
+      // Read again by the escalation model, whose answer replaced the first.
+      v.literal('escalated'),
     ),
     judgements: v.array(judgement),
   }).index('by_runId_and_seq', ['runId', 'seq']),

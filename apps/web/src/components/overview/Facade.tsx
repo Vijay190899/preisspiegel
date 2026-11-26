@@ -13,7 +13,7 @@ import {
 } from '~/lib/facade'
 import { formatQty } from '~/lib/format'
 import { useT } from '~/lib/i18n'
-import { positionsQuery } from '~/lib/queries'
+import { positionNamesQuery } from '~/lib/queries'
 import { useTenderText } from '~/lib/tenderText'
 import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react'
 import type {
@@ -133,9 +133,16 @@ function Elevation({
     index: number
     by: 'pointer' | 'touch' | 'keys'
   } | null>(null)
-  // The words for a window come from the list of positions, which is not
-  // needed to draw the building and loads beside it.
-  const { data: rows } = useQuery(positionsQuery)
+  // The words for a window: each position's number and short text, sent
+  // with the page (the overview's loader), so a window can be opened at once.
+  const { data: names } = useQuery(positionNamesQuery)
+  const rowAt = (index: number) => {
+    const oz = names?.oz[index]
+    const shortText = names?.shortText[index]
+    return oz === undefined || shortText === undefined
+      ? undefined
+      : { oz, shortText }
+  }
 
   const layout = useMemo(() => layoutFacade(input, shape), [input, shape])
   const placed = useMemo(() => place(input), [input])
@@ -180,7 +187,7 @@ function Elevation({
 
   const pane = chosen === null ? undefined : layout.panes[chosen.index]
   const spot = pane === undefined ? undefined : placed[pane.index]
-  const row = pane === undefined ? undefined : rows?.[pane.index]
+  const row = pane === undefined ? undefined : rowAt(pane.index)
   const state = pane === undefined ? undefined : states[pane.index]
 
   const under = (event: PointerEvent<SVGSVGElement>): Pane | null => {
@@ -197,7 +204,7 @@ function Elevation({
   }
 
   const open = (index: number) => {
-    const oz = rows?.[index]?.oz
+    const oz = rowAt(index)?.oz
     if (oz === undefined) return
     void navigate({ to: '/positionen/$oz', params: { oz } })
   }

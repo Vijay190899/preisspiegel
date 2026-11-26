@@ -22,6 +22,7 @@ import { useDecisions } from '~/lib/useDecisions'
 import { useStartRun } from '~/lib/useRun'
 import {
   offers,
+  positionNamesQuery,
   reviewQueueQuery,
   runQuery,
   statusesQuery,
@@ -40,6 +41,7 @@ export const Route = createFileRoute('/')({
       context.queryClient.ensureQueryData(runQuery),
       context.queryClient.ensureQueryData(statusesQuery),
       context.queryClient.ensureQueryData(reviewQueueQuery),
+      context.queryClient.ensureQueryData(positionNamesQuery),
     ]),
   component: Overview,
 })

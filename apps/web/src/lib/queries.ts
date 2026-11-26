@@ -9,6 +9,13 @@ export const tenderQuery = convexQuery(api.tenders.get, { slug: TENDER_SLUG })
 export const positionsQuery = convexQuery(api.positions.list, {
   slug: TENDER_SLUG,
 })
+/**
+ * Every position's number and short text, in document order: what the
+ * building says about a window. Small, so the overview sends it with the page.
+ */
+export const positionNamesQuery = convexQuery(api.positions.names, {
+  slug: TENDER_SLUG,
+})
 export const positionQuery = (oz: string) =>
   convexQuery(api.positions.get, { slug: TENDER_SLUG, oz })
 

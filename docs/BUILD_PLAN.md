@@ -54,7 +54,7 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 - The design system (now "Weidenufer", ADR-42), the overview as the front of the building with one window per position, the positions workspace, the source of every number, ⌘K jump, `pnpm probe:ui`.
 - With the run's results: the split and the euros at stake on the overview, with every window lit or red; the review queue, the costliest decision first, stepped through with J and K; the decision on each position with what it is worth; findings in words on the offer they concern, with the arithmetic; what was compared, per offer; the run's state, live.
 
-**Moved to M3:** labor and the copper surcharge (ADR-40); starting a run from the interface (ADR-39). **Not run:** B4 (ADR-41).
+**Moved to M3:** labor and the copper surcharge (ADR-40); starting a run from the interface (ADR-39). **Not run at M2:** B4 (ADR-41); run at M4 (ADR-71).
 
 - **Gate:**
   - A full run completes on the default model inside the budget. _Done: the first full run made 787 calls for $0.37, the unseen runs 731 for $0.34, 642 for $0.29 and 503 for $0.24; limit $1.50._
@@ -81,7 +81,7 @@ Every milestone ends with an independent audit before its gate is reported (ADR-
 
 - Deploy the web app and a Convex cloud deployment.
 - `/bench` page, banner, showcase recording, README, docs brought up to date.
-- B4 if time allows.
+- B4 if time allows. _Run (ADR-71): on one unseen tender the larger model cleared every error the matcher left, at nearly five times the cost; it stays off until measured on more tenders._
 - **Gate:**
   - The public URL works in a private window in replay mode, with no model calls in the Convex logs.
   - The README is complete and CI is green.

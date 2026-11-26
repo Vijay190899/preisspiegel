@@ -58,6 +58,22 @@ const summary = (run: Doc<'runs'>) => ({
   atRisk: run.atRisk,
   wins: run.wins ?? {},
   note: run.note,
+  escalation:
+    run.escalation === undefined
+      ? null
+      : {
+          model: run.escalation.model,
+          questions: run.escalation.items.length,
+          positions: run.escalation.items.reduce(
+            (sum, item) => sum + item.seqs.length,
+            0,
+          ),
+          read: run.escalation.next,
+          answered: run.escalation.answered,
+          capped: run.escalation.capped,
+          calls: run.escalation.calls,
+          usd: run.escalation.usd,
+        },
 })
 
 /** The newest run and the newest finished one, which may be the same. */

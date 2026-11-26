@@ -159,6 +159,26 @@ On seed 501, run before the second fix, seven positions were priced at a valid o
 - **B3 covers what the readers took from the files:** quantity, price, price unit, list price, discount and total of every offer line, and every position's quantity. A rectangle has to hold the number and nothing else. It is the same for any run. Figures worked out from those (a price per metre from a price per 100 m, a total for the tender's quantity, the euros at stake) are not covered, and neither are the values the model compared.
 - **Labor is a pass of its own** (B5, below): a run prices material, and the labor pass ties each position to an entry of the labor time table.
 
+## B4: a larger model
+
+Whether a larger model earns its cost on what the matcher could not settle (`pnpm bench:escalation <seed> <model>`, ADR-71). A tender nobody had read (seed 90200) was run twice: by the matcher alone, and with `claude-sonnet-5-5` at effort `medium` reading again every question on which the matcher had left a line unconfirmed. Its answer was verified against each asking position's own lines and taken only for the lines the matcher left unconfirmed. Files: `bench/results/b4-90200/`.
+
+| Seed 90200 (1,170 positions, 111 reviews expected) | Matcher alone      | With `claude-sonnet-5-5` |
+| -------------------------------------------------- | ------------------ | ------------------------ |
+| Positions for a person                             | 113                | 111                      |
+| Priced without a person                            | 1,057              | 1,059                    |
+| of those, rightly so                               | 100%               | 100%                     |
+| Euro error over what was priced without a person   | 121.56 €           | 0 €                      |
+| Planted traps found                                | 60 of 60           | 60 of 60                 |
+| Expected reviews found                             | 111 of 111         | 111 of 111               |
+| Reviews raised that belong in the queue            | 98.2%              | 100%                     |
+| Model calls, cost, time                            | 502, 0.24 $, 297 s | +84, +0.90 $, +69 s      |
+
+- 104 positions (84 distinct questions) were unsettled after the matcher; none was cut by the cap of a fifth of the tender. The larger model answered all 84.
+- On this tender it removed both needless reviews and the one wrong price the matcher left, so its column matches the ground truth on every position. Together the two readings cost 4.7 times what the matcher alone did.
+- One run each on one tender: it shows what a larger model can do on the matcher's leftovers, not how often. Nothing was tuned between the two runs; the prompt is the matcher's.
+- The answers were paid for in a first run on 2026-11-26 whose escalation step had a fault: it checked a shared question's answer against the first asking position's lines and copied the result to the others, which made the larger model look worse (118 for a person, 148.12 €). The audit found it; the step was fixed and both arms were scored again from the stored answers, calling no model. The file keeps the paid run's calls, cost and time under `cost`.
+
 ## Labor
 
 Every position is tied to one entry of the contractor's labor time table (`zeitwerte.json`, 44 entries in minutes per unit, invented), or to none where the work is not timed by the table (hourly work, site setup, documentation). The model proposes the entry and quotes the position; code checks that the entry exists, that the quote stands in the position at word boundaries, that the units agree, and, where the entry's label states a size or a count ("bis 2,5 mm²", "über 250 A", "1-polig"), that the position states one that fits. The size is read by code, from the words the model quoted or, if it quoted none, from the position's short text and then its long text. The minutes come from the table; hours and money are worked out from them at an hourly rate of 62 EUR, also invented. The ground truth has the entry each catalogue item takes (`laborKey`). `pnpm bench:labor` scores a pass and writes `bench/results/b5_labor.json`.

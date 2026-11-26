@@ -27,6 +27,25 @@ export const list = query({
   },
 })
 
+/**
+ * Every position's ordinal number and short text, in document order, as two
+ * columns: what the building on the overview says about a window. A fifth of
+ * the size of `list`, so the overview can send it with the page.
+ */
+export const names = query({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    const positions = await ctx.db
+      .query('positions')
+      .withIndex('by_tenderSlug_and_seq', (q) => q.eq('tenderSlug', slug))
+      .take(MAX_POSITIONS)
+    return {
+      oz: positions.map((position) => position.oz),
+      shortText: positions.map((position) => position.shortText),
+    }
+  },
+})
+
 /** One position by its ordinal number, with the offer lines that name it. */
 export const get = query({
   args: { slug: v.string(), oz: v.string() },

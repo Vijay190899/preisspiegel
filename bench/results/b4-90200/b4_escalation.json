@@ -1,0 +1,95 @@
+{
+  "benchmark": "B4",
+  "question": "Does reading again with a larger model what the matcher could not settle shrink the review queue without hurting precision, and at what cost?",
+  "generatedAt": "2026-11-26T15:50:59.008Z",
+  "seed": 90200,
+  "n": 1170,
+  "expected": {
+    "auto": 1059,
+    "review": 111
+  },
+  "matcher": {
+    "models": {
+      "match": "claude-haiku-5-5",
+      "escalation": null
+    },
+    "review": 113,
+    "auto": 1057,
+    "autoShare": 0.9034,
+    "autoPrecision": 1,
+    "autoAtRightPrice": 1056,
+    "euroError": 121.56,
+    "trapsCaught": 60,
+    "trapsPlanted": 60,
+    "reviewFound": 111,
+    "reviewExpected": 111,
+    "queuePrecision": 0.9823,
+    "run": {
+      "id": "kh7a8y1b25qrh62fhshj4deeys8jzb2d",
+      "calls": 0,
+      "answeredFromCache": 1103,
+      "failed": 0,
+      "usd": 0,
+      "escalation": null,
+      "seconds": 3
+    },
+    "gitSha": "2289fbc"
+  },
+  "escalation": {
+    "models": {
+      "match": "claude-haiku-5-5",
+      "escalation": "claude-sonnet-5-5"
+    },
+    "review": 111,
+    "auto": 1059,
+    "autoShare": 0.9051,
+    "autoPrecision": 1,
+    "autoAtRightPrice": 1059,
+    "euroError": 0,
+    "trapsCaught": 60,
+    "trapsPlanted": 60,
+    "reviewFound": 111,
+    "reviewExpected": 111,
+    "queuePrecision": 1,
+    "run": {
+      "id": "kh783apmf6xk5g6p70780b8ss18jyeb9",
+      "calls": 0,
+      "answeredFromCache": 1103,
+      "failed": 0,
+      "usd": 0,
+      "escalation": {
+        "questions": 84,
+        "positions": 104,
+        "unsettled": 104,
+        "capped": 0,
+        "answered": 84,
+        "failed": 0,
+        "calls": 0,
+        "usd": 0
+      },
+      "seconds": 3
+    },
+    "gitSha": "2289fbc"
+  },
+  "cost": {
+    "measuredAt": "2026-11-26T15:17:33.749Z",
+    "matcher": {
+      "calls": 502,
+      "usd": 0.2399,
+      "seconds": 297
+    },
+    "larger": {
+      "calls": 84,
+      "usd": 0.8991,
+      "seconds": 69
+    }
+  },
+  "difference": {
+    "review": -2,
+    "autoPrecision": 0,
+    "euroError": -121.56,
+    "trapsCaught": 0,
+    "queuePrecision": 0.0177,
+    "usd": 0.8991
+  }
+}

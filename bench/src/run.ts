@@ -41,9 +41,14 @@ function gitSha(): string {
     encoding: 'utf8',
   }).trim()
   const dirty =
-    execFileSync('git', ['status', '--porcelain'], {
-      encoding: 'utf8',
-    }).trim() !== ''
+    // Results the benchmarks write themselves do not make the code dirty.
+    execFileSync(
+      'git',
+      ['status', '--porcelain', '--', '.', ':!bench/results'],
+      {
+        encoding: 'utf8',
+      },
+    ).trim() !== ''
   return dirty ? `${sha}-dirty` : sha
 }
 
@@ -121,13 +126,29 @@ async function main(): Promise<void> {
     n: positions.length,
     offerLines: lines.length,
     provider: process.env.LLM_PROVIDER ?? 'openrouter',
-    models: { match: run.model, escalation: null },
+    models: { match: run.model, escalation: run.escalation?.model ?? null },
     run: {
       id: run._id,
       calls: run.calls,
       answeredFromCache: run.cached,
       failed: run.failed,
       usd: Math.round(run.usd * 10000) / 10000,
+      escalation:
+        run.escalation === undefined
+          ? null
+          : {
+              questions: run.escalation.items.length,
+              positions: run.escalation.items.reduce(
+                (sum, item) => sum + item.seqs.length,
+                0,
+              ),
+              unsettled: run.escalation.unsettled,
+              capped: run.escalation.capped,
+              answered: run.escalation.answered,
+              failed: run.escalation.failed,
+              calls: run.escalation.calls,
+              usd: Math.round(run.escalation.usd * 10000) / 10000,
+            },
       seconds:
         run.finishedAt === null
           ? null

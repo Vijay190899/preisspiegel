@@ -63,6 +63,15 @@ const de = {
   'measured.row.file': 'Dateien',
   'measured.calls': '{calls} Aufrufe, {cached} aus dem Speicher, {usd} $',
   'measured.labor.title': 'Montagezeiten',
+  'measured.b4.title': 'Ein größeres Modell',
+  'measured.b4.body':
+    'Was das erste Modell nicht klären konnte, liest ein größeres noch einmal, und der Code prüft dessen Antwort für jede Position an ihren eigenen Zeilen. Gemessen auf einer neuen Ausschreibung, einmal ohne und einmal mit dem größeren Modell: Es räumte jeden Fehler aus, den das erste übrig ließ, und zusammen kostet es fast das Fünffache. Eine Ausschreibung ist zu wenig, um es einzuschalten; es bleibt aus, bis es auf weiteren gemessen ist.',
+  'measured.b4.alone': 'Erstes Modell allein',
+  'measured.b4.with': 'Mit {model}',
+  'measured.b4.row.queue': 'Positionen für eine Person (erwartet {expected})',
+  'measured.b4.row.cost': 'Kosten',
+  'measured.b4.more':
+    '{usd} $ mehr, für {questions} Fragen zu {positions} Positionen',
   'measured.labor.body':
     'B5: Jede Position bekommt einen Eintrag aus der Zeitwerttabelle des Auftragnehmers. Das Modell schlägt ihn vor, der Code prüft Einheit und Größe und nimmt die Minuten aus der Tabelle. Die Anweisungen wurden einmal geändert, nach den ersten beiden Läufen; Seed 504 ist danach erzeugt und einmal gelesen.',
   'measured.labor.row.settled': 'Ohne Person zugeordnet',
@@ -197,6 +206,12 @@ const de = {
     'Lauf vom {date} mit {model}: {calls} Fragen gelesen, {cached} Antworten lagen schon vor, {usd}\u00a0$.',
   'run.done.replay':
     'Lauf vom {date}: {cached} gespeicherte Antworten von {model} wiedergegeben und jede neu geprüft. Kein Modell wurde gerufen.',
+  'run.done.escalated':
+    '{questions} Fragen zu {positions} Positionen, die das erste Modell nicht klären konnte, las {model} noch einmal; {answered} davon beantwortete es.',
+  'run.escalating.planning':
+    'Alles gelesen. Gesucht wird, was das erste Modell nicht klären konnte.',
+  'run.escalating':
+    'Alles gelesen. {model} liest {questions} Fragen noch einmal, die das erste Modell nicht klären konnte.',
   'run.reading.before': 'Ein Lauf liest gerade die Angebote:',
   'run.replaying.before': 'Die gespeicherten Antworten werden geprüft:',
   'run.reading.after': 'von {total} Positionen.',
@@ -413,6 +428,15 @@ const en: Record<MessageKey, string> = {
   'measured.row.file': 'Files',
   'measured.calls': '{calls} calls, {cached} from the store, {usd} $',
   'measured.labor.title': 'Labor times',
+  'measured.b4.title': 'A larger model',
+  'measured.b4.body':
+    'What the first model could not settle, a larger one reads again, and code checks its answer for each item against that item\u2019s own lines. Measured on a new tender, once without and once with the larger model: it cleared every error the first one left, and together it costs nearly five times as much. One tender is too little to switch it on; it stays off until it is measured on more.',
+  'measured.b4.alone': 'First model alone',
+  'measured.b4.with': 'With {model}',
+  'measured.b4.row.queue': 'Items for a person ({expected} expected)',
+  'measured.b4.row.cost': 'Cost',
+  'measured.b4.more':
+    '{usd} $ more, for {questions} questions on {positions} items',
   'measured.labor.body':
     'B5: every item is given an entry of the contractor\u2019s labor time table. The model proposes it, code checks the unit and the size and takes the minutes from the table. The instructions were changed once, after the first two runs; seed 504 was generated after that and read once.',
   'measured.labor.row.settled': 'Tied to an entry without a person',
@@ -544,6 +568,12 @@ const en: Record<MessageKey, string> = {
     'Run of {date} with {model}: {calls} questions read, {cached} answers were already there, {usd}\u00a0$.',
   'run.done.replay':
     'Run of {date}: {cached} stored answers by {model} read back and each checked again. No model was called.',
+  'run.done.escalated':
+    '{model} read {questions} questions again, for {positions} items the first model could not settle, and answered {answered} of them.',
+  'run.escalating.planning':
+    'Everything is read. Looking for what the first model could not settle.',
+  'run.escalating':
+    'Everything is read. {model} is reading {questions} questions again that the first model could not settle.',
   'run.reading.before': 'A run is reading the offers:',
   'run.replaying.before': 'The stored answers are being checked:',
   'run.reading.after': 'of {total} items.',

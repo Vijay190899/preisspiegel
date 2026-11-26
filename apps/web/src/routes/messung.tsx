@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { formatDate, formatMoney, formatQty, formatShare } from '~/lib/format'
 import { pageTitle, useT } from '~/lib/i18n'
 import {
+  ESCALATION,
   LABOR_RUNS,
   RUNS,
   TRAP_KINDS,
@@ -235,6 +236,7 @@ function Measured() {
       </div>
 
       <LaborRuns />
+      <EscalationRun />
 
       <div className="mt-20 border-t border-line pt-6">
         <p className="caption">{t('app.synthetic')}</p>
@@ -343,6 +345,127 @@ function LaborRuns() {
                   </span>
                 </td>
               ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+/** B4: whether a larger model earns its cost, as its one measured run has it. */
+function EscalationRun() {
+  const t = useT()
+  const run = ESCALATION
+  const columns = [
+    t('measured.b4.alone'),
+    t('measured.b4.with', { model: run.model }),
+  ]
+  const rows: Array<{
+    label: string
+    cell: (side: (typeof run.sides)[number], at: number) => string
+  }> = [
+    {
+      label: t('measured.b4.row.queue', {
+        expected: formatQty(run.expectedReview),
+      }),
+      cell: (side) => formatQty(side.review),
+    },
+    {
+      label: t('measured.row.auto'),
+      cell: (side) =>
+        t('measured.of', {
+          part: formatQty(side.auto),
+          whole: formatQty(run.n),
+        }),
+    },
+    {
+      label: t('measured.row.rightly'),
+      cell: (side) => formatShare(side.autoPrecision),
+    },
+    {
+      label: t('measured.row.euro'),
+      cell: (side) => `${formatMoney(side.euroError)} €`,
+    },
+    {
+      label: t('measured.row.traps'),
+      cell: (side) =>
+        t('measured.of', {
+          part: formatQty(side.trapsCaught),
+          whole: formatQty(side.trapsPlanted),
+        }),
+    },
+    {
+      label: t('measured.row.belong'),
+      cell: (side) => formatShare(side.queuePrecision),
+    },
+    {
+      label: t('measured.b4.row.cost'),
+      cell: (side, at) =>
+        at === 0
+          ? `${formatMoney(side.usd)} $`
+          : t('measured.b4.more', {
+              usd: formatMoney(side.usd),
+              questions: formatQty(run.questions),
+              positions: formatQty(run.positions),
+            }),
+    },
+  ]
+  return (
+    <section className="mt-20" aria-labelledby="escalation-run">
+      <h2 id="escalation-run" className="heading text-[1.75rem]">
+        {t('measured.b4.title')}
+      </h2>
+      <p className="mt-2 max-w-[64ch] text-ink-2">{t('measured.b4.body')}</p>
+      <div
+        className="measure-scroll mt-7"
+        tabIndex={0}
+        role="region"
+        aria-labelledby="escalation-run"
+      >
+        <table className="measure">
+          <thead>
+            <tr>
+              <td />
+              {columns.map((column, at) => (
+                <th
+                  key={column}
+                  scope="col"
+                  data-lead={at === 0 ? '' : undefined}
+                >
+                  {column}
+                  <span className="caption block font-normal">
+                    {t('measured.seed', { seed: run.seed })}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label}>
+                <th scope="row">{row.label}</th>
+                {run.sides.map((side, at) => (
+                  <td
+                    key={at}
+                    className="num"
+                    data-lead={at === 0 ? '' : undefined}
+                  >
+                    {row.cell(side, at)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">{t('measured.row.file')}</th>
+              <td colSpan={2}>
+                <span className="code">{run.file}</span>
+                <span className="caption block">
+                  {run.sides[0]?.gitSha}, {formatDate(run.date)}
+                </span>
+              </td>
             </tr>
           </tfoot>
         </table>

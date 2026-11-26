@@ -640,6 +640,27 @@ async function main(): Promise<void> {
           .getAttribute('aria-current')) === 'page',
       { leads, firstColumn },
     )
+    // B4: the larger model's run beside the matcher's, as its file has it.
+    const b4 = JSON.parse(
+      readFileSync('bench/results/b4-90200/b4_escalation.json', 'utf8'),
+    ) as {
+      matcher: { review: number }
+      escalation: { review: number }
+      cost: { larger: { usd: number } }
+    }
+    const escalation = page.locator('section[aria-labelledby="escalation-run"]')
+    const queueRow = (
+      await escalation.locator('tbody tr').first().innerText()
+    ).replace(/\s+/g, ' ')
+    check(
+      'the measured page shows the larger model\u2019s run beside the matcher\u2019s, with what it cost, as its file has it',
+      queueRow.includes(` ${b4.matcher.review} `) &&
+        queueRow.trim().endsWith(String(b4.escalation.review)) &&
+        (await escalation.innerText()).includes(
+          `${b4.cost.larger.usd.toFixed(2).replace('.', ',')} $ mehr`,
+        ),
+      queueRow,
+    )
 
     console.log('Reading again')
     await open(page, `${base}/`, { waitUntil: 'networkidle' })

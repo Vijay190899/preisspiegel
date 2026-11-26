@@ -11,6 +11,7 @@ import type { Refusal } from '~/lib/useRun'
 export const isUnderWay = (run: RunSummary): boolean =>
   run.status === 'preparing' ||
   run.status === 'reading' ||
+  run.status === 'escalating' ||
   run.status === 'deciding'
 
 /**
@@ -27,6 +28,15 @@ export function Reading({ run }: { run: RunSummary }) {
       <p className="statement">
         {run.status === 'deciding' ? (
           t('run.deciding')
+        ) : run.status === 'escalating' ? (
+          run.escalation === null ? (
+            t('run.escalating.planning')
+          ) : (
+            t('run.escalating', {
+              questions: formatQty(run.escalation.questions),
+              model: run.escalation.model,
+            })
+          )
         ) : (
           <>
             {t(
@@ -49,7 +59,15 @@ export function Reading({ run }: { run: RunSummary }) {
         <motion.div
           className="h-full origin-left rounded-full bg-lamp"
           initial={false}
-          animate={{ scaleX: run.status === 'deciding' ? 1 : share }}
+          animate={{
+            scaleX:
+              run.status === 'deciding'
+                ? 1
+                : run.status === 'escalating'
+                  ? (run.escalation?.read ?? 0) /
+                    Math.max(1, run.escalation?.questions ?? 1)
+                  : share,
+          }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         />
       </div>
@@ -100,6 +118,17 @@ export function RunLine({
             cached: formatQty(shown.cached),
             usd: formatMoney(shown.usd),
           })}
+          {shown.escalation !== null && shown.escalation.questions > 0 && (
+            <>
+              {' '}
+              {t('run.done.escalated', {
+                model: shown.escalation.model,
+                questions: formatQty(shown.escalation.questions),
+                positions: formatQty(shown.escalation.positions),
+                answered: formatQty(shown.escalation.answered),
+              })}
+            </>
+          )}
         </p>
       )}
       <LiveRun />
