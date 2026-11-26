@@ -1,8 +1,8 @@
 {
   "benchmark": "B3",
   "question": "Is every number shown for an offer at the place it says it came from?",
-  "generatedAt": "2026-11-26T15:17:28.506Z",
-  "gitSha": "0cc50c4-dirty",
+  "generatedAt": "2026-11-26T15:50:53.439Z",
+  "gitSha": "2289fbc",
   "seed": 90200,
   "n": 1170,
   "offerLines": 1705,
@@ -12,11 +12,11 @@
     "escalation": "claude-sonnet-5-5"
   },
   "run": {
-    "id": "kh74f2apb1a1pb6ekg2qs9wj618jznxf",
-    "calls": 84,
+    "id": "kh783apmf6xk5g6p70780b8ss18jyeb9",
+    "calls": 0,
     "answeredFromCache": 1103,
     "failed": 0,
-    "usd": 0.8991,
+    "usd": 0,
     "escalation": {
       "questions": 84,
       "positions": 104,
@@ -24,10 +24,10 @@
       "capped": 0,
       "answered": 84,
       "failed": 0,
-      "calls": 84,
-      "usd": 0.8991
+      "calls": 0,
+      "usd": 0
     },
-    "seconds": 69
+    "seconds": 3
   },
   "result": {
     "checked": 6576,

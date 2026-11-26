@@ -1,8 +1,8 @@
 {
   "benchmark": "B2",
   "question": "Was each planted trap found on its line, and does the review queue hold what it should?",
-  "generatedAt": "2026-11-26T15:17:28.506Z",
-  "gitSha": "0cc50c4-dirty",
+  "generatedAt": "2026-11-26T15:50:53.439Z",
+  "gitSha": "2289fbc",
   "seed": 90200,
   "n": 1170,
   "offerLines": 1705,
@@ -12,11 +12,11 @@
     "escalation": "claude-sonnet-5-5"
   },
   "run": {
-    "id": "kh74f2apb1a1pb6ekg2qs9wj618jznxf",
-    "calls": 84,
+    "id": "kh783apmf6xk5g6p70780b8ss18jyeb9",
+    "calls": 0,
     "answeredFromCache": 1103,
     "failed": 0,
-    "usd": 0.8991,
+    "usd": 0,
     "escalation": {
       "questions": 84,
       "positions": 104,
@@ -24,10 +24,10 @@
       "capped": 0,
       "answered": 84,
       "failed": 0,
-      "calls": 84,
-      "usd": 0.8991
+      "calls": 0,
+      "usd": 0
     },
-    "seconds": 69
+    "seconds": 3
   },
   "result": {
     "traps": {
@@ -70,8 +70,8 @@
     "reviewFound": 111,
     "reviewFoundForReason": 111,
     "queueRecall": 1,
-    "reviewRaised": 118,
-    "queuePrecision": 0.9407
+    "reviewRaised": 111,
+    "queuePrecision": 1
   },
   "references": {
     "noReader": {
@@ -149,69 +149,5 @@
       "trapsCaught": 60
     }
   },
-  "disagreements": [
-    {
-      "oz": "06.02.0050",
-      "expected": "auto",
-      "got": "review",
-      "expectedReasons": [],
-      "gotReasons": [
-        "QTY_MISMATCH"
-      ]
-    },
-    {
-      "oz": "06.03.0050",
-      "expected": "auto",
-      "got": "review",
-      "expectedReasons": [],
-      "gotReasons": [
-        "QTY_MISMATCH"
-      ]
-    },
-    {
-      "oz": "06.05.0040",
-      "expected": "auto",
-      "got": "review",
-      "expectedReasons": [],
-      "gotReasons": [
-        "QTY_MISMATCH"
-      ]
-    },
-    {
-      "oz": "06.05.0050",
-      "expected": "auto",
-      "got": "review",
-      "expectedReasons": [],
-      "gotReasons": [
-        "QTY_MISMATCH"
-      ]
-    },
-    {
-      "oz": "06.06.0010",
-      "expected": "auto",
-      "got": "review",
-      "expectedReasons": [],
-      "gotReasons": [
-        "QTY_MISMATCH"
-      ]
-    },
-    {
-      "oz": "06.07.0130",
-      "expected": "auto",
-      "got": "review",
-      "expectedReasons": [],
-      "gotReasons": [
-        "QTY_MISMATCH"
-      ]
-    },
-    {
-      "oz": "07.05.0210",
-      "expected": "auto",
-      "got": "review",
-      "expectedReasons": [],
-      "gotReasons": [
-        "QTY_MISMATCH"
-      ]
-    }
-  ]
+  "disagreements": []
 }

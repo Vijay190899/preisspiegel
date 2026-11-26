@@ -1,8 +1,8 @@
 {
   "benchmark": "B2",
   "question": "Was each planted trap found on its line, and does the review queue hold what it should?",
-  "generatedAt": "2026-11-26T15:16:08.450Z",
-  "gitSha": "0cc50c4-dirty",
+  "generatedAt": "2026-11-26T15:50:40.131Z",
+  "gitSha": "2289fbc",
   "seed": 90200,
   "n": 1170,
   "offerLines": 1705,
@@ -12,13 +12,13 @@
     "escalation": null
   },
   "run": {
-    "id": "kh7bg4mawthy64qmvg07n5xbw98jzakd",
-    "calls": 502,
-    "answeredFromCache": 601,
+    "id": "kh7a8y1b25qrh62fhshj4deeys8jzb2d",
+    "calls": 0,
+    "answeredFromCache": 1103,
     "failed": 0,
-    "usd": 0.2399,
+    "usd": 0,
     "escalation": null,
-    "seconds": 297
+    "seconds": 3
   },
   "result": {
     "traps": {
