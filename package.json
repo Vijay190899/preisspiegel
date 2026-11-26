@@ -21,6 +21,7 @@
     "bench:heldout": "tsx bench/src/heldOut.ts",
     "bench:seeds": "tsx bench/src/seeds.ts",
     "bench:labor": "tsx bench/src/labor.ts",
+    "bench:escalation": "tsx bench/src/escalation.ts",
     "env:push": "tsx scripts/pushEnv.ts",
     "prod": "tsx scripts/prod.ts",
     "demo:reset": "pnpm -C services/backend exec convex run demo:reset",

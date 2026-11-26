@@ -38,4 +38,14 @@ export interface RunRow {
   materialTotal: number | null
   atRisk: number | null
   note: string | null
+  escalation?: {
+    model: string
+    items: Array<{ key: string; seqs: Array<number> }>
+    unsettled: number
+    capped: number
+    answered: number
+    failed: number
+    calls: number
+    usd: number
+  }
 }

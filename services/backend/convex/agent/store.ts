@@ -13,7 +13,7 @@ import {
   rawJudgement,
   reasonCode,
 } from '../schema'
-import type { Id } from '../_generated/dataModel'
+import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 
 const eventInput = v.object({
@@ -164,9 +164,16 @@ export async function runUnderWay(
     newest !== null &&
     (newest.status === 'preparing' ||
       newest.status === 'reading' ||
+      newest.status === 'escalating' ||
       newest.status === 'deciding')
   )
 }
+
+/**
+ * How far a run has come: positions read, then questions read again. The
+ * watchdog fails a run whose progress stands still.
+ */
+const progress = (run: Doc<'runs'>) => run.cursor + (run.escalation?.next ?? 0)
 
 /**
  * The watchdog. A step that dies without throwing (the deployment restarts,
@@ -187,7 +194,7 @@ export const watch = internalMutation({
     ) {
       return null
     }
-    if (current.status === status && current.cursor === cursor) {
+    if (current.status === status && progress(current) === cursor) {
       const note = `No progress in ${WATCH_MS / 60000} minutes: a step did not come back.`
       const nextEvent = await appendEvents(ctx, runId, current.nextEvent, [
         { kind: 'run.failed', data: { note } },
@@ -203,7 +210,7 @@ export const watch = internalMutation({
     await ctx.scheduler.runAfter(WATCH_MS, internal.agent.store.watch, {
       runId,
       status: current.status,
-      cursor: current.cursor,
+      cursor: progress(current),
     })
     return null
   },
@@ -389,6 +396,7 @@ export const setStatus = internalMutation({
   args: {
     runId: v.id('runs'),
     status: v.union(
+      v.literal('escalating'),
       v.literal('deciding'),
       v.literal('stopped'),
       v.literal('failed'),
@@ -405,7 +413,9 @@ export const setStatus = internalMutation({
       status,
       note,
       nextEvent,
-      ...(status === 'deciding' ? {} : { finishedAt: Date.now() }),
+      ...(status === 'deciding' || status === 'escalating'
+        ? {}
+        : { finishedAt: Date.now() }),
     })
     return null
   },
@@ -595,5 +605,195 @@ export const reset = internalMutation({
       before: cutoff,
     })
     return { done: false }
+  },
+})
+
+// --- The second reading ----------------------------------------------------
+
+/** Each position's verified reading with its question's key, a page at a time. */
+export const readOutcomes = internalQuery({
+  args: { runId: v.id('runs'), fromSeq: v.number(), limit: v.number() },
+  handler: async (ctx, { runId, fromSeq, limit }) => {
+    const rows = await ctx.db
+      .query('judgements')
+      .withIndex('by_runId_and_seq', (q) =>
+        q.eq('runId', runId).gte('seq', fromSeq),
+      )
+      .take(limit)
+    const asked = await ctx.db
+      .query('questions')
+      .withIndex('by_runId_and_seq', (q) =>
+        q.eq('runId', runId).gte('seq', fromSeq),
+      )
+      .take(limit)
+    const keyOf = new Map(asked.map((question) => [question.seq, question.key]))
+    return rows.map((row) => ({
+      seq: row.seq,
+      key: keyOf.get(row.seq) ?? '',
+      source: row.source,
+      judgements: row.judgements.map(({ verdict, by }) => ({ verdict, by })),
+    }))
+  },
+})
+
+/** Stores which questions go to the escalation model. Once per run. */
+export const planEscalation = internalMutation({
+  args: {
+    runId: v.id('runs'),
+    model: v.string(),
+    items: v.array(v.object({ key: v.string(), seqs: v.array(v.number()) })),
+    unsettled: v.number(),
+    capped: v.number(),
+  },
+  handler: async (ctx, { runId, model, items, unsettled, capped }) => {
+    const current = await ctx.db.get('runs', runId)
+    if (
+      current === null ||
+      current.status !== 'escalating' ||
+      current.escalation !== undefined
+    ) {
+      return null
+    }
+    const nextEvent = await appendEvents(ctx, runId, current.nextEvent, [
+      {
+        kind: 'escalation.planned',
+        data: {
+          model,
+          questions: items.length,
+          positions: items.reduce((sum, item) => sum + item.seqs.length, 0),
+          unsettled,
+          capped,
+        },
+      },
+    ])
+    await ctx.db.patch('runs', runId, {
+      nextEvent,
+      escalation: {
+        model,
+        items,
+        unsettled,
+        capped,
+        next: 0,
+        answered: 0,
+        failed: 0,
+        calls: 0,
+        usd: 0,
+      },
+    })
+    return null
+  },
+})
+
+/** The questions at these positions, as the model was shown them. */
+export const questionsAt = internalQuery({
+  args: { runId: v.id('runs'), seqs: v.array(v.number()) },
+  handler: async (ctx, { runId, seqs }) => {
+    const found = []
+    for (const seq of seqs.slice(0, 100)) {
+      const row = await ctx.db
+        .query('questions')
+        .withIndex('by_runId_and_seq', (q) =>
+          q.eq('runId', runId).eq('seq', seq),
+        )
+        .unique()
+      if (row === null) continue
+      const { _id, _creationTime, runId: _run, ...question } = row
+      found.push(question)
+    }
+    return found
+  },
+})
+
+/**
+ * Stores what the escalation model said for a batch of questions: its
+ * verified answer replaces the matcher's for every position that asked, and
+ * the run moves on. One transaction; a step that runs twice stores nothing
+ * the second time.
+ */
+export const saveEscalation = internalMutation({
+  args: {
+    runId: v.id('runs'),
+    from: v.number(),
+    to: v.number(),
+    results: v.array(
+      v.object({ seqs: v.array(v.number()), judgements: v.array(judgement) }),
+    ),
+    failed: v.number(),
+    cache: v.array(
+      v.object({
+        key: v.string(),
+        model: v.string(),
+        answer: v.array(rawJudgement),
+      }),
+    ),
+    entries: v.array(ledgerEntry),
+    events: v.array(eventInput),
+  },
+  handler: async (ctx, args) => {
+    const current = await ctx.db.get('runs', args.runId)
+    const state = current?.escalation
+    if (
+      current === null ||
+      state === undefined ||
+      current.status !== 'escalating' ||
+      state.next !== args.from
+    ) {
+      return { stored: false, done: false }
+    }
+
+    for (const result of args.results) {
+      for (const seq of result.seqs) {
+        const row = await ctx.db
+          .query('judgements')
+          .withIndex('by_runId_and_seq', (q) =>
+            q.eq('runId', args.runId).eq('seq', seq),
+          )
+          .unique()
+        if (row === null) continue
+        await ctx.db.patch('judgements', row._id, {
+          source: 'escalated',
+          judgements: result.judgements,
+        })
+      }
+    }
+    const at = Date.now()
+    for (const entry of args.cache) {
+      const existing = await ctx.db
+        .query('matchCache')
+        .withIndex('by_key', (q) => q.eq('key', entry.key))
+        .first()
+      if (existing === null) await ctx.db.insert('matchCache', { ...entry, at })
+    }
+
+    // The calls are on the ledger already, each as it returned (`run.ts`).
+    const usd = args.entries.reduce((sum, entry) => sum + entry.usd, 0)
+    const nextEvent = await appendEvents(ctx, args.runId, current.nextEvent, [
+      ...args.events,
+      {
+        kind: 'batch.escalated',
+        data: {
+          from: args.from,
+          to: args.to,
+          calls: args.entries.length,
+          answered: args.results.length,
+          failed: args.failed,
+          usd,
+        },
+      },
+    ])
+    await ctx.db.patch('runs', args.runId, {
+      nextEvent,
+      calls: current.calls + args.entries.length,
+      usd: current.usd + usd,
+      escalation: {
+        ...state,
+        next: args.to,
+        answered: state.answered + args.results.length,
+        failed: state.failed + args.failed,
+        calls: state.calls + args.entries.length,
+        usd: state.usd + usd,
+      },
+    })
+    return { stored: true, done: args.to >= state.items.length }
   },
 })

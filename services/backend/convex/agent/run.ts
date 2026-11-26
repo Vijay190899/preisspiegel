@@ -5,14 +5,22 @@
  * 2. `read` takes the next batch of positions, has the model read the ones
  *    nobody has read before, checks every answer against its sources, and
  *    stores the batch in one transaction. Then it schedules itself again.
- * 3. `decide` runs the checks and the triage over everything that was read.
+ * 3. `escalate`, only where the escalation role has a model: the questions
+ *    the matcher could not settle are read again by that larger model, and
+ *    its verified answer replaces the first (`planEscalation` in core).
+ * 4. `decide` runs the checks and the triage over everything that was read.
  *
  * Each step is scheduled by the one before it, so a run survives a restart
  * of the deployment and a step can fail without losing the steps before.
  * A step that runs twice writes nothing the second time. Every model call
  * is on the ledger, and the run stops by itself when a budget is reached.
  */
-import { buildQuestions, triage, verifyAnswer } from '@preisspiegel/core'
+import {
+  buildQuestions,
+  planEscalation,
+  triage,
+  verifyAnswer,
+} from '@preisspiegel/core'
 import { v } from 'convex/values'
 import { internal } from '../_generated/api'
 import { internalAction, internalMutation } from '../_generated/server'
@@ -206,12 +214,7 @@ export const read = internalAction({
       })
       if (plan === null || plan.status !== 'reading') return
       if (plan.questions.length === 0) {
-        await ctx.runMutation(internal.agent.store.setStatus, {
-          runId,
-          status: 'deciding',
-          note: null,
-        })
-        await ctx.scheduler.runAfter(0, internal.agent.run.decide, { runId })
+        await afterReading(ctx, runId)
         return
       }
 
@@ -369,12 +372,7 @@ export const read = internalAction({
       })
       if (!saved.stored) return
       if (saved.done) {
-        await ctx.runMutation(internal.agent.store.setStatus, {
-          runId,
-          status: 'deciding',
-          note: null,
-        })
-        await ctx.scheduler.runAfter(0, internal.agent.run.decide, { runId })
+        await afterReading(ctx, runId)
       } else {
         await ctx.scheduler.runAfter(
           replay ? REPLAY_PACE_MS : 0,
@@ -382,6 +380,213 @@ export const read = internalAction({
           { runId },
         )
       }
+    }),
+})
+
+/** Questions the escalation model reads per step. */
+const ESCALATION_BATCH = 8
+
+/** On to the second reading if the escalation role is on, else to deciding. */
+async function afterReading(ctx: ActionCtx, runId: Id<'runs'>): Promise<void> {
+  const escalating = roleModel('escalation') !== null
+  await ctx.runMutation(internal.agent.store.setStatus, {
+    runId,
+    status: escalating ? 'escalating' : 'deciding',
+    note: null,
+  })
+  await ctx.scheduler.runAfter(
+    0,
+    escalating ? internal.agent.run.escalate : internal.agent.run.decide,
+    { runId },
+  )
+}
+
+async function toDeciding(ctx: ActionCtx, runId: Id<'runs'>): Promise<void> {
+  await ctx.runMutation(internal.agent.store.setStatus, {
+    runId,
+    status: 'deciding',
+    note: null,
+  })
+  await ctx.scheduler.runAfter(0, internal.agent.run.decide, { runId })
+}
+
+/**
+ * The second reading. The first step plans which questions go to the larger
+ * model; every step after reads a batch of them. A question it cannot answer
+ * keeps the matcher's answer, and its positions go to a person as before.
+ */
+export const escalate = internalAction({
+  args: { runId: v.id('runs') },
+  handler: (ctx, { runId }): Promise<null> =>
+    guarded(ctx, runId, async () => {
+      const current = await ctx.runQuery(internal.agent.store.run, { runId })
+      if (current === null || current.status !== 'escalating') return
+      const model = roleModel('escalation')
+
+      if (current.escalation === undefined) {
+        if (model === null) {
+          await toDeciding(ctx, runId)
+          return
+        }
+        const rows = []
+        for (let fromSeq = 0; ; fromSeq += PAGE) {
+          const page = await ctx.runQuery(internal.agent.store.readOutcomes, {
+            runId,
+            fromSeq,
+            limit: PAGE,
+          })
+          rows.push(...page)
+          if (page.length < PAGE) break
+        }
+        const plan = planEscalation(rows)
+        await ctx.runMutation(internal.agent.store.planEscalation, {
+          runId,
+          model,
+          ...plan,
+        })
+        await ctx.scheduler.runAfter(0, internal.agent.run.escalate, { runId })
+        return
+      }
+
+      const state = current.escalation
+      if (state.next >= state.items.length) {
+        await toDeciding(ctx, runId)
+        return
+      }
+      const replay = current.mode === 'replay'
+      if (!replay) {
+        const limits = spendLimits()
+        const day = await ctx.runQuery(internal.llm.ledger.spentOn, {
+          day: utcDay(Date.now()),
+        })
+        const over =
+          current.usd >= limits.runUsd
+            ? `The run reached its budget of ${limits.runUsd} USD.`
+            : day.usd >= limits.dailyUsd
+              ? `Model spend for today reached ${limits.dailyUsd} USD.`
+              : null
+        if (over !== null) {
+          await ctx.runMutation(internal.agent.store.setStatus, {
+            runId,
+            status: 'stopped',
+            note: over,
+          })
+          return
+        }
+      }
+
+      const to = Math.min(state.next + ESCALATION_BATCH, state.items.length)
+      const batch = state.items.slice(state.next, to)
+      const shown: Array<Question & { seq: number; key: string }> =
+        await ctx.runQuery(internal.agent.store.questionsAt, {
+          runId,
+          seqs: batch.map((item) => item.seqs[0] ?? -1),
+        })
+      const bySeq = new Map(shown.map((question) => [question.seq, question]))
+      const keyed = await Promise.all(
+        batch.map(async (item) => {
+          const question = bySeq.get(item.seqs[0] ?? -1)
+          return question === undefined
+            ? null
+            : { item, question, key: await questionKey(question, state.model) }
+        }),
+      )
+      const work = keyed.filter((entry) => entry !== null)
+      const stored = new Map<string, Array<RawJudgement>>(
+        (
+          await ctx.runQuery(internal.agent.store.cachedAnswers, {
+            keys: work.map((entry) => entry.key),
+          })
+        ).map((hit) => [hit.key, hit.answer]),
+      )
+
+      const entries: Array<LedgerEntry> = []
+      const events: Array<RunEvent> = []
+      const cache: Array<{
+        key: string
+        model: string
+        answer: Array<RawJudgement>
+      }> = []
+      let failed = 0
+      const results = await sideBySide(
+        work,
+        SIDE_BY_SIDE,
+        async ({ item, question, key }) => {
+          let answer = stored.get(key)
+          if (answer === undefined && !replay) {
+            const outcome = await llmCall({
+              role: 'escalation',
+              system: SYSTEM,
+              user: renderQuestion(question),
+              schema: answerSchema,
+              maxTokens: 16000,
+              runId,
+            })
+            if (outcome?.entry != null) {
+              await ctx.runMutation(internal.llm.ledger.recordMany, {
+                entries: [outcome.entry],
+              })
+              entries.push(outcome.entry)
+            }
+            if (outcome !== null && outcome.result.ok) {
+              answer = outcome.result.value.lines
+              cache.push({ key, model: state.model, answer })
+            } else {
+              events.push({
+                kind: 'escalation.failed',
+                data: {
+                  oz: question.oz,
+                  reason:
+                    outcome === null
+                      ? 'role off'
+                      : outcome.result.ok
+                        ? 'unknown'
+                        : outcome.result.reason,
+                },
+              })
+            }
+          }
+          if (answer === undefined) {
+            failed++
+            return null
+          }
+          const judgements: Array<Judgement> = verifyAnswer(
+            question,
+            withLineIds(question, answer),
+          )
+          events.push({
+            kind: 'escalated',
+            data: {
+              oz: question.oz,
+              positions: item.seqs.length,
+              confirmed: judgements.filter((j) => j.verdict === 'confirmed')
+                .length,
+              unconfirmed: judgements.filter((j) => j.verdict === 'unconfirmed')
+                .length,
+            },
+          })
+          return { seqs: item.seqs, judgements }
+        },
+      )
+
+      const saved = await ctx.runMutation(internal.agent.store.saveEscalation, {
+        runId,
+        from: state.next,
+        to,
+        results: results.filter((result) => result !== null),
+        failed: failed + (batch.length - work.length),
+        cache,
+        entries,
+        events,
+      })
+      if (!saved.stored) return
+      if (saved.done) await toDeciding(ctx, runId)
+      else
+        await ctx.scheduler.runAfter(
+          replay ? REPLAY_PACE_MS : 0,
+          internal.agent.run.escalate,
+          { runId },
+        )
     }),
 })
 
