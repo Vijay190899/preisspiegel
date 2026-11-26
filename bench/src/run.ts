@@ -41,9 +41,14 @@ function gitSha(): string {
     encoding: 'utf8',
   }).trim()
   const dirty =
-    execFileSync('git', ['status', '--porcelain'], {
-      encoding: 'utf8',
-    }).trim() !== ''
+    // Results the benchmarks write themselves do not make the code dirty.
+    execFileSync(
+      'git',
+      ['status', '--porcelain', '--', '.', ':!bench/results'],
+      {
+        encoding: 'utf8',
+      },
+    ).trim() !== ''
   return dirty ? `${sha}-dirty` : sha
 }
 
